@@ -69,10 +69,13 @@ struct RaceOverlay: View {
     var body: some View {
         ZStack {
             racingHUD
-                .opacity(hud.summary == nil ? 1 : 0)
-                .allowsHitTesting(hud.summary == nil)
+                .opacity(hud.summary == nil && !hud.showsPanel ? 1 : 0)
+                .allowsHitTesting(hud.summary == nil && !hud.showsPanel)
 
-            if let summary = hud.summary {
+            if hud.showsColors {
+                Color.black.opacity(0.35).ignoresSafeArea()
+                LiveryPicker(livery: Livery.shared, onDone: { hud.showsColors = false })
+            } else if let summary = hud.summary {
                 SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
                                    onTracks: hud.onExit)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -122,6 +125,11 @@ struct RaceOverlay: View {
                         } label: {
                             Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
                                   systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                        }
+                        Button {
+                            hud.showsColors = true
+                        } label: {
+                            Label("Car colors", systemImage: "paintpalette")
                         }
                         Button(role: .destructive) {
                             hud.onForgetBest()
@@ -187,7 +195,7 @@ struct RaceOverlay: View {
             if let rivalTime = hud.rivalTime {
                 // The gold ghost: who you're chasing.
                 HStack(spacing: 6) {
-                    row("RIVAL", rivalTime, color: Color(red: 1, green: 0.78, blue: 0.2))
+                    row("RIVAL", rivalTime, color: Livery.shared.paint(for: .rival).labelColor)
                     if let name = hud.rivalName {
                         Text(name).font(.system(size: 12, weight: .semibold, design: .rounded)).opacity(0.75)
                     }
@@ -285,6 +293,9 @@ struct MiniMap: View {
         let car = hud.carMarker
         let ghost = hud.ghostMarker
         let rival = hud.rivalMarker
+        let livery = Livery.shared
+        let colors = (car: livery.paint(for: .car).labelColor, best: livery.paint(for: .best).labelColor,
+                      rival: livery.paint(for: .rival).labelColor)
         let outline = hud.mapOutline
         // Fits the circuit in a 170 × 100 box, so tall circuits don't push the buttons down.
         let width = min(170, 100 * hud.mapAspect)
@@ -298,10 +309,10 @@ struct MiniMap: View {
                                   width: radius * 2, height: radius * 2)
                 context.fill(Path(ellipseIn: rect), with: .color(color))
             }
-            if let rival { dot(rival, radius: 3.5, color: Color(red: 1, green: 0.78, blue: 0.2)) }
-            if let ghost { dot(ghost, radius: 3.5, color: Color(red: 0.3, green: 0.8, blue: 1)) }
+            if let rival { dot(rival, radius: 3.5, color: colors.rival) }
+            if let ghost { dot(ghost, radius: 3.5, color: colors.best) }
             dot(car, radius: 5, color: .white)
-            dot(car, radius: 3.5, color: Color(red: 0.95, green: 0.15, blue: 0.1))
+            dot(car, radius: 3.5, color: colors.car)
         }
         .frame(width: width, height: width / hud.mapAspect)
         .padding(8)
@@ -460,6 +471,7 @@ struct StandingChart: View {
     var body: some View {
         let histogram = standing.histogram
         let counts = histogram.counts
+        let yourColor = Livery.shared.paint(for: .car).labelColor
         Canvas { context, size in
             guard let tallest = counts.max(), tallest > 0 else { return }
             let markerRoom: CGFloat = 14, axisRoom: CGFloat = 16, gap: CGFloat = 2
@@ -472,7 +484,7 @@ struct StandingChart: View {
                 let rect = CGRect(x: CGFloat(i) * (barWidth + gap), y: markerRoom + plotHeight - height,
                                   width: barWidth, height: height)
                 let bar = UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2).path(in: rect)
-                context.fill(bar, with: .color(i == yours ? Color(red: 0.95, green: 0.2, blue: 0.15)
+                context.fill(bar, with: .color(i == yours ? yourColor
                                                            : .white.opacity(0.32)))
             }
             // Baseline.

@@ -18,7 +18,7 @@ struct TrackLayout {
     var name: String
     /// A line for the track list: what kind of driving the circuit asks for.
     var summary: String
-    /// The direction (degrees, anticlockwise from east) the first segment runs, so the circuit sits on the map the
+    /// The direction (degrees, counterclockwise from east) the first segment runs, so the circuit sits on the map the
     /// way it was drawn. It turns the whole circuit and changes nothing about how it drives.
     var startHeading: Double = 0
     var segments: [TrackSegment]
@@ -45,7 +45,7 @@ struct TrackLayout {
 extension TrackLayout {
     /// Every circuit, in the track list's order. The lap service only accepts these boards (BrightBench's
     /// `apexBoards`), so add a new circuit's board there before it ships.
-    static let all: [TrackLayout] = [.ardennes, .swirl, .snake, .mirage, .island, .harbour]
+    static let all: [TrackLayout] = [.ardennes, .swirl, .snake, .mirage, .island, .harbor]
 
     static func named(_ id: String) -> TrackLayout? { all.first { $0.id == id } }
 
@@ -95,7 +95,7 @@ extension TrackLayout {
         sectorStarts: [11, 23]
     )
 
-    /// A hairpin at the top of the hill, esses across the top, a stadium section and a three-apex swirl. Anticlockwise.
+    /// A hairpin at the top of the hill, esses across the top, a stadium section and a three-apex swirl. Counterclockwise.
     static let swirl = TrackLayout(
         id: "swirl",
         revision: 1,
@@ -139,7 +139,7 @@ extension TrackLayout {
         sectorStarts: [10, 19]
     )
 
-    /// A double right into esses up the hill, a hairpin, a fast sweep and a chicane. Anticlockwise.
+    /// A double right into esses up the hill, a hairpin, a fast sweep and a chicane. Counterclockwise.
     static let snake = TrackLayout(
         id: "snake",
         revision: 1,
@@ -183,7 +183,7 @@ extension TrackLayout {
         sectorStarts: [10, 19]
     )
 
-    /// Desert speed: a long straight into a hairpin, an angular stadium climb and a hairpin at the top. Anticlockwise.
+    /// Desert speed: a long straight into a hairpin, an angular stadium climb and a hairpin at the top. Counterclockwise.
     static let mirage = TrackLayout(
         id: "mirage",
         revision: 1,
@@ -219,7 +219,7 @@ extension TrackLayout {
         sectorStarts: [4, 16]
     )
 
-    /// Long and narrow: chicanes down both sides and a hairpin at the far end. Anticlockwise.
+    /// Long and narrow: chicanes down both sides and a hairpin at the far end. Counterclockwise.
     static let island = TrackLayout(
         id: "island",
         revision: 1,
@@ -258,10 +258,10 @@ extension TrackLayout {
     )
 
     /// Streets by the water: a climb, a hairpin, a curving tunnel and a swimming-pool wiggle. Clockwise.
-    static let harbour = TrackLayout(
-        id: "harbour",
+    static let harbor = TrackLayout(
+        id: "harbor",
         revision: 1,
-        name: "Harbour",
+        name: "Harbor",
         summary: "Streets by the water: a climb, a hairpin, a curving tunnel and a swimming-pool wiggle.",
         startHeading: 7.1,
         segments: [

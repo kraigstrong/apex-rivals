@@ -12,7 +12,7 @@ enum TrackArt {
     enum Depth {
         static let grass: CGFloat = -100
         static let asphalt: CGFloat = 2
-        static let kerbs: CGFloat = 3
+        static let curbs: CGFloat = 3
         static let paint: CGFloat = 4
         static let walls: CGFloat = 5
         static let skids: CGFloat = 6
@@ -26,28 +26,27 @@ enum TrackArt {
 
     static let asphalt = SKColor(red: 0.27, green: 0.28, blue: 0.30, alpha: 1)
     static let grassColor = SKColor(red: 0.30, green: 0.52, blue: 0.26, alpha: 1)
-    static let kerbRed = SKColor(red: 0.86, green: 0.13, blue: 0.13, alpha: 1)
-    static let kerbWhite = SKColor(white: 0.96, alpha: 1)
+    static let curbRed = SKColor(red: 0.86, green: 0.13, blue: 0.13, alpha: 1)
+    static let curbWhite = SKColor(white: 0.96, alpha: 1)
     static let wall = SKColor(red: 0.80, green: 0.82, blue: 0.86, alpha: 1)
-    static let livery = SKColor(red: 0.90, green: 0.12, blue: 0.10, alpha: 1)
 
     /// Length of track in each drawn piece. Pieces off screen are culled.
     private static let chunkLength = 240.0
     /// Samples between the points of a drawn edge.
     private static let edgeStep = 3
-    private static let kerbWidth = 12.0
-    private static let kerbBlock = 20.0
+    private static let curbWidth = 12.0
+    private static let curbBlock = 20.0
     /// The white line's offset in from each wall.
     private static let lineInset = 15.0
 
     // MARK: The circuit
 
-    /// The circuit in pieces of `chunkLength`, each with its own asphalt, paint, walls and kerbs. SpriteKit doesn't
+    /// The circuit in pieces of `chunkLength`, each with its own asphalt, paint, walls and curbs. SpriteKit doesn't
     /// cull these shapes on its own, so the scene hides the pieces the camera can't see (`TrackPiece.frame`).
     static func circuit(_ track: Track) -> [TrackPiece] {
         let half = track.width / 2
         let samples = max(1, Int(chunkLength / track.spacing))
-        let kerbThreshold = 1 / RaceTuning.kerbRadius
+        let curbThreshold = 1 / RaceTuning.curbRadius
         var pieces: [TrackPiece] = []
 
         var start = 0
@@ -72,17 +71,17 @@ enum TrackArt {
             piece.addChild(shape(paint, stroke: SKColor(white: 1, alpha: 0.85), width: 2.5, depth: Depth.paint))
             piece.addChild(shape(walls, stroke: wall, width: 6, depth: Depth.walls))
 
-            // Red and white kerb blocks along both edges wherever the track is cornering.
+            // Red and white curb blocks along both edges wherever the track is cornering.
             let red = CGMutablePath(), white = CGMutablePath()
-            let firstBlock = Int((Double(start) * track.spacing / kerbBlock).rounded(.up))
+            let firstBlock = Int((Double(start) * track.spacing / curbBlock).rounded(.up))
             var block = firstBlock
-            while Double(block) * kerbBlock < Double(end) * track.spacing {
-                let s0 = Double(block) * kerbBlock
-                if abs(track.curvature(at: s0 + kerbBlock / 2)) > kerbThreshold {
-                    let along = Array(stride(from: s0, through: s0 + kerbBlock, by: 5))
+            while Double(block) * curbBlock < Double(end) * track.spacing {
+                let s0 = Double(block) * curbBlock
+                if abs(track.curvature(at: s0 + curbBlock / 2)) > curbThreshold {
+                    let along = Array(stride(from: s0, through: s0 + curbBlock, by: 5))
                     for side in [1.0, -1.0] {
                         let outer = along.map { track.point(s: $0, n: side * half) }
-                        let inner = along.reversed().map { track.point(s: $0, n: side * (half - kerbWidth)) }
+                        let inner = along.reversed().map { track.point(s: $0, n: side * (half - curbWidth)) }
                         let path = block % 2 == 0 ? red : white
                         path.addLines(between: outer + inner)
                         path.closeSubpath()
@@ -90,8 +89,8 @@ enum TrackArt {
                 }
                 block += 1
             }
-            if !red.isEmpty { piece.addChild(shape(red, fill: kerbRed, depth: Depth.kerbs)) }
-            if !white.isEmpty { piece.addChild(shape(white, fill: kerbWhite, depth: Depth.kerbs)) }
+            if !red.isEmpty { piece.addChild(shape(red, fill: curbRed, depth: Depth.curbs)) }
+            if !white.isEmpty { piece.addChild(shape(white, fill: curbWhite, depth: Depth.curbs)) }
 
             if start == 0 { piece.addChild(startLine(track)) }
             pieces.append(TrackPiece(node: piece, frame: piece.calculateAccumulatedFrame()))
@@ -100,7 +99,7 @@ enum TrackArt {
         return pieces
     }
 
-    /// A chequered band across the track at s = 0.
+    /// A checkered band across the track at s = 0.
     private static func startLine(_ track: Track) -> SKNode {
         let node = SKNode()
         let half = track.width / 2
@@ -119,7 +118,7 @@ enum TrackArt {
                 path.closeSubpath()
             }
         }
-        node.addChild(shape(white, fill: kerbWhite, depth: Depth.paint))
+        node.addChild(shape(white, fill: curbWhite, depth: Depth.paint))
         node.addChild(shape(black, fill: SKColor(white: 0.1, alpha: 1), depth: Depth.paint))
         return node
     }
@@ -192,55 +191,29 @@ enum TrackArt {
 
     // MARK: The car
 
-    /// The car seen from above, nose pointing right, drawn at `scale` times its world size (34 × 15) so its texture
-    /// stays sharp when the camera zooms in.
-    static func carNode(livery: SKColor, scale k: CGFloat) -> SKNode {
+    /// The car in a paint, drawn at `scale` times its world size (34 × 15) so its texture stays sharp when the camera
+    /// zooms in. The shape is `CarArt`'s.
+    static func carNode(paint: Paint, scale k: CGFloat) -> SKNode {
         let car = SKNode()
-        let tire = SKColor(white: 0.07, alpha: 1)
-        let carbon = SKColor(white: 0.16, alpha: 1)
-        func add(_ path: CGPath, _ color: SKColor) {
-            let node = SKShapeNode(path: path)
-            node.fillColor = color
+        for piece in CarArt.pieces {
+            let node = SKShapeNode(path: CarArt.path(piece.form, scale: k))
+            node.fillColor = SKColor(rgb: CarArt.rgb(piece.part, paint: paint))
             node.strokeColor = .clear
             node.lineWidth = 0
             car.addChild(node)
         }
-        func rect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ color: SKColor, corner: CGFloat = 0.8) {
-            add(CGPath(roundedRect: CGRect(x: x * k, y: y * k, width: w * k, height: h * k),
-                       cornerWidth: corner * k, cornerHeight: corner * k, transform: nil), color)
-        }
-        // Wheels.
-        rect(-14.5, 3.6, 8, 4.1, tire)
-        rect(-14.5, -7.7, 8, 4.1, tire)
-        rect(5.5, 3.9, 6.5, 3.6, tire)
-        rect(5.5, -7.5, 6.5, 3.6, tire)
-        // Wings.
-        rect(-17.5, -6.2, 3.4, 12.4, carbon, corner: 0.5)
-        rect(14.1, -6.6, 3.4, 13.2, livery, corner: 0.5)
-        // Body: sidepods tapering to a narrow nose.
-        let body = CGMutablePath()
-        let outline: [(CGFloat, CGFloat)] = [
-            (-14.5, -2.6), (-9, -4.9), (0, -4.9), (4.5, -2.2), (15, -1.1),
-            (15, 1.1), (4.5, 2.2), (0, 4.9), (-9, 4.9), (-14.5, 2.6),
-        ]
-        body.addLines(between: outline.map { CGPoint(x: $0.0 * k, y: $0.1 * k) })
-        body.closeSubpath()
-        add(body, livery)
-        rect(-13, -0.7, 27, 1.4, SKColor(white: 1, alpha: 0.9), corner: 0.3)
-        // Cockpit and helmet.
-        add(CGPath(ellipseIn: CGRect(x: -5.5 * k, y: -2 * k, width: 7 * k, height: 4 * k), transform: nil), carbon)
-        add(CGPath(ellipseIn: CGRect(x: -3.6 * k, y: -1.6 * k, width: 3.2 * k, height: 3.2 * k), transform: nil),
-            SKColor(red: 1, green: 0.85, blue: 0.1, alpha: 1))
         return car
     }
 
-    /// The car as one sprite. The drawing is symmetric about its center, so the sprite's center is the car's.
-    static func carSprite(in view: SKView, livery: SKColor = livery) -> SKSpriteNode {
-        let scale: CGFloat = 4
-        let node = carNode(livery: livery, scale: scale)
-        let texture = view.texture(from: node) ?? SKTexture()
+    /// The car's texture in a paint. The drawing is symmetric about its center, so the sprite's center is the car's.
+    static func carTexture(in view: SKView, paint: Paint) -> SKTexture {
+        view.texture(from: carNode(paint: paint, scale: 4)) ?? SKTexture()
+    }
+
+    static func carSprite(in view: SKView, paint: Paint) -> SKSpriteNode {
+        let texture = carTexture(in: view, paint: paint)
         let sprite = SKSpriteNode(texture: texture)
-        sprite.size = CGSize(width: texture.size().width / scale, height: texture.size().height / scale)
+        sprite.size = CGSize(width: texture.size().width / 4, height: texture.size().height / 4)
         return sprite
     }
 

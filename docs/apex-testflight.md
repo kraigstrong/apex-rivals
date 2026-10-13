@@ -44,9 +44,9 @@ Everything between here and a public TestFlight link, in order. The code is in p
 6. **Create the app record** in App Store Connect: Apps, then + New App. iOS, name **Apex Rivals** (the home-screen
    name stays Apex), bundle ID `com.kraigstrong.apex`, SKU `apex`, primary language English (U.S.).
 7. **Game Center:** on the app's Services tab, add a Classic Leaderboard for each circuit: `apex.ardennes.r1.p1`,
-   `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and `apex.harbour.r1.p1`. Score
+   `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and `apex.harbor.r1.p1`. Score
    format: Elapsed Time, to the hundredth of a second. Sort: low to high. Reference and display name: the circuit's
-   name (Ardennes, Swirl, Snake, Mirage, Island, Harbour).
+   name (Ardennes, Swirl, Snake, Mirage, Island, Harbor).
 8. **Upload a build:** from `main`, tag it (`git tag apex-v0.1-beta.1`), then run `scripts/testflight.sh --upload`.
    It archives with automatic signing and uploads with Xcode managing the build number, like the Organizer's
    Distribute App > App Store Connect > Upload. `scripts/testflight.sh` alone just archives, to check it signs.

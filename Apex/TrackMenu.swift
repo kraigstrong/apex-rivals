@@ -16,6 +16,7 @@ struct TrackMenu: View {
     let onSelect: (String) -> Void
     /// Each circuit's saved best lap, read whenever the menu appears.
     @State private var bests: [String: Double] = [:]
+    @State private var showsColors = false
 
     var body: some View {
         ZStack {
@@ -24,7 +25,7 @@ struct TrackMenu: View {
                 VStack(spacing: 6) {
                     Text("APEX RIVALS")
                         .font(.system(size: 34, weight: .black, design: .rounded).italic())
-                    KerbStripe().frame(width: 200, height: 6)
+                    CurbStripe().frame(width: 200, height: 6)
                     Text("Hold to steer up. Let go to steer down. Straight is fast.")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .opacity(0.85)
@@ -57,6 +58,25 @@ struct TrackMenu: View {
             }
             .padding(.vertical, 12)
             .foregroundStyle(.white)
+
+            Button {
+                showsColors = true
+            } label: {
+                Label("COLORS", systemImage: "paintpalette.fill")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.black.opacity(0.45), in: Capsule())
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            if showsColors {
+                Color.black.opacity(0.45).ignoresSafeArea()
+                LiveryPicker(livery: Livery.shared, onDone: { showsColors = false })
+            }
         }
         .onAppear {
             bests = Dictionary(uniqueKeysWithValues: ([TrackCatalog.school] + TrackCatalog.tracks).compactMap { track in
@@ -95,7 +115,7 @@ struct TrackCard: View {
                 }
             }
             Text(practice ? "4 identical corners · learn the line"
-                          : "\(corners) corners · \(track.turning > 0 ? "anticlockwise" : "clockwise")")
+                          : "\(corners) corners · \(track.turning > 0 ? "counterclockwise" : "clockwise")")
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .opacity(0.65)
             Text(track.layout.summary)
@@ -176,8 +196,8 @@ struct MowedGrass: View {
     }
 }
 
-/// A run of red and white kerb blocks.
-struct KerbStripe: View {
+/// A run of red and white curb blocks.
+struct CurbStripe: View {
     var body: some View {
         Canvas { context, size in
             let block: CGFloat = 12

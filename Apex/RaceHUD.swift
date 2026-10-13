@@ -40,6 +40,10 @@ final class RaceHUD {
     /// Apex School's coach: where you are in the corner, and what to do with your thumb.
     var coach: Coach?
     var isPractice = false
+    /// The car colors picker is open over the race.
+    var showsColors = false
+    /// A panel is open over the race. The race holds still until it closes.
+    var showsPanel: Bool { showsColors }
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading

@@ -10,8 +10,8 @@ enum RaceTuning {
     static let sampleSpacing: Double = 1
     /// Corner curvature is box-filtered over this length, so every corner eases in and out instead of snapping.
     static let curvatureSmoothing: Double = 70
-    /// Kerbs line the edges wherever the centerline is curving tighter than this radius.
-    static let kerbRadius: Double = 1100
+    /// Curbs line the edges wherever the centerline is curving tighter than this radius.
+    static let curbRadius: Double = 1100
 
     // MARK: Steering
 

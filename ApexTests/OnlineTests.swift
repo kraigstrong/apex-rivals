@@ -20,7 +20,7 @@ struct FreezeTests {
             "snake.1": "9e81af1a445d6099",
             "mirage.1": "fee011a2a6e7a2",
             "island.1": "4af6a572035d9fa6",
-            "harbour.1": "4bc651367b3ce1b8",
+            "harbor.1": "4bc651367b3ce1b8",
         ]
         for layout in TrackLayout.all {
             #expect(signatures["\(layout.id).\(layout.revision)"] == LapStore.fingerprint(layout.signature), "\(layout.id)")
