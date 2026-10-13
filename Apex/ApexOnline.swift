@@ -183,8 +183,9 @@ final class LapLog {
     static let acceptedTimes = 10_000...120_000
 
     func record(_ entry: LapEntry, enabled: Bool = ApexOnline.isEnabled) {
-        // A full queue keeps its oldest laps; it only fills while the service is unreachable for hundreds of laps.
-        guard pending.count < Self.maxPending, Self.acceptedTimes.contains(entry.ms) else { return }
+        // A full queue keeps its oldest laps; it only fills while the service is unreachable for hundreds of laps. A
+        // car changed in the tuning panel isn't the board's car, so its laps stay off the service.
+        guard pending.count < Self.maxPending, Self.acceptedTimes.contains(entry.ms), RaceTuning.isStock else { return }
         pending.append(entry)
         save()
         flush(enabled: enabled)
@@ -242,7 +243,7 @@ enum ApexService {
     /// Shares a personal best's ghost under the player's Game Center alias, so it can be someone else's rival.
     static func shareBest(_ lap: LapRecord, on board: RaceBoard) {
         let player = GKLocalPlayer.local
-        guard ApexOnline.isEnabled, player.isAuthenticated else { return }
+        guard ApexOnline.isEnabled, player.isAuthenticated, RaceTuning.isStock else { return }
         player.fetchItems { url, signature, salt, timestamp, error in
             guard error == nil, let url, let signature, let salt else { return }
             let upload = GhostUpload(

@@ -48,6 +48,10 @@ final class RaceSession {
         timer.forgetBest()
     }
 
+    func replaceBest(with record: LapRecord?) {
+        timer.replaceBest(with: record)
+    }
+
     /// Runs `time` seconds of physics in fixed steps. `control`, if given, decides holding before every step (bots).
     @discardableResult
     func advance(by time: Double, control: ((RaceSession) -> Bool)? = nil) -> [Event] {

@@ -42,6 +42,13 @@ final class RaceHUD {
     var isPractice = false
     /// The car colors picker is open over the race.
     var showsColors = false
+    #if DEBUG
+    /// The tuning panel is open over the race, with the bots' laps on the car as tuned and as released (once known).
+    var showsTuner = false
+    var botLaps: BotLaps?
+    var stockBotLaps: BotLaps?
+    @ObservationIgnored var onTune: () -> Void = {}
+    #endif
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading

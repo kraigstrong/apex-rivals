@@ -119,6 +119,12 @@ ranges in `LapTimeTests` if the change was meant to move them. The knobs that ma
 Best laps are saved per circuit and per version of the tuning (`RaceTuning.lapSignature`), so a retune starts a
 fresh best lap.
 
+To feel a change before making it, use the tuning panel in Xcode (Debug) builds: ••• → **Tune controls** in a race.
+It has sliders for steering, return, smoothing, grip and acceleration, and shows what the bots lap in on that circuit,
+tuned against stock. Changes apply at once and last across launches. A tuned car keeps its own best laps and never
+uploads a lap or submits to Game Center (`RaceTuning.isStock`). **Reset** puts the stock car back. Once a setting
+feels right, copy it into `RaceTuning.swift` and update the lap times as above.
+
 ## Layout
 
 - `Apex/TrackLayout.swift`: circuits as pieces you'd drive: straights and constant-radius corners. Two straights

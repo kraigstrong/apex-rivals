@@ -1,6 +1,7 @@
 import Foundation
 
-/// Every feel constant in one place. Distances are world units (the car is 34 long, the track 120 wide wall to wall);
+/// Every feel constant in one place. The handful the Xcode-only tuning panel (`Tuner`) can change live are `var`s;
+/// Release builds never change them. Distances are world units (the car is 34 long, the track 120 wide wall to wall);
 /// speeds are units a second.
 enum RaceTuning {
     // MARK: Track
@@ -17,19 +18,19 @@ enum RaceTuning {
 
     /// Holding swings the car's nose toward the top of the screen (the car's left) at this rate, and letting go swings it
     /// toward the bottom, in radians a second.
-    static let steerRate: Double = 2.4
+    static var steerRate: Double = 2.4
     /// Pulls the nose back toward the track's direction (per second). Holding settles at `steerRate / steerReturn` radians.
-    static let steerReturn: Double = 4.0
+    static var steerReturn: Double = 4.0
 
     // MARK: Speed
 
     static let topSpeed: Double = 500
     /// The fastest a car can follow a path of curvature κ is √(grip / κ), so straighter is faster.
-    static let grip: Double = 480
+    static var grip: Double = 480
     /// The car's heading is smoothed over this distance before its curvature sets the speed. Quick, small corrections
     /// mostly cancel out; slower weaves and corners don't.
-    static let straightnessLength: Double = 90
-    static let acceleration: Double = 280
+    static var straightnessLength: Double = 90
+    static var acceleration: Double = 280
     /// Acceleration fades by this share as the car nears top speed.
     static let accelerationFade: Double = 0.55
     /// How quickly speed drops to what the line allows.
@@ -102,6 +103,12 @@ enum RaceTuning {
     /// The physics' version. Leaderboards are kept per version (`RaceBoard`), so a change that moves lap times (anything
     /// in `lapSignature`) must bump it once released. `FreezeTests` fails until the new signature is recorded.
     static let physicsVersion = 1
+    /// `lapSignature`'s fingerprint for `physicsVersion`. `FreezeTests` checks the stock car matches it.
+    static let physicsFingerprint = "ac17662e2de184ad"
+
+    /// Whether the car is as released (no tuning-panel changes). Only stock laps reach leaderboards and the lap
+    /// service, so a tuned car can't put times on a board it doesn't belong to.
+    static var isStock: Bool { LapStore.fingerprint(lapSignature) == physicsFingerprint }
 
     /// Everything that changes how fast a lap can be. Saved best laps are kept per version of these, so a retune starts
     /// a fresh best lap rather than comparing against laps from a different car.

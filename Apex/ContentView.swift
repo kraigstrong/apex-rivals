@@ -63,12 +63,18 @@ struct RaceOverlay: View {
     var body: some View {
         ZStack {
             racingHUD
-                .opacity(hud.summary == nil && !hud.showsColors ? 1 : 0)
-                .allowsHitTesting(hud.summary == nil && !hud.showsColors)
+                .opacity(hud.summary == nil && !showsPanel ? 1 : 0)
+                .allowsHitTesting(hud.summary == nil && !showsPanel)
 
             if hud.showsColors {
                 Color.black.opacity(0.35).ignoresSafeArea()
                 LiveryPicker(livery: Livery.shared, onDone: { hud.showsColors = false })
+            } else if showsTuner {
+                #if DEBUG
+                Color.black.opacity(0.35).ignoresSafeArea()
+                TunerPanel(tuner: Tuner.shared, trackName: hud.trackName, laps: hud.botLaps,
+                           stockLaps: hud.stockBotLaps, onDone: { hud.showsTuner = false })
+                #endif
             } else if let summary = hud.summary {
                 SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
                                    onTracks: hud.onExit)
@@ -84,6 +90,17 @@ struct RaceOverlay: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .foregroundStyle(.white)
+    }
+
+    /// A panel (car colors, or the tuning panel) is open over the race.
+    private var showsPanel: Bool { hud.showsColors || showsTuner }
+
+    private var showsTuner: Bool {
+        #if DEBUG
+        return hud.showsTuner
+        #else
+        return false
+        #endif
     }
 
     /// Timing, splits, map, buttons and speed: everything shown while racing.
@@ -125,6 +142,13 @@ struct RaceOverlay: View {
                         } label: {
                             Label("Car colors", systemImage: "paintpalette")
                         }
+                        #if DEBUG
+                        Button {
+                            hud.onTune()
+                        } label: {
+                            Label("Tune controls", systemImage: "slider.horizontal.3")
+                        }
+                        #endif
                         Button(role: .destructive) {
                             hud.onForgetBest()
                         } label: {

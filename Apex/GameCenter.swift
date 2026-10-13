@@ -23,7 +23,7 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
 
     /// Submits a lap to the board's leaderboard, in hundredths of a second (Game Center keeps each player's best).
     func submit(_ lapTime: Double, on board: RaceBoard) {
-        guard isSignedIn else { return }
+        guard isSignedIn, RaceTuning.isStock else { return }
         GKLeaderboard.submitScore(Int((lapTime * 100).rounded()), context: 0, player: GKLocalPlayer.local,
                                   leaderboardIDs: [board.leaderboardID]) { _ in }
     }
