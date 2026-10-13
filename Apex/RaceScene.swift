@@ -12,6 +12,7 @@ final class RaceScene: SKScene {
     let practice: Bool
     private var guide: ApexGuide?
     private var judge = CornerJudge()
+    private var school = SchoolProgress()
     private var trail: [SKSpriteNode] = []
     private var coachPhase: ApexGuide.Phase?
     /// The livery version the cars were last painted in; a change (from the colors picker) repaints them.
@@ -182,7 +183,11 @@ final class RaceScene: SKScene {
         let events = session.advance(by: dt, control: control)
         events.forEach(handle)
         if let guide, session.phase == .racing {
-            if let verdict = judge.update(car: session.car, guide: guide) { show(verdict) }
+            if let verdict = judge.update(car: session.car, guide: guide) {
+                show(verdict)
+                if school.record(verdict) { graduate() }
+                hud.schoolHits = school.hits
+            }
             // A tick in the thumb at TURN IN and at the APEX: the corner's two moments.
             let phase = guide.situation(at: session.car.s)?.phase
             if phase != coachPhase, phase == .turnIn || phase == .runOut { tick.selectionChanged() }
@@ -392,6 +397,13 @@ final class RaceScene: SKScene {
                 self.world.addChild(TrackArt.apexMarkers(guide, on: track))
             }
         }
+    }
+
+    /// The goal's reached: the race holds while the card offers a real circuit.
+    private func graduate() {
+        SchoolProgress.markDone()
+        notice.notificationOccurred(.success)
+        hud.showsGraduation = true
     }
 
     private func show(_ verdict: CornerJudge.Verdict) {

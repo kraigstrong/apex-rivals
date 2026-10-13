@@ -222,3 +222,23 @@ struct CornerJudge {
         slowest = .infinity
     }
 }
+
+/// Apex School's goal: hit two apexes and you're ready for the real circuits. Graduating, or skipping the school, is
+/// kept on the device, so the home screen stops pointing new players at it.
+struct SchoolProgress {
+    static let goal = 2
+    private(set) var hits = 0
+
+    /// Counts a corner. True for the hit that reaches the goal, and only that one.
+    mutating func record(_ verdict: CornerJudge.Verdict) -> Bool {
+        guard verdict.hitApex else { return false }
+        hits += 1
+        return hits == Self.goal
+    }
+
+    private static let key = "apex.school.done.v1"
+
+    static func isDone(defaults: UserDefaults = .standard) -> Bool { defaults.bool(forKey: key) }
+
+    static func markDone(defaults: UserDefaults = .standard) { defaults.set(true, forKey: key) }
+}

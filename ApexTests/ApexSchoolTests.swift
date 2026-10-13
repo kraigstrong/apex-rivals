@@ -68,4 +68,22 @@ struct ApexSchoolTests {
         #expect(middleMisses, "\(middle.map(\.apexGap))")
         #expect(middleSlowest < idealSlowest)
     }
+
+    /// Two apex hits, not necessarily in a row, and you're ready. Only the second hit graduates.
+    @Test func twoApexHitsGraduate() {
+        var progress = SchoolProgress()
+        let hit = CornerJudge.Verdict(apexGap: 5, slowest: 300, idealSpeed: 320)
+        let miss = CornerJudge.Verdict(apexGap: 40, slowest: 300, idealSpeed: 320)
+        let graduated = [hit, miss, hit, hit].map { progress.record($0) }
+        #expect(graduated == [false, false, true, false])
+        #expect(progress.hits == 3)
+    }
+
+    @Test func graduatingIsRemembered() throws {
+        let defaults = try #require(UserDefaults(suiteName: "ApexSchoolTests.done"))
+        defaults.removePersistentDomain(forName: "ApexSchoolTests.done")
+        #expect(!SchoolProgress.isDone(defaults: defaults))
+        SchoolProgress.markDone(defaults: defaults)
+        #expect(SchoolProgress.isDone(defaults: defaults))
+    }
 }
