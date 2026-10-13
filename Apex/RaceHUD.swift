@@ -37,6 +37,9 @@ final class RaceHUD {
     var rivalTime: Double?
     var rivalMarker: CGPoint?
     var showsRacingLine = false
+    /// Apex School's coach: where you are in the corner, and what to do with your thumb.
+    var coach: Coach?
+    var isPractice = false
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading
@@ -78,6 +81,25 @@ final class RaceHUD {
     func show(_ title: String, _ value: String, detail: String? = nil, tone: Banner.Tone) {
         nextBannerID += 1
         banner = Banner(title: title, value: value, detail: detail, tone: tone, id: nextBannerID)
+    }
+}
+
+extension RaceHUD {
+    struct Coach: Equatable {
+        var title: String
+        var detail: String
+        var advice: ApexGuide.Advice
+        /// Whether the player is touching the screen.
+        var holding: Bool
+
+        /// Whether the player's thumb is doing what the coach asks (feathering counts either way).
+        var following: Bool {
+            switch advice {
+            case .hold: return holding
+            case .letGo: return !holding
+            case .feather: return true
+            }
+        }
     }
 }
 

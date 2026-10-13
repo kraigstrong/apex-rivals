@@ -54,14 +54,17 @@ enum RivalBot {
 final class RivalScout {
     private let track: Track
     private let board: RaceBoard
+    /// Apex School's rival is always the Instructor: the ideal line, driven perfectly.
+    private let instructor: Bool
     private let queue = DispatchQueue(label: "apex.rivals", qos: .userInitiated)
     /// Built on `queue` the first time a bot is needed.
     private var line: RacingLine?
     /// Only the latest request's answer is delivered.
     private var request = 0
 
-    init(track: Track) {
+    init(track: Track, instructor: Bool = false) {
         self.track = track
+        self.instructor = instructor
         board = RaceBoard(track: track)
     }
 
@@ -74,7 +77,7 @@ final class RivalScout {
                 completion(rival)
             }
         }
-        guard let best, ApexOnline.isEnabled else {
+        guard let best, ApexOnline.isEnabled, !instructor else {
             findBot(beating: best, deliver: deliver)
             return
         }
@@ -88,7 +91,8 @@ final class RivalScout {
     }
 
     private func findBot(beating best: Double?, deliver: @escaping (Rival?) -> Void) {
-        let target = best.map { $0 - RaceTuning.rivalGap } ?? RaceTuning.firstRivalTime
+        let target = instructor ? 0 : best.map { $0 - RaceTuning.rivalGap } ?? RaceTuning.firstRivalTime
+        let name = instructor ? "Instructor" : RivalBot.name
         let track = self.track
         queue.async { [weak self] in
             guard let self else { return }
@@ -99,7 +103,7 @@ final class RivalScout {
             if let best, record.time >= best {
                 deliver(nil)
             } else {
-                deliver(Rival(name: RivalBot.name, record: record, source: .bot))
+                deliver(Rival(name: name, record: record, source: .bot))
             }
         }
     }

@@ -72,7 +72,7 @@ struct RaceOverlay: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !hud.racing {
                 // Low and to the right, clear of the car on the left third of the screen.
-                StartCard(name: hud.trackName, best: hud.bestLap)
+                StartCard(name: hud.trackName, best: hud.bestLap, practice: hud.isPractice)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .padding(.leading, 240)
                     .allowsHitTesting(false)
@@ -125,15 +125,18 @@ struct RaceOverlay: View {
                     } label: {
                         RoundIcon(symbol: "ellipsis")
                     }
-                    Button {
-                        hud.onEndSession()
-                    } label: {
-                        RoundIcon(symbol: "flag.checkered")
-                    }
-                    Button {
-                        hud.onShowLeaderboard()
-                    } label: {
-                        RoundIcon(symbol: "trophy.fill")
+                    // Apex School has no standings or leaderboard.
+                    if !hud.isPractice {
+                        Button {
+                            hud.onEndSession()
+                        } label: {
+                            RoundIcon(symbol: "flag.checkered")
+                        }
+                        Button {
+                            hud.onShowLeaderboard()
+                        } label: {
+                            RoundIcon(symbol: "trophy.fill")
+                        }
                     }
                     Button {
                         hud.onRestart()
@@ -147,6 +150,13 @@ struct RaceOverlay: View {
             SpeedGauge(hud: hud)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .allowsHitTesting(false)
+
+            if let coach = hud.coach, hud.racing {
+                CoachPanel(coach: coach)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.leading, 200)
+                    .allowsHitTesting(false)
+            }
         }
     }
 
@@ -296,6 +306,7 @@ struct MiniMap: View {
 struct StartCard: View {
     let name: String
     let best: Double?
+    var practice = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -303,7 +314,9 @@ struct StartCard: View {
                 .font(.system(size: 30, weight: .black, design: .rounded).italic())
             Text("Hold to steer up. Let go to steer down.")
                 .font(.system(size: 17, weight: .bold, design: .rounded))
-            Text("Straight is fast: every weave costs speed. Swing wide, clip the apex, and run out wide.")
+            Text(practice
+                 ? "Follow the yellow line: stay on the outside, turn in at TURN IN, clip the yellow APEX, and drift out to EXIT. The coach says when to hold, feather or let go."
+                 : "Straight is fast: every weave costs speed. Swing wide, clip the apex, and run out wide.")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .multilineTextAlignment(.center)
                 .opacity(0.85)
@@ -485,5 +498,43 @@ struct StandingChart: View {
         .accessibilityLabel("Other players' best laps, from \(LapFormat.time(Double(histogram.fromMs) / 1000, decimals: 1)) "
                             + "to \(LapFormat.time(Double(histogram.fromMs + histogram.widthMs * counts.count) / 1000, decimals: 1)) seconds. "
                             + "Your lap beats \(Int((standing.beatenShare * 100).rounded(.down))) percent of them.")
+    }
+}
+
+/// Apex School's coach: where you are in the corner, and which way to push your thumb to stay on the line. The
+/// lit input turns green when you're doing it.
+struct CoachPanel: View {
+    let coach: RaceHUD.Coach
+
+    var body: some View {
+        VStack(spacing: 5) {
+            Text(coach.title)
+                .font(.system(size: 20, weight: .black, design: .rounded).italic())
+            Text(coach.detail)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .opacity(0.85)
+            HStack(spacing: 8) {
+                pill("HOLD", symbol: "arrow.up", .hold)
+                pill("FEATHER", symbol: "arrow.up.arrow.down", .feather)
+                pill("LET GO", symbol: "arrow.down", .letGo)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func pill(_ label: String, symbol: String, _ advice: ApexGuide.Advice) -> some View {
+        let lit = coach.advice == advice
+        let tint = coach.following ? Color(red: 0.15, green: 0.75, blue: 0.35) : Color(red: 0.95, green: 0.55, blue: 0.1)
+        return HStack(spacing: 4) {
+            Image(systemName: symbol)
+            Text(label)
+        }
+        .font(.system(size: 13, weight: .heavy, design: .rounded))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(lit ? tint : Color.white.opacity(0.1), in: Capsule())
+        .opacity(lit ? 1 : 0.5)
     }
 }

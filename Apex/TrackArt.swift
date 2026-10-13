@@ -17,6 +17,8 @@ enum TrackArt {
         static let walls: CGFloat = 5
         static let skids: CGFloat = 6
         static let racingLine: CGFloat = 7
+        static let trail: CGFloat = 7.5
+        static let markers: CGFloat = 8
         static let ghost: CGFloat = 9
         static let car: CGFloat = 10
         static let sparks: CGFloat = 11
@@ -132,6 +134,48 @@ enum TrackArt {
         path.addLines(between: points)
         path.closeSubpath()
         return shape(path, stroke: SKColor(red: 1, green: 0.82, blue: 0.1, alpha: 0.6), width: 3, depth: Depth.racingLine)
+    }
+
+    /// Apex School's markers at every corner: where to turn in, the apex on the ideal line, and the exit, each with a
+    /// board on the grass beside it.
+    static func apexMarkers(_ guide: ApexGuide, on track: Track) -> SKNode {
+        let node = SKNode()
+        let half = track.width / 2
+        let blue = SKColor(red: 0.35, green: 0.65, blue: 1, alpha: 0.95)
+        let yellow = SKColor(red: 1, green: 0.82, blue: 0.1, alpha: 1)
+        func bar(at s: Double, from n0: Double, to n1: Double, color: SKColor) {
+            let path = CGMutablePath()
+            path.addLines(between: [track.point(s: s, n: n0), track.point(s: s, n: n1)])
+            node.addChild(shape(path, stroke: color, width: 5, depth: Depth.markers))
+        }
+        func board(_ text: String, at s: Double, n: Double, color: SKColor) {
+            let label = SKLabelNode(text: text)
+            label.fontName = "AvenirNext-Heavy"
+            label.fontSize = 17
+            label.fontColor = color
+            label.verticalAlignmentMode = .center
+            label.position = track.point(s: s, n: n)
+            label.zRotation = CGFloat(track.heading(at: s))
+            label.zPosition = Depth.markers
+            node.addChild(label)
+        }
+        for corner in guide.corners {
+            let outside = -corner.side
+            bar(at: corner.turnIn, from: outside * half, to: outside * (half - 46), color: blue)
+            board("TURN IN", at: corner.turnIn, n: outside * (half + 24), color: blue)
+            let apex = track.point(s: corner.apex, n: guide.line.offset(at: corner.apex))
+            let disc = SKShapeNode(circleOfRadius: 9)
+            disc.position = apex
+            disc.fillColor = yellow
+            disc.strokeColor = SKColor(white: 0.1, alpha: 1)
+            disc.lineWidth = 2
+            disc.zPosition = Depth.markers
+            node.addChild(disc)
+            board("APEX", at: corner.apex, n: corner.side * (half + 24), color: yellow)
+            bar(at: corner.exit, from: outside * half, to: outside * (half - 46), color: blue)
+            board("EXIT", at: corner.exit, n: outside * (half + 24), color: blue)
+        }
+        return node
     }
 
     private static func shape(_ path: CGPath, fill: SKColor? = nil, stroke: SKColor? = nil, width: CGFloat = 0,

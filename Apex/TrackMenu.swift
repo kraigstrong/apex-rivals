@@ -3,9 +3,11 @@ import SwiftUI
 /// Every circuit's geometry, built once.
 enum TrackCatalog {
     static let tracks: [Track] = TrackLayout.all.map { Track($0) }
+    static let school = Track(.apexSchool)
 
     static func track(_ id: String) -> Track {
-        tracks.first { $0.layout.id == id } ?? tracks[0]
+        if id == school.layout.id { return school }
+        return tracks.first { $0.layout.id == id } ?? tracks[0]
     }
 }
 
@@ -30,6 +32,14 @@ struct TrackMenu: View {
                 // More circuits than fit across the screen: they scroll sideways, a card at a time.
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
+                        Button {
+                            onSelect(TrackCatalog.school.layout.id)
+                        } label: {
+                            TrackCard(track: TrackCatalog.school, best: bests[TrackCatalog.school.layout.id],
+                                      practice: true)
+                                .frame(width: 250)
+                        }
+                        .buttonStyle(.plain)
                         ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
                             Button {
                                 onSelect(track.layout.id)
@@ -49,7 +59,7 @@ struct TrackMenu: View {
             .foregroundStyle(.white)
         }
         .onAppear {
-            bests = Dictionary(uniqueKeysWithValues: TrackCatalog.tracks.compactMap { track in
+            bests = Dictionary(uniqueKeysWithValues: ([TrackCatalog.school] + TrackCatalog.tracks).compactMap { track in
                 LapStore.load(for: track).map { (track.layout.id, $0.time) }
             })
         }
@@ -60,6 +70,8 @@ struct TrackMenu: View {
 struct TrackCard: View {
     let track: Track
     let best: Double?
+    /// Apex School: marked as practice, with a yellow edge.
+    var practice = false
 
     private var corners: Int {
         track.layout.segments.filter { if case .corner = $0 { return true } else { return false } }.count
@@ -70,9 +82,20 @@ struct TrackCard: View {
             TrackOutline(track: track)
                 .frame(height: 104)
                 .frame(maxWidth: .infinity)
-            Text(track.layout.name.uppercased())
-                .font(.system(size: 20, weight: .heavy, design: .rounded).italic())
-            Text("\(corners) corners · \(track.turning > 0 ? "anticlockwise" : "clockwise")")
+            HStack(spacing: 8) {
+                Text(track.layout.name.uppercased())
+                    .font(.system(size: 20, weight: .heavy, design: .rounded).italic())
+                if practice {
+                    Text("PRACTICE")
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(red: 1, green: 0.82, blue: 0.1), in: Capsule())
+                }
+            }
+            Text(practice ? "4 identical corners · learn the line"
+                          : "\(corners) corners · \(track.turning > 0 ? "anticlockwise" : "clockwise")")
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .opacity(0.65)
             Text(track.layout.summary)
@@ -97,6 +120,11 @@ struct TrackCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            if practice {
+                RoundedRectangle(cornerRadius: 16).stroke(Color(red: 1, green: 0.82, blue: 0.1), lineWidth: 2)
+            }
+        }
         .contentShape(RoundedRectangle(cornerRadius: 16))
     }
 }

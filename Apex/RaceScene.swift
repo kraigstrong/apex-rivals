@@ -7,6 +7,14 @@ final class RaceScene: SKScene {
     let session: RaceSession
     let hud: RaceHUD
     let board: RaceBoard
+    /// Apex School: the ideal line and its markers on the track, a coach, a verdict after every corner, a trail of
+    /// your own line, and the Instructor as the rival. Nothing leaves the device.
+    let practice: Bool
+    private var guide: ApexGuide?
+    private var judge = CornerJudge()
+    private var trail: [SKSpriteNode] = []
+    private var nextTrail = 0
+    private var trailGap = 0.0
     private var track: Track { session.track }
     private let scout: RivalScout
     private var rival: Rival?
@@ -49,8 +57,10 @@ final class RaceScene: SKScene {
         session = RaceSession(track: track, best: LapStore.load(for: track))
         self.hud = hud
         board = RaceBoard(track: track)
-        scout = RivalScout(track: track)
+        practice = track.layout.isPractice
+        scout = RivalScout(track: track, instructor: practice)
         super.init(size: CGSize(width: 874, height: 402))
+        hud.isPractice = practice
         scaleMode = .resizeFill
         backgroundColor = TrackArt.grassColor
         hud.bestLap = session.timer.best?.time
@@ -122,6 +132,8 @@ final class RaceScene: SKScene {
             return mark
         }
 
+        if practice { startSchool() }
+
         impact.prepare()
         placeCamera(dt: 0, snap: true)
         render(dt: 0)
@@ -149,6 +161,9 @@ final class RaceScene: SKScene {
         #endif
         let events = session.advance(by: dt, control: control)
         events.forEach(handle)
+        if let guide, session.phase == .racing, let verdict = judge.update(car: session.car, guide: guide) {
+            show(verdict)
+        }
         render(dt: dt)
         placeCamera(dt: dt, snap: false)
         sinceHUD += dt
@@ -181,6 +196,19 @@ final class RaceScene: SKScene {
             rivalNode?.zRotation = CGFloat(track.heading(at: Double(pose.s)) + Double(pose.psi))
         } else {
             rivalNode?.isHidden = true
+        }
+
+        // Apex School: dots along the car's own line, to compare with the ideal one.
+        trailGap += state.speed * dt
+        if !trail.isEmpty, trailGap >= 14, session.phase == .racing {
+            trailGap = 0
+            let dot = trail[nextTrail]
+            nextTrail = (nextTrail + 1) % trail.count
+            dot.removeAllActions()
+            dot.position = position
+            dot.alpha = 0.8
+            dot.isHidden = false
+            dot.run(.sequence([.wait(forDuration: 3), .fadeOut(withDuration: 2), .hide()]))
         }
 
         // Skid marks behind the rear wheels whenever the line is costing speed.
@@ -259,7 +287,7 @@ final class RaceScene: SKScene {
             }
         case .timing(.lap(let lap)):
             hud.lastLap = lap.time
-            if let record = session.timer.lastRecord, !isAutopilot {
+            if let record = session.timer.lastRecord, !isAutopilot, !practice {
                 LapLog.shared.record(LapEntry(lap: record, board: board, walls: wallHitsThisLap))
             }
             wallHitsThisLap = 0
@@ -270,8 +298,10 @@ final class RaceScene: SKScene {
                 hud.bestLap = lap.time
                 if let best = session.timer.best, !isAutopilot {
                     LapStore.save(best, for: track)
-                    GameCenter.shared.submit(best.time, on: board)
-                    ApexService.shareBest(best, on: board)
+                    if !practice {
+                        GameCenter.shared.submit(best.time, on: board)
+                        ApexService.shareBest(best, on: board)
+                    }
                 }
                 let detail = beatRival ? "BEAT \(rival?.name.uppercased() ?? "RIVAL")"
                     : lap.delta.map { "BEST " + LapFormat.delta($0) } ?? "BEST"
@@ -313,6 +343,42 @@ final class RaceScene: SKScene {
         }
     }
 
+    // MARK: Apex School
+
+    private func startSchool() {
+        trail = (0..<240).map { _ in
+            let dot = SKSpriteNode(color: .white, size: CGSize(width: 4, height: 4))
+            dot.zPosition = TrackArt.Depth.trail
+            dot.isHidden = true
+            world.addChild(dot)
+            return dot
+        }
+        let track = self.track
+        DispatchQueue.global(qos: .userInitiated).async {
+            let line = RacingLine(track: track)
+            let guide = ApexGuide(track: track, line: line).withIdealSpeeds(on: track)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.guide = guide
+                self.world.addChild(TrackArt.racingLine(line, on: track))
+                self.world.addChild(TrackArt.apexMarkers(guide, on: track))
+            }
+        }
+    }
+
+    private func show(_ verdict: CornerJudge.Verdict) {
+        let slowest = LapFormat.speed(verdict.slowest) + " km/h"
+        let ideal = "ideal " + LapFormat.speed(verdict.idealSpeed)
+        let wide = "\(Int(verdict.apexGap.rounded())) wide"
+        if verdict.hitApex {
+            hud.show("APEX", "HIT", detail: "\(slowest) · \(ideal)", tone: .faster)
+        } else if verdict.closeToApex {
+            hud.show("APEX", "CLOSE", detail: "\(wide) · \(slowest)", tone: .slower)
+        } else {
+            hud.show("APEX", "MISSED", detail: "\(wide) · \(slowest)", tone: .slower)
+        }
+    }
+
     private func findRival() {
         scout.find(beating: session.timer.best?.time) { [weak self] rival in
             guard let self else { return }
@@ -324,6 +390,11 @@ final class RaceScene: SKScene {
 
     private func refreshHUD() {
         let state = session.car
+        if let guide, let situation = guide.situation(at: state.s) {
+            let words = ApexGuide.prompt(situation.phase, side: situation.corner.side)
+            hud.coach = RaceHUD.Coach(title: words.title, detail: words.detail, advice: guide.advice(for: state),
+                                      holding: !holdTouches.isEmpty)
+        }
         hud.racing = session.phase == .racing
         hud.lapNumber = session.timer.lapNumber
         hud.lapTime = session.timer.lapTime(at: session.clock)
@@ -360,7 +431,7 @@ final class RaceScene: SKScene {
     /// Heading back to the track list: a session with a finished lap gets its summary first (which offers the tracks),
     /// and one without goes straight there.
     func leave() {
-        if sessionLaps > 0 {
+        if sessionLaps > 0, !practice {
             endSession()
         } else {
             hud.onExit()
@@ -371,6 +442,13 @@ final class RaceScene: SKScene {
     /// players. A session with no finished laps just goes back to the grid.
     func endSession() {
         guard hud.summary == nil else { return }
+        // Apex School has no standings: the flag just starts again.
+        if practice {
+            sessionLaps = 0
+            sessionBest = nil
+            restart()
+            return
+        }
         defer {
             sessionLaps = 0
             sessionBest = nil
@@ -410,6 +488,11 @@ final class RaceScene: SKScene {
         session.reset()
         holdTouches.removeAll()
         wallHitsThisLap = 0
+        judge = CornerJudge()
+        for dot in trail {
+            dot.removeAllActions()
+            dot.isHidden = true
+        }
         for mark in skids {
             mark.removeAllActions()
             mark.isHidden = true
