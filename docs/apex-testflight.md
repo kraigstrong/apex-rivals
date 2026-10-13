@@ -29,9 +29,11 @@ Everything between here and a public TestFlight link, in order. The code is in p
 3. **Set the service's secrets** on the marketing project in Vercel (Production, and Preview if you test previews):
    `APEX_APP_KEY` = `apex-laps-v1`, and `APEX_PLAYER_SALT` = a long random value (`openssl rand -base64 32`) that must
    never change once anyone has a time stored. Redeploy so the routes pick them up.
-4. **Rate limit (optional)** `/api/apex/*` in the Vercel Firewall (60 requests a minute per IP is plenty for a beta).
-   Skipped for the first beta. The project had no firewall config yet, and the API can't create one, so it has to be
-   started from the dashboard's Firewall tab.
+4. **Rate limit** `/api/apex/*` in the Vercel Firewall (60 requests a minute per IP is plenty for a beta). Skipped for
+   the first beta by choice. The project had no firewall config yet, and the API can't create one, so it has to be
+   started from the dashboard's Firewall tab. Without it, the app key is public, so anyone can post unlimited
+   anonymous laps and skew the lap-time standings ("where your lap falls"). Ghosts and bests are safe either way:
+   they need a signed Game Center identity. Add the limit before the public link goes beyond friends.
 5. **Check the routes answer:**
 
    ```bash
