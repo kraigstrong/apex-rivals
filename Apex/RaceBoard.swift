@@ -14,7 +14,11 @@ struct RaceBoard: Equatable {
     }
 
     init(track: Track) {
-        self.init(trackID: track.layout.id, trackRevision: track.layout.revision)
+        self.init(layout: track.layout)
+    }
+
+    init(layout: TrackLayout) {
+        self.init(trackID: layout.id, trackRevision: layout.revision)
     }
 
     /// The Game Center leaderboard's ID. Create it in App Store Connect (Elapsed Time to the hundredth of a second,

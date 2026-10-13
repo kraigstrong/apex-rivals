@@ -22,6 +22,10 @@ final class RaceSession {
     private(set) var clock: Double = 0
     /// Whether the player is touching the screen.
     var holding = false
+    /// Walls touched since the current lap began (on the out lap, since the start).
+    private(set) var wallHitsThisLap = 0
+    /// Walls touched on the last finished lap.
+    private(set) var wallHitsLastLap = 0
     private var leftover: Double = 0
 
     init(track: Track, best: LapRecord? = nil) {
@@ -42,6 +46,8 @@ final class RaceSession {
         clock = 0
         leftover = 0
         holding = false
+        wallHitsThisLap = 0
+        wallHitsLastLap = 0
     }
 
     func forgetBest() {
@@ -61,10 +67,17 @@ final class RaceSession {
             let before = car.progress(on: track)
             if let hit = CarPhysics.step(&car, holding: holding, dt: step, on: track) {
                 events.append(.wallHit(hit))
+                wallHitsThisLap += 1
             }
             clock += step
+            let lapNumber = timer.lapNumber
             let timing = timer.update(from: before, to: car.progress(on: track), at: clock, step: step,
                                       sample: GhostSample(car))
+            // Crossing the line starts a new count, so the out lap's hits don't land on the first timed lap.
+            if timer.lapNumber != lapNumber {
+                wallHitsLastLap = wallHitsThisLap
+                wallHitsThisLap = 0
+            }
             events += timing.map { .timing($0) }
         }
         return events

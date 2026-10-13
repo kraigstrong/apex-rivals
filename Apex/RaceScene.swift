@@ -21,8 +21,6 @@ final class RaceScene: SKScene {
     private let scout: RivalScout
     private var rival: Rival?
     private var rivalNode: SKSpriteNode?
-    /// Walls touched since the lap began, for the lap log.
-    private var wallHitsThisLap = 0
     /// Laps finished this session, and the fastest of them.
     private var sessionLaps = 0
     private var sessionBest: Double?
@@ -282,7 +280,6 @@ final class RaceScene: SKScene {
     private func handle(_ event: RaceSession.Event) {
         switch event {
         case .wallHit(let hit):
-            wallHitsThisLap += 1
             impact.impactOccurred(intensity: CGFloat(hit.severity))
             sparks(hit)
         case .timing(.sector(let split)):
@@ -294,9 +291,8 @@ final class RaceScene: SKScene {
         case .timing(.lap(let lap)):
             hud.lastLap = lap.time
             if let record = session.timer.lastRecord, !isAutopilot, !practice {
-                LapLog.shared.record(LapEntry(lap: record, board: board, walls: wallHitsThisLap))
+                LapLog.shared.record(LapEntry(lap: record, board: board, walls: session.wallHitsLastLap))
             }
-            wallHitsThisLap = 0
             sessionLaps += 1
             sessionBest = min(sessionBest ?? .infinity, lap.time)
             let beatRival = rival.map { lap.time < $0.time } ?? false
@@ -304,10 +300,7 @@ final class RaceScene: SKScene {
                 hud.bestLap = lap.time
                 if let best = session.timer.best, !isAutopilot {
                     LapStore.save(best, for: track)
-                    if !practice {
-                        GameCenter.shared.submit(best.time, on: board)
-                        ApexService.shareBest(best, on: board)
-                    }
+                    if !practice { BestLapDelivery.send(best, on: board, key: LapStore.key(for: track)) }
                 }
                 let detail = beatRival ? "BEAT \(rival?.name.uppercased() ?? "RIVAL")"
                     : lap.delta.map { "BEST " + LapFormat.delta($0) } ?? "BEST"
@@ -493,7 +486,6 @@ final class RaceScene: SKScene {
     func restart() {
         session.reset()
         holdTouches.removeAll()
-        wallHitsThisLap = 0
         judge = CornerJudge()
         for dot in trail {
             dot.removeAllActions()
