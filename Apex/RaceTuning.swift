@@ -103,11 +103,13 @@ enum RaceTuning {
     /// in `lapSignature`) must bump it once released. `FreezeTests` fails until the new signature is recorded.
     static let physicsVersion = 1
 
-    /// Everything that changes how fast a lap can be. Saved best laps are kept per version of these, so a retune starts
-    /// a fresh best lap rather than comparing against laps from a different car.
+    /// Everything that changes how fast a lap can be: the track's shape and sampling, the car, the walls, the physics
+    /// step, and the run-up to the first timed lap. Saved best laps are kept per version of these, so a retune starts a
+    /// fresh best lap rather than comparing against laps from a different car.
     static var lapSignature: String {
-        [trackWidth, curvatureSmoothing, steerRate, steerReturn, topSpeed, grip, straightnessLength, acceleration,
-         accelerationFade, braking, minimumSpeed, carHalfWidth, wallBounce, wallScrub, wallKnock]
+        [trackWidth, sampleSpacing, curvatureSmoothing, steerRate, steerReturn, topSpeed, grip, straightnessLength,
+         acceleration, accelerationFade, braking, minimumSpeed, carHalfWidth, wallBounce, wallScrub, wallKnock,
+         wallKnockCooldown, physicsStep, startDistanceBeforeLine]
             .map { String(format: "%g", $0) }.joined(separator: ",")
     }
 }

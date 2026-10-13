@@ -240,11 +240,12 @@ enum ApexService {
     }
 
     /// Shares a personal best's ghost under the player's Game Center alias, so it can be someone else's rival.
-    static func shareBest(_ lap: LapRecord, on board: RaceBoard) {
+    /// `completion` says whether the service took it.
+    static func shareBest(_ lap: LapRecord, on board: RaceBoard, completion: @escaping (Bool) -> Void = { _ in }) {
         let player = GKLocalPlayer.local
-        guard ApexOnline.isEnabled, player.isAuthenticated else { return }
+        guard ApexOnline.isEnabled, player.isAuthenticated else { return completion(false) }
         player.fetchItems { url, signature, salt, timestamp, error in
-            guard error == nil, let url, let signature, let salt else { return }
+            guard error == nil, let url, let signature, let salt else { return completion(false) }
             let upload = GhostUpload(
                 track: board.trackID, revision: board.trackRevision, physics: board.physicsVersion,
                 ms: Int((lap.time * 1000).rounded()), splits: lap.splits.map { Int(($0 * 1000).rounded()) },
@@ -252,8 +253,10 @@ enum ApexService {
                 identity: .init(publicKeyURL: url.absoluteString, signature: signature.base64EncodedString(),
                                 salt: salt.base64EncodedString(), timestamp: timestamp),
                 ghost: GhostTrace(lap.ghost))
-            guard let body = try? JSONEncoder().encode(upload) else { return }
-            URLSession.shared.dataTask(with: request("ghosts", body: body)).resume()
+            guard let body = try? JSONEncoder().encode(upload) else { return completion(false) }
+            URLSession.shared.dataTask(with: request("ghosts", body: body)) { _, response, _ in
+                completion((200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? 0))
+            }.resume()
         }
     }
 
