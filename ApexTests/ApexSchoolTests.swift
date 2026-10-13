@@ -16,10 +16,13 @@ struct ApexSchoolTests {
         for corner in guide.corners {
             let toApex = guide.ahead(from: corner.turnIn, to: corner.apex)
             let toExit = guide.ahead(from: corner.turnIn, to: corner.exit)
-            #expect(toApex > 100 && toApex < toExit && toExit < 2000)
+            #expect(toApex > 100 && toApex < toExit && toExit < 1200)
+            // Plenty of straight on the outside before the next corner: at least four seconds at top speed.
+            let next = guide.corners[(guide.corners.firstIndex(of: corner)! + 1) % guide.corners.count]
+            #expect(guide.ahead(from: corner.exit, to: next.turnIn) > 4 * RaceTuning.topSpeed)
             // The ideal line touches the inside at the apex and the outside at turn-in and exit.
             #expect(guide.line.offset(at: corner.apex) * corner.side > guide.reach - 16)
-            #expect(guide.line.offset(at: corner.turnIn) * corner.side < -(guide.reach - 10))
+            #expect(guide.line.offset(at: corner.turnIn) * corner.side < -(guide.reach - 16))
             #expect(corner.idealSpeed > 250 && corner.idealSpeed < RaceTuning.topSpeed)
         }
     }
@@ -57,7 +60,7 @@ struct ApexSchoolTests {
             var judge = CornerJudge()
             var found: [CornerJudge.Verdict] = []
             session.start()
-            while found.count < 6, session.clock < 60 {
+            while found.count < 6, session.clock < 90 {
                 session.advance(by: RaceTuning.physicsStep) { driver.decide($0) }
                 if let verdict = judge.update(car: session.car, guide: Self.guide) { found.append(verdict) }
             }

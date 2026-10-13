@@ -1,22 +1,23 @@
 import Foundation
 
 extension TrackLayout {
-    /// The practice circuit for Apex School: a rounded square of four identical right-hand corners with long straights
-    /// between them, so the same corner comes round every few seconds. Not a race circuit: no leaderboard.
+    /// The practice circuit for Apex School: a rounded square of four identical right-hand corners. The straights are
+    /// long enough (about five seconds on the outside at full speed) to settle and line up before the next corner comes.
+    /// Not a race circuit: no leaderboard.
     static let apexSchool = TrackLayout(
         id: "apex_school",
         revision: 1,
         name: "Apex School",
         summary: "Learn the line on one right-angle corner, four times a lap: turn in, clip the apex, run out wide.",
         segments: [
-            .straight(1400), .corner(radius: 240, degrees: -90),
-            .straight(1400), .corner(radius: 240, degrees: -90),
-            .straight(1400), .corner(radius: 240, degrees: -90),
-            .straight(1400), .corner(radius: 240, degrees: -90),
+            .straight(3000), .corner(radius: 240, degrees: -90),
+            .straight(3000), .corner(radius: 240, degrees: -90),
+            .straight(3000), .corner(radius: 240, degrees: -90),
+            .straight(3000), .corner(radius: 240, degrees: -90),
         ],
         closingStraights: (0, 2),
-        // The grid (`RaceTuning.startDistanceBeforeLine` before the line) is on the straight, not in a corner.
-        startLine: 900,
+        // The grid (`RaceTuning.startDistanceBeforeLine` before the line) is mid-straight, well clear of the corners.
+        startLine: 2100,
         sectorStarts: [2, 4]
     )
 
@@ -98,8 +99,9 @@ struct ApexGuide {
             best = inside(s)
             apex = s
         }
-        // Turn-in and exit: where the line leaves, and comes back to, the outside.
-        let outside = -(reach - 8)
+        // Turn-in and exit: where the line clearly leaves, and comes back to, the outside. (The line runs up to 8 inside
+        // the car's reach; it drifts a unit or two off it long before the real turn-in.)
+        let outside = -(reach - 14)
         var turnIn = apex
         while turnIn > apex - 1500, inside(turnIn) > outside { turnIn -= 4 }
         var exit = apex
