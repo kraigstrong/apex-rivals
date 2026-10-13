@@ -4,9 +4,9 @@ import GameKit
 
 /// The lap service on BrightBench (`/api/apex`). Every finished lap is counted into anonymous lap-time histograms per
 /// board; each personal best's ghost is shared under the player's Game Center alias; and rivals come back from other
-/// players' ghosts. Off until the routes are deployed: the game plays the same without it, with bot rivals.
+/// players' ghosts. When it can't be reached, laps wait on the device and rivals are bots.
 enum ApexOnline {
-    static let isEnabled = false
+    static let isEnabled = true
     static let base = URL(string: "https://brightbench.app/api/apex")!
     /// A public noise filter, not authentication: the server validates everything it stores.
     static let appKey = "apex-laps-v1"
