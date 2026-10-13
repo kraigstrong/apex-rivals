@@ -19,11 +19,18 @@ How to get an Apex Rivals beta to friends, so you can race each other's times an
   to the player for the leaderboard, not used for tracking.
 - The Release build has none of the debug tools: no autopilot, FPS counter, or sample standings.
 
-## Before the first build
+## Launch runbook
 
-1. **The lap service is live.** Merge and deploy kraigstrong/BrightBench#69, set `APEX_APP_KEY` (`apex-laps-v1`) and
-   `APEX_PLAYER_SALT` (a long random secret that must never change) on the marketing project in Vercel, and add a
-   Vercel Firewall rate limit on `/api/apex/*`. Then check it answers:
+Everything between here and a public TestFlight link, in order. The code is in pull requests; nothing is merged.
+
+1. **Review and merge the app:** kraigstrong/apex-rivals#1 (the game), then the TestFlight PR stacked on it (icon,
+   upload script, this runbook), and the tuning-panel PR on top if you want it (it changes nothing in Release builds).
+2. **Review and merge the lap service:** kraigstrong/BrightBench#69. Vercel deploys `main` to brightbench.app.
+3. **Set the service's secrets** on the marketing project in Vercel (Production, and Preview if you test previews):
+   `APEX_APP_KEY` = `apex-laps-v1`, and `APEX_PLAYER_SALT` = a long random value (`openssl rand -base64 32`) that must
+   never change once anyone has a time stored. Redeploy so the routes pick them up.
+4. **Rate limit** `/api/apex/*` in the Vercel Firewall (60 requests a minute per IP is plenty for a beta).
+5. **Check the routes answer:**
 
    ```bash
    # No one has a lap yet: no rival (204), and standings of no players.
@@ -34,27 +41,41 @@ How to get an Apex Rivals beta to friends, so you can race each other's times an
    curl -s -o /dev/null -w "%{http_code}\n" "https://brightbench.app/api/apex/rival?track=ardennes&revision=1&physics=1&ms=29500"
    ```
 
-2. **The app record** (first time only). In App Store Connect, go to Apps, then + New App. Choose iOS, name it Apex
-   Rivals, pick the `com.kraigstrong.apex` bundle ID, and use `apex` as the SKU. If the bundle ID isn't in the list,
-   archiving once with automatic signing registers it.
-3. **Game Center.** On the app's Services tab, add a Classic Leaderboard for each circuit: `apex.ardennes.r1.p1`,
+6. **Create the app record** in App Store Connect: Apps, then + New App. iOS, name **Apex Rivals** (the home-screen
+   name stays Apex), bundle ID `com.kraigstrong.apex`, SKU `apex`, primary language English (U.S.).
+7. **Game Center:** on the app's Services tab, add a Classic Leaderboard for each circuit: `apex.ardennes.r1.p1`,
    `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and `apex.harbour.r1.p1`. Score
-   format: Elapsed Time, to the hundredth of a second. Sort: low to high. Reference name and display name: the
-   circuit's name.
-
-## Uploading a build
-
-1. **Archive.** Check out `main` at the commit you want and tag it (`apex-v0.1-beta.1`). In Xcode, choose the Apex
-   scheme and Any iOS Device (arm64), then Product > Archive.
-2. **Upload.** In the Organizer, choose Distribute App > App Store Connect > Upload. Leave "Manage Version and Build
-   Number" on so each upload gets a new build number.
-3. **Internal test.** When the build finishes processing, add yourself to an internal group, install it from
+   format: Elapsed Time, to the hundredth of a second. Sort: low to high. Reference and display name: the circuit's
+   name (Ardennes, Swirl, Snake, Mirage, Island, Harbour).
+8. **Upload a build:** from `main`, tag it (`git tag apex-v0.1-beta.1`), then run `scripts/testflight.sh --upload`.
+   It archives with automatic signing and uploads with Xcode managing the build number, like the Organizer's
+   Distribute App > App Store Connect > Upload. `scripts/testflight.sh` alone just archives, to check it signs.
+9. **Internal test:** when the build finishes processing, add yourself to an internal group, install it from
    TestFlight, and run the smoke check below.
-4. **External test.** Create an external group (Friends), fill in Test Information (a beta description and feedback
-   email), add the build, and submit it for beta review. The first build of a version is reviewed by Apple. Once it's
-   approved, invite friends by email or with a public link. Ask them to sign in to Game Center (Settings > Game
-   Center) and to add each other as Game Center friends: the friends board and their ghosts depend on it.
-5. **Record it** in the build log at the end of this file.
+10. **Public beta:** create an external group (Friends), fill in Test Information (text below), add the build, and
+    submit it for beta review. The first build of a version is reviewed by Apple, usually within a day. Once it's
+    approved, turn on the group's public link and share it.
+11. **Record it** in the build log at the end of this file.
+
+## Test Information
+
+Ready to paste into App Store Connect.
+
+**Beta App Description**
+
+> Apex Rivals is a one-touch racing game. Hold to steer up, let go to steer down, and set the fastest lap you can on
+> six F1-style circuits. Straight is fast: every weave costs speed, so swing wide, clip the apex and run out wide.
+> Race your best lap's ghost, chase a rival who's a little faster than you, and see where your lap falls among
+> everyone else's.
+
+**What to Test**
+
+> Start with Apex School (the first card) to learn the line, then pick any circuit. Sign in to Game Center and add
+> your friends there: you'll race each other's ghosts, and the trophy shows your friends' times. Tap the flag to end a
+> session and see where your best lap falls. We'd love to hear which circuits you like most, whether the controls feel
+> fair, and anything that breaks.
+
+Feedback email: your choice. A privacy policy isn't needed for TestFlight.
 
 ## Smoke check on the TestFlight build
 
