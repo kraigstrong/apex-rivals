@@ -58,9 +58,10 @@ enum CarPhysics {
     /// gives a curvature κ, and the car can go no faster than √(grip / κ). Weaving bends the path and costs speed; so
     /// does following a corner's tight inside, while a wide entry, a clipped apex and a wide exit bend it least.
     @discardableResult
-    static func step(_ car: inout Car, holding: Bool, dt: Double, on track: Track) -> WallHit? {
+    static func step(_ car: inout Car, holding: Bool, dt: Double, on track: Track,
+                     handling h: RaceTuning.Handling = .current) -> WallHit? {
         let t = RaceTuning.self
-        car.psi += ((holding ? t.steerRate : -t.steerRate) - t.steerReturn * car.psi) * dt
+        car.psi += ((holding ? h.steerRate : -h.steerRate) - h.steerReturn * car.psi) * dt
 
         // Move: along the track (faster on the inside of a corner, where the lap is shorter) and across it.
         let k = track.curvature(at: car.s)
@@ -92,10 +93,10 @@ enum CarPhysics {
         // How straight the path has been sets how fast the car may go. For heading smoothed exponentially over a
         // distance L, the smoothed path's curvature is exactly (heading − smoothed) / L.
         let heading = car.heading(on: track)
-        let blend = 1 - exp(-car.speed * dt / t.straightnessLength)
+        let blend = 1 - exp(-car.speed * dt / h.straightnessLength)
         car.smoothedHeading += (heading - car.smoothedHeading) * blend
-        car.pathCurvature = abs(heading - car.smoothedHeading) / t.straightnessLength
-        let allowed = car.pathCurvature > 1e-9 ? (t.grip / car.pathCurvature).squareRoot() : .infinity
+        car.pathCurvature = abs(heading - car.smoothedHeading) / h.straightnessLength
+        let allowed = car.pathCurvature > 1e-9 ? (h.grip / car.pathCurvature).squareRoot() : .infinity
         car.lineSpeed = max(t.minimumSpeed, min(t.topSpeed, allowed))
 
         let excess = max(0, car.speed - car.lineSpeed) / max(car.speed, 1)
@@ -103,7 +104,7 @@ enum CarPhysics {
             car.speed = max(car.lineSpeed, car.speed - t.braking * dt)
         } else {
             let fade = 1 - t.accelerationFade * pow(car.speed / t.topSpeed, 2)
-            car.speed = min(car.lineSpeed, car.speed + t.acceleration * fade * dt)
+            car.speed = min(car.lineSpeed, car.speed + h.acceleration * fade * dt)
         }
         let scrubTarget = min(1, excess / 0.12)
         car.scrub += (scrubTarget - car.scrub) * (1 - exp(-dt / 0.1))

@@ -38,6 +38,21 @@ enum RaceTuning {
     /// However badly a lap goes, the car never drops below this speed once it's rolling.
     static let minimumSpeed: Double = 110
 
+    /// The steering and speed constants the tuning panel changes, taken together, so a bot can drive a car tuned
+    /// differently from the one on screen.
+    struct Handling: Equatable {
+        var steerRate: Double
+        var steerReturn: Double
+        var grip: Double
+        var straightnessLength: Double
+        var acceleration: Double
+
+        static var current: Handling {
+            Handling(steerRate: RaceTuning.steerRate, steerReturn: RaceTuning.steerReturn, grip: RaceTuning.grip,
+                     straightnessLength: RaceTuning.straightnessLength, acceleration: RaceTuning.acceleration)
+        }
+    }
+
     // MARK: Walls
 
     /// Half the car's width: how close its center can come to a wall.

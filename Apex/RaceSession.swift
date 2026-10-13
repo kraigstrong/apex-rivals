@@ -15,6 +15,8 @@ final class RaceSession {
     }
 
     let track: Track
+    /// The car's handling, or nil to follow `RaceTuning` as it is at each step.
+    let handling: RaceTuning.Handling?
     private(set) var car: Car
     private(set) var timer: LapTimer
     private(set) var phase: Phase = .ready
@@ -28,8 +30,9 @@ final class RaceSession {
     private(set) var wallHitsLastLap = 0
     private var leftover: Double = 0
 
-    init(track: Track, best: LapRecord? = nil) {
+    init(track: Track, best: LapRecord? = nil, handling: RaceTuning.Handling? = nil) {
         self.track = track
+        self.handling = handling
         car = Car(track: track)
         timer = LapTimer(track: track, best: best)
     }
@@ -63,13 +66,14 @@ final class RaceSession {
     func advance(by time: Double, control: ((RaceSession) -> Bool)? = nil) -> [Event] {
         guard phase == .racing else { return [] }
         let step = RaceTuning.physicsStep
+        let handling = self.handling ?? .current
         leftover += min(time, 0.1)
         var events: [Event] = []
         while leftover >= step {
             leftover -= step
             if let control { holding = control(self) }
             let before = car.progress(on: track)
-            if let hit = CarPhysics.step(&car, holding: holding, dt: step, on: track) {
+            if let hit = CarPhysics.step(&car, holding: holding, dt: step, on: track, handling: handling) {
                 events.append(.wallHit(hit))
                 wallHitsThisLap += 1
             }

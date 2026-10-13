@@ -600,11 +600,9 @@ final class RaceScene: SKScene {
     }
 
     private func timeBots() {
-        let stock = RaceTuning.isStock
-        stopwatch.time { [weak self] laps in
-            guard let self else { return }
-            hud.botLaps = laps
-            if stock { hud.stockBotLaps = laps }
+        stopwatch.time(.current, stock: Tuner.shared.stockHandling) { [weak self] laps, stock in
+            self?.hud.botLaps = laps
+            self?.hud.stockBotLaps = stock
         }
     }
     #endif

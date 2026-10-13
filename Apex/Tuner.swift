@@ -40,6 +40,7 @@ final class Tuner {
 
     /// The knobs as released.
     let stock: [String: Double]
+    let stockHandling = RaceTuning.Handling.current
     private(set) var values: [String: Double]
     /// Goes up with every change, so the race knows to start over on the new car.
     private(set) var version = 0
@@ -101,10 +102,10 @@ struct BotLaps: Equatable {
         ("Sloppy, middle", \.sloppy),
     ]
 
-    init(track: Track, line: RacingLine) {
+    init(track: Track, line: RacingLine, handling: RaceTuning.Handling) {
         let ideal: (Double) -> Double = { line.offset(at: $0) }
         func lap(_ driver: AutoDriver) -> Double {
-            let session = RaceSession(track: track)
+            let session = RaceSession(track: track, handling: handling)
             var driver = driver
             var times: [Double] = []
             session.start()
@@ -126,19 +127,23 @@ struct BotLaps: Equatable {
     }
 }
 
-/// Times bot laps on one circuit off the main thread. Only the latest request's answer is delivered, on the main thread.
+/// Times bot laps on one circuit off the main thread, for a car as tuned and for the stock car. Each run drives its own
+/// copy of the handling, so sliders moving meanwhile don't touch it. Only the latest request's answer is delivered, on
+/// the main thread.
 final class BotStopwatch {
     private let track: Track
     private let queue = DispatchQueue(label: "apex.tuner", qos: .userInitiated)
-    /// Built on `queue` the first time it's needed.
+    /// Built on `queue` the first time they're needed.
     private var line: RacingLine?
+    private var stockLaps: BotLaps?
     private var request = 0
 
     init(track: Track) {
         self.track = track
     }
 
-    func time(completion: @escaping (BotLaps) -> Void) {
+    func time(_ handling: RaceTuning.Handling, stock: RaceTuning.Handling,
+              completion: @escaping (_ laps: BotLaps, _ stock: BotLaps) -> Void) {
         request += 1
         let id = request
         let track = self.track
@@ -146,10 +151,12 @@ final class BotStopwatch {
             guard let self else { return }
             if line == nil { line = RacingLine(track: track) }
             guard let line else { return }
-            let laps = BotLaps(track: track, line: line)
+            let stockLaps = self.stockLaps ?? BotLaps(track: track, line: line, handling: stock)
+            self.stockLaps = stockLaps
+            let laps = handling == stock ? stockLaps : BotLaps(track: track, line: line, handling: handling)
             DispatchQueue.main.async {
                 guard id == self.request else { return }
-                completion(laps)
+                completion(laps, stockLaps)
             }
         }
     }
