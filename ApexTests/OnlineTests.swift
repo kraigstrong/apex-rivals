@@ -7,7 +7,7 @@ import Testing
 struct FreezeTests {
     @Test func physicsMatchesItsVersion() {
         // A failure means the car changed. Once boards are live, bump `RaceTuning.physicsVersion` and add its signature.
-        let signatures = [1: "ac17662e2de184ad"]
+        let signatures = [1: "93a7f30b1b41fad9"]
         #expect(signatures[RaceTuning.physicsVersion] == LapStore.fingerprint(RaceTuning.lapSignature))
         #expect(signatures[RaceTuning.physicsVersion] == RaceTuning.physicsFingerprint)
         #expect(RaceTuning.isStock)
@@ -80,6 +80,16 @@ struct OnlineTests {
     func entry(_ ms: Int) -> LapEntry {
         LapEntry(lap: LapRecord(time: Double(ms) / 1000, splits: [], ghost: []),
                  board: RaceBoard(trackID: "ardennes", trackRevision: 1), walls: 0)
+    }
+
+    /// Nothing is signed in to Game Center during tests, so a new best counts as sent nowhere and waits for sign-in.
+    @Test func aBestSetWhileSignedOutWaitsToBeSent() throws {
+        let defaults = try freshDefaults("OnlineTests.delivery")
+        let best = LapRecord(time: 29.5, splits: [10, 20], ghost: [])
+        BestLapDelivery.send(best, on: RaceBoard(layout: .ardennes), key: "best", defaults: defaults)
+        for destination in BestLapDelivery.Destination.allCases {
+            #expect(defaults.object(forKey: BestLapDelivery.sentKey("best", destination)) == nil)
+        }
     }
 
     func freshDefaults(_ name: String) throws -> UserDefaults {

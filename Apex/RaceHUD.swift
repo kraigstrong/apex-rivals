@@ -49,6 +49,14 @@ final class RaceHUD {
     var stockBotLaps: BotLaps?
     @ObservationIgnored var onTune: () -> Void = {}
     #endif
+    /// A panel is open over the race. The race holds still until it closes.
+    var showsPanel: Bool {
+        #if DEBUG
+        return showsColors || showsTuner
+        #else
+        return showsColors
+        #endif
+    }
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading

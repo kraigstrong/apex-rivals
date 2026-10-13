@@ -104,17 +104,19 @@ enum RaceTuning {
     /// in `lapSignature`) must bump it once released. `FreezeTests` fails until the new signature is recorded.
     static let physicsVersion = 1
     /// `lapSignature`'s fingerprint for `physicsVersion`. `FreezeTests` checks the stock car matches it.
-    static let physicsFingerprint = "ac17662e2de184ad"
+    static let physicsFingerprint = "93a7f30b1b41fad9"
 
     /// Whether the car is as released (no tuning-panel changes). Only stock laps reach leaderboards and the lap
     /// service, so a tuned car can't put times on a board it doesn't belong to.
     static var isStock: Bool { LapStore.fingerprint(lapSignature) == physicsFingerprint }
 
-    /// Everything that changes how fast a lap can be. Saved best laps are kept per version of these, so a retune starts
-    /// a fresh best lap rather than comparing against laps from a different car.
+    /// Everything that changes how fast a lap can be: the track's shape and sampling, the car, the walls, the physics
+    /// step, and the run-up to the first timed lap. Saved best laps are kept per version of these, so a retune starts a
+    /// fresh best lap rather than comparing against laps from a different car.
     static var lapSignature: String {
-        [trackWidth, curvatureSmoothing, steerRate, steerReturn, topSpeed, grip, straightnessLength, acceleration,
-         accelerationFade, braking, minimumSpeed, carHalfWidth, wallBounce, wallScrub, wallKnock]
+        [trackWidth, sampleSpacing, curvatureSmoothing, steerRate, steerReturn, topSpeed, grip, straightnessLength,
+         acceleration, accelerationFade, braking, minimumSpeed, carHalfWidth, wallBounce, wallScrub, wallKnock,
+         wallKnockCooldown, physicsStep, startDistanceBeforeLine]
             .map { String(format: "%g", $0) }.joined(separator: ",")
     }
 }

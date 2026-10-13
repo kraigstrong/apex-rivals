@@ -63,13 +63,13 @@ struct RaceOverlay: View {
     var body: some View {
         ZStack {
             // A panel dims the race edge to edge, and keeps touches off it.
-            if showsPanel {
+            if hud.showsPanel {
                 Color.black.opacity(0.35).ignoresSafeArea()
             }
             ZStack {
                 racingHUD
-                    .opacity(hud.summary == nil && !showsPanel ? 1 : 0)
-                    .allowsHitTesting(hud.summary == nil && !showsPanel)
+                    .opacity(hud.summary == nil && !hud.showsPanel ? 1 : 0)
+                    .allowsHitTesting(hud.summary == nil && !hud.showsPanel)
 
                 if hud.showsColors {
                     LiveryPicker(livery: Livery.shared, onDone: { hud.showsColors = false })
@@ -95,9 +95,6 @@ struct RaceOverlay: View {
         }
         .foregroundStyle(.white)
     }
-
-    /// A panel (car colors, or the tuning panel) is open over the race.
-    private var showsPanel: Bool { hud.showsColors || showsTuner }
 
     private var showsTuner: Bool {
         #if DEBUG

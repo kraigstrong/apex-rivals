@@ -173,12 +173,18 @@ struct LapTimer {
 
 /// Best laps, kept on the device per circuit and per version of the car's tuning.
 enum LapStore {
-    static func key(for track: Track) -> String {
-        "apex.bestLap." + fingerprint(track.layout.signature + "|" + RaceTuning.lapSignature)
+    static func key(for track: Track) -> String { key(for: track.layout) }
+
+    static func key(for layout: TrackLayout) -> String {
+        "apex.bestLap." + fingerprint(layout.signature + "|" + RaceTuning.lapSignature)
     }
 
     static func load(for track: Track, defaults: UserDefaults = .standard) -> LapRecord? {
-        guard let data = defaults.data(forKey: key(for: track)) else { return nil }
+        load(for: track.layout, defaults: defaults)
+    }
+
+    static func load(for layout: TrackLayout, defaults: UserDefaults = .standard) -> LapRecord? {
+        guard let data = defaults.data(forKey: key(for: layout)) else { return nil }
         return try? PropertyListDecoder().decode(LapRecord.self, from: data)
     }
 

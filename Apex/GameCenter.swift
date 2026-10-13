@@ -7,25 +7,25 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
     static let shared = GameCenter()
 
     var isSignedIn: Bool { GKLocalPlayer.local.isAuthenticated }
-    /// Called on the main thread when sign-in finishes or changes.
-    var onChange: () -> Void = {}
 
-    /// Starts sign-in. Game Center shows its own sheet if the player needs to sign in.
+    /// Starts sign-in. Game Center shows its own sheet if the player needs to sign in. Once signed in, any best laps
+    /// set while signed out go up.
     func signIn() {
-        GKLocalPlayer.local.authenticateHandler = { [weak self] controller, _ in
+        GKLocalPlayer.local.authenticateHandler = { controller, _ in
             if let controller {
                 Self.present(controller)
                 return
             }
-            self?.onChange()
+            if GKLocalPlayer.local.isAuthenticated { BestLapDelivery.sendSaved() }
         }
     }
 
     /// Submits a lap to the board's leaderboard, in hundredths of a second (Game Center keeps each player's best).
-    func submit(_ lapTime: Double, on board: RaceBoard) {
-        guard isSignedIn, RaceTuning.isStock else { return }
+    /// `completion` says whether Game Center took it.
+    func submit(_ lapTime: Double, on board: RaceBoard, completion: @escaping (Bool) -> Void = { _ in }) {
+        guard isSignedIn, RaceTuning.isStock else { return completion(false) }
         GKLeaderboard.submitScore(Int((lapTime * 100).rounded()), context: 0, player: GKLocalPlayer.local,
-                                  leaderboardIDs: [board.leaderboardID]) { _ in }
+                                  leaderboardIDs: [board.leaderboardID]) { error in completion(error == nil) }
     }
 
     /// Opens on your Game Center friends' times; the global board is a tap away in the same screen.
