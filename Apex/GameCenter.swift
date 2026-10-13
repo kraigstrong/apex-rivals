@@ -1,0 +1,50 @@
+import GameKit
+import UIKit
+
+/// Signs the player in to Game Center, submits best laps to each board's leaderboard, and shows the leaderboards.
+/// Everything else works without it: signed out, laps just stay on the device.
+final class GameCenter: NSObject, GKGameCenterControllerDelegate {
+    static let shared = GameCenter()
+
+    var isSignedIn: Bool { GKLocalPlayer.local.isAuthenticated }
+    /// Called on the main thread when sign-in finishes or changes.
+    var onChange: () -> Void = {}
+
+    /// Starts sign-in. Game Center shows its own sheet if the player needs to sign in.
+    func signIn() {
+        GKLocalPlayer.local.authenticateHandler = { [weak self] controller, _ in
+            if let controller {
+                Self.present(controller)
+                return
+            }
+            self?.onChange()
+        }
+    }
+
+    /// Submits a lap to the board's leaderboard, in hundredths of a second (Game Center keeps each player's best).
+    func submit(_ lapTime: Double, on board: RaceBoard) {
+        guard isSignedIn else { return }
+        GKLeaderboard.submitScore(Int((lapTime * 100).rounded()), context: 0, player: GKLocalPlayer.local,
+                                  leaderboardIDs: [board.leaderboardID]) { _ in }
+    }
+
+    func showLeaderboard(_ board: RaceBoard) {
+        let controller = GKGameCenterViewController(leaderboardID: board.leaderboardID, playerScope: .global,
+                                                    timeScope: .allTime)
+        controller.gameCenterDelegate = self
+        Self.present(controller)
+    }
+
+    func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
+        gameCenterViewController.dismiss(animated: true)
+    }
+
+    private static func present(_ controller: UIViewController) {
+        let root = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
+            .first
+        var top = root
+        while let presented = top?.presentedViewController { top = presented }
+        top?.present(controller, animated: true)
+    }
+}
