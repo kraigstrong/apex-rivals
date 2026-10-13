@@ -177,9 +177,18 @@ struct CornerJudge {
         var apexGap: Double
         var slowest: Double
         var idealSpeed: Double
+        /// How far toward the inside the car was at turn-in: negative is out wide, as it should be.
+        var entry: Double = 0
+        /// The car was against a wall somewhere in the corner.
+        var touchedWall = false
 
         var hitApex: Bool { apexGap <= 12 }
         var closeToApex: Bool { apexGap <= 30 }
+        /// Came into the corner from the outside, at least 20 units off the centerline. Riding the inside wall all the way
+        /// round also "hits" the apex; this is what tells a real apex from that.
+        var turnedInWide: Bool { entry <= -20 }
+        /// A real apex: wide at turn-in, then clipped. What Apex School counts toward its goal.
+        var counts: Bool { hitApex && turnedInWide }
     }
 
     private var inCorner: Int?
@@ -187,6 +196,8 @@ struct CornerJudge {
     private var enteredBeforeApex = false
     private var apexGap: Double?
     private var slowest = Double.infinity
+    private var entry = 0.0
+    private var touchedWall = false
 
     /// Call every physics step; returns a verdict as the car leaves a corner.
     mutating func update(car: Car, guide: ApexGuide) -> Verdict? {
@@ -198,16 +209,20 @@ struct CornerJudge {
             let corner = guide.corners[current]
             defer { reset() }
             guard let gap = apexGap, enteredBeforeApex else { return nil }
-            return Verdict(apexGap: gap, slowest: slowest, idealSpeed: corner.idealSpeed)
+            return Verdict(apexGap: gap, slowest: slowest, idealSpeed: corner.idealSpeed, entry: entry,
+                           touchedWall: touchedWall)
         }
         guard let index else { return nil }
         let corner = guide.corners[index]
         if inCorner == nil {
             reset()
             enteredBeforeApex = guide.ahead(from: corner.turnIn, to: car.s) < guide.ahead(from: corner.turnIn, to: corner.apex)
+            entry = car.n * corner.side
         }
         inCorner = index
         slowest = min(slowest, car.speed)
+        // Checked every frame, so a touch since the last check is still fresh.
+        if car.sinceWallHit < 0.1 { touchedWall = true }
         if apexGap == nil, guide.ahead(from: corner.apex, to: car.s) < guide.ahead(from: corner.turnIn, to: corner.apex) {
             // Just passed the apex: how far wide of the ideal line's apex.
             apexGap = max(0, guide.line.offset(at: corner.apex) * corner.side - car.n * corner.side)
@@ -220,6 +235,8 @@ struct CornerJudge {
         enteredBeforeApex = false
         apexGap = nil
         slowest = .infinity
+        entry = 0
+        touchedWall = false
     }
 }
 
@@ -229,9 +246,9 @@ struct SchoolProgress {
     static let goal = 2
     private(set) var hits = 0
 
-    /// Counts a corner. True for the hit that reaches the goal, and only that one.
+    /// Counts a corner. True for the apex that reaches the goal, and only that one.
     mutating func record(_ verdict: CornerJudge.Verdict) -> Bool {
-        guard verdict.hitApex else { return false }
+        guard verdict.counts else { return false }
         hits += 1
         return hits == Self.goal
     }

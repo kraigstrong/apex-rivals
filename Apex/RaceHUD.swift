@@ -80,8 +80,6 @@ final class RaceHUD {
     @ObservationIgnored var onLeave: () -> Void = {}
     /// Back to the track list.
     @ObservationIgnored var onExit: () -> Void = {}
-    /// Straight to another circuit's race (from Apex School's "you're ready" card).
-    @ObservationIgnored var onRaceTrack: (String) -> Void = { _ in }
     @ObservationIgnored private let bounds: CGRect
     @ObservationIgnored private var nextBannerID = 0
 

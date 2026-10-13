@@ -410,7 +410,10 @@ final class RaceScene: SKScene {
         let slowest = LapFormat.speed(verdict.slowest) + " km/h"
         let ideal = "ideal " + LapFormat.speed(verdict.idealSpeed)
         let wide = "\(Int(verdict.apexGap.rounded())) wide"
-        if verdict.hitApex {
+        if verdict.hitApex, !verdict.turnedInWide {
+            // On the apex, but only by hugging the inside: it doesn't count until the car comes in from wide.
+            hud.show("APEX", "HIT", detail: "TURN IN FROM WIDE TO COUNT", tone: .slower)
+        } else if verdict.hitApex {
             hud.show("APEX", "HIT", detail: "\(slowest) · \(ideal)", tone: .faster)
         } else if verdict.closeToApex {
             hud.show("APEX", "CLOSE", detail: "\(wide) · \(slowest)", tone: .slower)

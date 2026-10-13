@@ -84,8 +84,9 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
 - The Game Center welcome banner shows at launch, then the track list: the yellow Apex School button marked START
   HERE top left, and the six circuits scrolling sideways.
 - Apex School: the yellow line, TURN IN / APEX / EXIT, the coach's three cues with a tick at turn-in and the apex,
-  a verdict after each corner, your trail, and no ghosts. The second apex HIT brings "You're ready", whose button
-  races Ardennes; afterwards the home button is quiet. SKIP (or the house button) goes straight back to the list.
+  a verdict after each corner, your trail, and no ghosts. The second real apex (turned in to from wide) brings
+  "You're ready", whose button goes to the track list; afterwards the home button is quiet. Riding the inside wall
+  shows "TURN IN FROM WIDE TO COUNT" and doesn't count. SKIP (or the house button) goes straight back to the list.
 - Each circuit: a lap is timed, splits show at sectors 1 and 2, and the live delta shows after the first lap. A new
   best lap shows the purple banner; the blue ghost replays it on the next lap.
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.

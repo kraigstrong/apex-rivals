@@ -10,7 +10,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if let id = racing {
-                RaceView(track: TrackCatalog.track(id), onExit: { racing = nil }, onRace: { racing = $0 })
+                RaceView(track: TrackCatalog.track(id), onExit: { racing = nil })
                     .id(id)
             } else {
                 TrackMenu(onSelect: { racing = $0 })
@@ -33,10 +33,9 @@ struct RaceView: View {
     @State private var scene: RaceScene
     @Environment(\.scenePhase) private var scenePhase
 
-    init(track: Track, onExit: @escaping () -> Void, onRace: @escaping (String) -> Void) {
+    init(track: Track, onExit: @escaping () -> Void) {
         let hud = RaceHUD(track: track)
         hud.onExit = onExit
-        hud.onRaceTrack = onRace
         _hud = State(initialValue: hud)
         _scene = State(initialValue: RaceScene(track: track, hud: hud))
     }
@@ -86,9 +85,7 @@ struct RaceOverlay: View {
                                stockLaps: hud.stockBotLaps, onDone: { hud.showsTuner = false })
                     #endif
                 } else if hud.showsGraduation {
-                    GraduationCard(next: TrackCatalog.tracks[0].layout,
-                                   onRace: { hud.onRaceTrack(TrackCatalog.tracks[0].layout.id) },
-                                   onKeepPracticing: { hud.showsGraduation = false })
+                    GraduationCard(onPickTrack: hud.onExit, onKeepPracticing: { hud.showsGraduation = false })
                 } else if let summary = hud.summary {
                     SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
                                        onTracks: hud.onExit)
@@ -122,85 +119,24 @@ struct RaceOverlay: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .allowsHitTesting(false)
 
-            if let banner = hud.banner {
-                SplitBanner(banner: banner)
-                    .id(banner.id)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .allowsHitTesting(false)
-                    .task(id: banner.id) {
-                        try? await Task.sleep(for: .seconds(2.4))
-                        if hud.banner?.id == banner.id { hud.banner = nil }
-                    }
-            }
-
-            VStack(alignment: .trailing, spacing: 10) {
-                MiniMap(hud: hud)
-                    .allowsHitTesting(false)
-                HStack(spacing: 10) {
-                    Button {
-                        hud.onLeave()
-                    } label: {
-                        RoundIcon(symbol: "house.fill")
-                    }
-                    Menu {
-                        Button {
-                            hud.onToggleRacingLine()
-                        } label: {
-                            Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
-                                  systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+            // The buttons sit top center, above the track wherever it runs, with split and lap banners under them.
+            VStack(spacing: 8) {
+                controls
+                if let banner = hud.banner {
+                    SplitBanner(banner: banner)
+                        .id(banner.id)
+                        .allowsHitTesting(false)
+                        .task(id: banner.id) {
+                            try? await Task.sleep(for: .seconds(2.4))
+                            if hud.banner?.id == banner.id { hud.banner = nil }
                         }
-                        Button {
-                            hud.showsColors = true
-                        } label: {
-                            Label("Car colors", systemImage: "paintpalette")
-                        }
-                        #if DEBUG
-                        Button {
-                            hud.onTune()
-                        } label: {
-                            Label("Tune controls", systemImage: "slider.horizontal.3")
-                        }
-                        #endif
-                        Button(role: .destructive) {
-                            hud.onForgetBest()
-                        } label: {
-                            Label("Clear best lap", systemImage: "trash")
-                        }
-                    } label: {
-                        RoundIcon(symbol: "ellipsis")
-                    }
-                    // Apex School has no standings or leaderboard, but a way out for anyone who'd rather just race.
-                    if hud.isPractice {
-                        Button {
-                            SchoolProgress.markDone()
-                            hud.onExit()
-                        } label: {
-                            Label("SKIP", systemImage: "forward.fill")
-                                .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                .padding(.horizontal, 14)
-                                .frame(height: 40)
-                                .background(.black.opacity(0.45), in: Capsule())
-                        }
-                    } else {
-                        Button {
-                            hud.onEndSession()
-                        } label: {
-                            RoundIcon(symbol: "flag.checkered")
-                        }
-                        Button {
-                            hud.onShowLeaderboard()
-                        } label: {
-                            RoundIcon(symbol: "trophy.fill")
-                        }
-                    }
-                    Button {
-                        hud.onRestart()
-                    } label: {
-                        RoundIcon(symbol: "arrow.counterclockwise")
-                    }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            MiniMap(hud: hud)
+                .allowsHitTesting(false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
             SpeedGauge(hud: hud)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
@@ -211,6 +147,73 @@ struct RaceOverlay: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .padding(.leading, 200)
                     .allowsHitTesting(false)
+            }
+        }
+    }
+
+    /// Home, the menu, the tutorial's skip or the race's flag and trophy, and restart.
+    private var controls: some View {
+        HStack(spacing: 10) {
+            Button {
+                hud.onLeave()
+            } label: {
+                RoundIcon(symbol: "house.fill")
+            }
+            Menu {
+                Button {
+                    hud.onToggleRacingLine()
+                } label: {
+                    Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
+                          systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                }
+                Button {
+                    hud.showsColors = true
+                } label: {
+                    Label("Car colors", systemImage: "paintpalette")
+                }
+                #if DEBUG
+                Button {
+                    hud.onTune()
+                } label: {
+                    Label("Tune controls", systemImage: "slider.horizontal.3")
+                }
+                #endif
+                Button(role: .destructive) {
+                    hud.onForgetBest()
+                } label: {
+                    Label("Clear best lap", systemImage: "trash")
+                }
+            } label: {
+                RoundIcon(symbol: "ellipsis")
+            }
+            // Apex School has no standings or leaderboard, but a way out for anyone who'd rather just race.
+            if hud.isPractice {
+                Button {
+                    SchoolProgress.markDone()
+                    hud.onExit()
+                } label: {
+                    Label("SKIP", systemImage: "forward.fill")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 14)
+                        .frame(height: 40)
+                        .background(.black.opacity(0.45), in: Capsule())
+                }
+            } else {
+                Button {
+                    hud.onEndSession()
+                } label: {
+                    RoundIcon(symbol: "flag.checkered")
+                }
+                Button {
+                    hud.onShowLeaderboard()
+                } label: {
+                    RoundIcon(symbol: "trophy.fill")
+                }
+            }
+            Button {
+                hud.onRestart()
+            } label: {
+                RoundIcon(symbol: "arrow.counterclockwise")
             }
         }
     }
@@ -410,10 +413,9 @@ struct StartCard: View {
     }
 }
 
-/// Apex School's end: the goal's reached, so on to a real circuit, or a little more practice first.
+/// Apex School's end: the goal's reached, so off to pick a real circuit, or a little more practice first.
 struct GraduationCard: View {
-    let next: TrackLayout
-    let onRace: () -> Void
+    let onPickTrack: () -> Void
     let onKeepPracticing: () -> Void
 
     var body: some View {
@@ -427,8 +429,8 @@ struct GraduationCard: View {
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .multilineTextAlignment(.center)
                 .opacity(0.85)
-            Button(action: onRace) {
-                Label("RACE \(next.name.uppercased())", systemImage: "flag.checkered")
+            Button(action: onPickTrack) {
+                Label("PICK A TRACK", systemImage: "flag.checkered")
                     .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .padding(.horizontal, 22)
                     .padding(.vertical, 10)
