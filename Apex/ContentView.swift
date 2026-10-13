@@ -115,28 +115,30 @@ struct RaceOverlay: View {
     /// Timing, splits, map, buttons and speed: everything shown while racing.
     private var racingHUD: some View {
         ZStack {
-            timing
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .allowsHitTesting(false)
-
-            // The buttons sit top center, above the track wherever it runs, with split and lap banners under them.
-            VStack(spacing: 8) {
-                controls
-                if let banner = hud.banner {
-                    SplitBanner(banner: banner)
-                        .id(banner.id)
-                        .allowsHitTesting(false)
-                        .task(id: banner.id) {
-                            try? await Task.sleep(for: .seconds(2.4))
-                            if hud.banner?.id == banner.id { hud.banner = nil }
-                        }
+            // One row across the top, above the track wherever it runs: timing, then the buttons with split and lap
+            // banners under them, then the minimap. Side by side, so none can sit on another, whatever the screen
+            // width or the lap time; both sides keep a fixed width so the buttons don't shift as times change.
+            HStack(alignment: .top, spacing: 12) {
+                timing
+                    .allowsHitTesting(false)
+                VStack(spacing: 8) {
+                    controls
+                    if let banner = hud.banner {
+                        SplitBanner(banner: banner)
+                            .id(banner.id)
+                            .allowsHitTesting(false)
+                            .task(id: banner.id) {
+                                try? await Task.sleep(for: .seconds(2.4))
+                                if hud.banner?.id == banner.id { hud.banner = nil }
+                            }
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                MiniMap(hud: hud)
+                    .allowsHitTesting(false)
+                    .frame(width: 170, alignment: .topTrailing)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-            MiniMap(hud: hud)
-                .allowsHitTesting(false)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
             SpeedGauge(hud: hud)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
@@ -153,7 +155,7 @@ struct RaceOverlay: View {
 
     /// Home, the menu, the tutorial's skip or the race's flag and trophy, and restart.
     private var controls: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Button {
                 hud.onLeave()
             } label: {
@@ -225,10 +227,14 @@ struct RaceOverlay: View {
                 .opacity(0.8)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(hud.lapTime.map { LapFormat.time($0, decimals: 2) } ?? "--.--")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .font(.system(size: 34, weight: .heavy, design: .rounded).monospacedDigit().italic())
                 if let delta = hud.liveDelta {
                     // Live against the best lap, so you can see which corner the time goes in.
                     Text(LapFormat.delta(delta, decimals: 2))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         .font(.system(size: 20, weight: .heavy, design: .rounded).monospacedDigit())
                         .foregroundStyle(delta <= 0 ? Color(red: 0.3, green: 0.9, blue: 0.45)
                                                     : Color(red: 1, green: 0.38, blue: 0.32))
@@ -253,11 +259,14 @@ struct RaceOverlay: View {
                 HStack(spacing: 6) {
                     row("RIVAL", rivalTime, color: Livery.shared.paint(for: .rival).labelColor)
                     if let name = hud.rivalName {
+                        // A Game Center alias can be long: it's cut short rather than widening the panel.
                         Text(name).font(.system(size: 12, weight: .semibold, design: .rounded)).opacity(0.75)
+                            .lineLimit(1)
                     }
                 }
             }
         }
+        .frame(width: 176, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
@@ -293,9 +302,13 @@ struct SplitBanner: View {
                 .opacity(0.85)
             Text(banner.value)
                 .font(.system(size: 24, weight: .heavy, design: .rounded).monospacedDigit().italic())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             if let detail = banner.detail {
                 Text(detail)
                     .font(.system(size: 14, weight: .heavy, design: .rounded).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(tint, in: Capsule())
