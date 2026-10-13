@@ -28,8 +28,9 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
                                   leaderboardIDs: [board.leaderboardID]) { _ in }
     }
 
+    /// Opens on your Game Center friends' times; the global board is a tap away in the same screen.
     func showLeaderboard(_ board: RaceBoard) {
-        let controller = GKGameCenterViewController(leaderboardID: board.leaderboardID, playerScope: .global,
+        let controller = GKGameCenterViewController(leaderboardID: board.leaderboardID, playerScope: .friendsOnly,
                                                     timeScope: .allTime)
         controller.gameCenterDelegate = self
         Self.present(controller)

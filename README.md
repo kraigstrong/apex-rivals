@@ -73,19 +73,16 @@ compare within a board, so **once a board is live, freeze it**: a change that mo
 `RaceTuning.physicsVersion` (or the circuit's `revision`), and with it a new Game Center leaderboard.
 `FreezeTests` pins the physics and every circuit to their versions and fails until a change is given one.
 
-The service is off (`ApexOnline.isEnabled = false`) until the routes are deployed. With it off, laps queue on the
-device (`LapLog`) and rivals are bots. To go live:
-
-1. App Store Connect: create the app (`com.kraigstrong.apex`), enable Game Center, and add a leaderboard for each
-   board: `apex.ardennes.r1.p1`, `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and
-   `apex.harbour.r1.p1`, score format Elapsed Time to the hundredth of a second, sorted low to high.
-2. BrightBench: set `APEX_APP_KEY` (`apex-laps-v1`) and `APEX_PLAYER_SALT` in the marketing project, add Vercel rate
-   limits for `/api/apex/*`, and deploy.
-3. Set `ApexOnline.isEnabled = true`.
+The service is on (`ApexOnline.isEnabled`). When it can't be reached, laps queue on the device (`LapLog`) and send
+later, rivals are bots, and the session summary says standings will show once you're online. On a board with only a
+few players, the rival is the nearest player who beats you at all, up to 3 s ahead, before falling back to a bot.
+`docs/apex-testflight.md` covers what has to be live before a build ships (the BrightBench routes and their
+secrets, and the Game Center leaderboards) and the smoke check, including racing a second account's ghost.
 
 ## Running
 
-Open `Apex.xcodeproj`, pick an iPhone, iPad or simulator, and Run. Signing uses automatic signing with team
+Open `Apex.xcodeproj`, pick an iPhone, iPad or simulator, and Run. The app icon is drawn by `Art/make-icon.py`
+(`python3 Art/make-icon.py` rewrites it). Signing uses automatic signing with team
 `MKACSCQ588`.
 
 ```bash
