@@ -29,7 +29,6 @@ enum TrackArt {
     static let kerbRed = SKColor(red: 0.86, green: 0.13, blue: 0.13, alpha: 1)
     static let kerbWhite = SKColor(white: 0.96, alpha: 1)
     static let wall = SKColor(red: 0.80, green: 0.82, blue: 0.86, alpha: 1)
-    static let livery = SKColor(red: 0.90, green: 0.12, blue: 0.10, alpha: 1)
 
     /// Length of track in each drawn piece. Pieces off screen are culled.
     private static let chunkLength = 240.0
@@ -192,55 +191,29 @@ enum TrackArt {
 
     // MARK: The car
 
-    /// The car seen from above, nose pointing right, drawn at `scale` times its world size (34 × 15) so its texture
-    /// stays sharp when the camera zooms in.
-    static func carNode(livery: SKColor, scale k: CGFloat) -> SKNode {
+    /// The car in a paint, drawn at `scale` times its world size (34 × 15) so its texture stays sharp when the camera
+    /// zooms in. The shape is `CarArt`'s.
+    static func carNode(paint: Paint, scale k: CGFloat) -> SKNode {
         let car = SKNode()
-        let tire = SKColor(white: 0.07, alpha: 1)
-        let carbon = SKColor(white: 0.16, alpha: 1)
-        func add(_ path: CGPath, _ color: SKColor) {
-            let node = SKShapeNode(path: path)
-            node.fillColor = color
+        for piece in CarArt.pieces {
+            let node = SKShapeNode(path: CarArt.path(piece.form, scale: k))
+            node.fillColor = SKColor(rgb: CarArt.rgb(piece.part, paint: paint))
             node.strokeColor = .clear
             node.lineWidth = 0
             car.addChild(node)
         }
-        func rect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ color: SKColor, corner: CGFloat = 0.8) {
-            add(CGPath(roundedRect: CGRect(x: x * k, y: y * k, width: w * k, height: h * k),
-                       cornerWidth: corner * k, cornerHeight: corner * k, transform: nil), color)
-        }
-        // Wheels.
-        rect(-14.5, 3.6, 8, 4.1, tire)
-        rect(-14.5, -7.7, 8, 4.1, tire)
-        rect(5.5, 3.9, 6.5, 3.6, tire)
-        rect(5.5, -7.5, 6.5, 3.6, tire)
-        // Wings.
-        rect(-17.5, -6.2, 3.4, 12.4, carbon, corner: 0.5)
-        rect(14.1, -6.6, 3.4, 13.2, livery, corner: 0.5)
-        // Body: sidepods tapering to a narrow nose.
-        let body = CGMutablePath()
-        let outline: [(CGFloat, CGFloat)] = [
-            (-14.5, -2.6), (-9, -4.9), (0, -4.9), (4.5, -2.2), (15, -1.1),
-            (15, 1.1), (4.5, 2.2), (0, 4.9), (-9, 4.9), (-14.5, 2.6),
-        ]
-        body.addLines(between: outline.map { CGPoint(x: $0.0 * k, y: $0.1 * k) })
-        body.closeSubpath()
-        add(body, livery)
-        rect(-13, -0.7, 27, 1.4, SKColor(white: 1, alpha: 0.9), corner: 0.3)
-        // Cockpit and helmet.
-        add(CGPath(ellipseIn: CGRect(x: -5.5 * k, y: -2 * k, width: 7 * k, height: 4 * k), transform: nil), carbon)
-        add(CGPath(ellipseIn: CGRect(x: -3.6 * k, y: -1.6 * k, width: 3.2 * k, height: 3.2 * k), transform: nil),
-            SKColor(red: 1, green: 0.85, blue: 0.1, alpha: 1))
         return car
     }
 
-    /// The car as one sprite. The drawing is symmetric about its center, so the sprite's center is the car's.
-    static func carSprite(in view: SKView, livery: SKColor = livery) -> SKSpriteNode {
-        let scale: CGFloat = 4
-        let node = carNode(livery: livery, scale: scale)
-        let texture = view.texture(from: node) ?? SKTexture()
+    /// The car's texture in a paint. The drawing is symmetric about its center, so the sprite's center is the car's.
+    static func carTexture(in view: SKView, paint: Paint) -> SKTexture {
+        view.texture(from: carNode(paint: paint, scale: 4)) ?? SKTexture()
+    }
+
+    static func carSprite(in view: SKView, paint: Paint) -> SKSpriteNode {
+        let texture = carTexture(in: view, paint: paint)
         let sprite = SKSpriteNode(texture: texture)
-        sprite.size = CGSize(width: texture.size().width / scale, height: texture.size().height / scale)
+        sprite.size = CGSize(width: texture.size().width / 4, height: texture.size().height / 4)
         return sprite
     }
 

@@ -14,6 +14,8 @@ final class RaceScene: SKScene {
     private var judge = CornerJudge()
     private var trail: [SKSpriteNode] = []
     private var coachPhase: ApexGuide.Phase?
+    /// The livery version the cars were last painted in; a change (from the colors picker) repaints them.
+    private var paintedLivery = -1
     private let tick = UISelectionFeedbackGenerator()
     private var nextTrail = 0
     private var trailGap = 0.0
@@ -106,24 +108,26 @@ final class RaceScene: SKScene {
         cameraNode.addChild(grass)
         self.grass = grass
 
-        let car = TrackArt.carSprite(in: view)
+        let livery = Livery.shared
+        let car = TrackArt.carSprite(in: view, paint: livery.paint(for: .car))
         car.zPosition = TrackArt.Depth.car
         world.addChild(car)
         self.car = car
 
-        let ghost = TrackArt.carSprite(in: view, livery: SKColor(red: 0.25, green: 0.75, blue: 1, alpha: 1))
+        let ghost = TrackArt.carSprite(in: view, paint: livery.paint(for: .best))
         ghost.alpha = 0.45
         ghost.zPosition = TrackArt.Depth.ghost
         ghost.isHidden = true
         world.addChild(ghost)
         self.ghost = ghost
 
-        let rivalNode = TrackArt.carSprite(in: view, livery: SKColor(red: 1, green: 0.76, blue: 0.1, alpha: 1))
+        let rivalNode = TrackArt.carSprite(in: view, paint: livery.paint(for: .rival))
         rivalNode.alpha = 0.5
         rivalNode.zPosition = TrackArt.Depth.ghost
         rivalNode.isHidden = true
         world.addChild(rivalNode)
         self.rivalNode = rivalNode
+        paintedLivery = livery.version
         findRival()
 
         skids = (0..<400).map { _ in
@@ -151,6 +155,7 @@ final class RaceScene: SKScene {
     // MARK: Frame
 
     override func update(_ currentTime: TimeInterval) {
+        if Livery.shared.version != paintedLivery { repaint() }
         let dt = lastTime.map { min(max(currentTime - $0, 0), 1.0 / 15) } ?? 0
         lastTime = currentTime
         session.holding = !holdTouches.isEmpty
@@ -347,6 +352,15 @@ final class RaceScene: SKScene {
                 .removeFromParent(),
             ]))
         }
+    }
+
+    private func repaint() {
+        guard let view else { return }
+        let livery = Livery.shared
+        paintedLivery = livery.version
+        car?.texture = TrackArt.carTexture(in: view, paint: livery.paint(for: .car))
+        ghost?.texture = TrackArt.carTexture(in: view, paint: livery.paint(for: .best))
+        rivalNode?.texture = TrackArt.carTexture(in: view, paint: livery.paint(for: .rival))
     }
 
     // MARK: Apex School

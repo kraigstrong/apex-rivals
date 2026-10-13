@@ -16,6 +16,7 @@ struct TrackMenu: View {
     let onSelect: (String) -> Void
     /// Each circuit's saved best lap, read whenever the menu appears.
     @State private var bests: [String: Double] = [:]
+    @State private var showsColors = false
 
     var body: some View {
         ZStack {
@@ -57,6 +58,25 @@ struct TrackMenu: View {
             }
             .padding(.vertical, 12)
             .foregroundStyle(.white)
+
+            Button {
+                showsColors = true
+            } label: {
+                Label("COLORS", systemImage: "paintpalette.fill")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.black.opacity(0.45), in: Capsule())
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            if showsColors {
+                Color.black.opacity(0.45).ignoresSafeArea()
+                LiveryPicker(livery: Livery.shared, onDone: { showsColors = false })
+            }
         }
         .onAppear {
             bests = Dictionary(uniqueKeysWithValues: ([TrackCatalog.school] + TrackCatalog.tracks).compactMap { track in
