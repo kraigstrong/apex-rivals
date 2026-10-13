@@ -53,6 +53,10 @@ final class RaceHUD {
     @ObservationIgnored var onShowLeaderboard: () -> Void = {}
     @ObservationIgnored var onEndSession: () -> Void = {}
     @ObservationIgnored var onRaceAgain: () -> Void = {}
+    /// The house button: ends the session (showing its summary if a lap was finished), or goes straight to the tracks.
+    @ObservationIgnored var onLeave: () -> Void = {}
+    /// Back to the track list.
+    @ObservationIgnored var onExit: () -> Void = {}
     @ObservationIgnored private let bounds: CGRect
     @ObservationIgnored private var nextBannerID = 0
 

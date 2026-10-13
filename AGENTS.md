@@ -23,7 +23,10 @@ geometry, physics, timing, saves); the SpriteKit scene is checked by running the
   A change to physics, tuning or the circuit that moves lap times should move them on purpose: print the table with
   `-only-testing:ApexTests/LapTimeTests/report()` and update the ranges and the README's table together.
 - **Circuits are segment lists** (`TrackLayout`). Keep the two closing straights long and running in different
-  directions; `TrackTests` checks the loop closes, never overlaps itself, and fits its corners.
+  directions; `TrackTests` checks every circuit closes, never overlaps itself, and fits its corners, and
+  `LapTimeTests` holds each to the same bot lap times. To add one: add it to `TrackLayout.all`, record its
+  signature in `FreezeTests`, add its board to BrightBench's `apexBoards` (deployed before the app ships), and
+  create its Game Center leaderboard.
 - **Saved best laps are keyed by circuit and tuning** (`LapStore.key`), so changing either starts a fresh best lap.
   Add any new constant that changes how fast a lap can be to `RaceTuning.lapSignature`.
 - **Freeze boards before they're live.** Leaderboards are per `RaceBoard` (circuit, revision, physics version).

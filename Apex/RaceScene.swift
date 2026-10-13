@@ -58,6 +58,7 @@ final class RaceScene: SKScene {
         hud.onToggleRacingLine = { [weak self] in self?.toggleRacingLine() }
         hud.onForgetBest = { [weak self] in self?.forgetBest() }
         hud.onEndSession = { [weak self] in self?.endSession() }
+        hud.onLeave = { [weak self] in self?.leave() }
         hud.onRaceAgain = { [weak self] in self?.hud.summary = nil }
         hud.onShowLeaderboard = { [weak self] in
             guard let self else { return }
@@ -353,6 +354,16 @@ final class RaceScene: SKScene {
             if sessionLaps == 0 { bestBeforeSession = session.timer.best?.time }
             session.start()
             refreshHUD()
+        }
+    }
+
+    /// Heading back to the track list: a session with a finished lap gets its summary first (which offers the tracks),
+    /// and one without goes straight there.
+    func leave() {
+        if sessionLaps > 0 {
+            endSession()
+        } else {
+            hud.onExit()
         }
     }
 

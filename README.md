@@ -2,8 +2,12 @@
 
 A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+). Working title.
 
-**Hold to steer up. Let go to steer down.** Set the fastest lap you can around Harbour Park, an original circuit
-with the bones of an F1 track. A good lap is about 30 seconds.
+**Hold to steer up. Let go to steer down.** Pick a circuit from the track list and set the fastest lap you can. A
+good lap is about 30 seconds on each. All three circuits are original, with the bones of F1 tracks:
+
+- **Harbour Park**, the all-rounder: a long straight into a hairpin, flowing esses and a tight chicane.
+- **Old Town**, a clockwise street circuit: square corners, a double-hairpin switchback and a chicane.
+- **Ridgeway**, fast and flowing: a big sweeper, four linked esses, a heavy stop and a flat-out kink.
 
 ## The idea
 
@@ -36,6 +40,7 @@ What the game shows you:
   player's best lap when the lap service has one close enough, otherwise a bot driving the ideal line at whatever
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
+- **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
 - **Session summary**: the chequered flag ends a session (so does leaving the app). The summary shows the session's
   best lap and where it falls among other players' bests: the share it beats, its place, and a histogram of everyone's
   times with yours marked. Xcode builds show labelled sample players while the lap service is off.
@@ -59,7 +64,8 @@ The service is off (`ApexOnline.isEnabled = false`) until the routes are deploye
 device (`LapLog`) and rivals are bots. To go live:
 
 1. App Store Connect: create the app (`com.kraigstrong.apex`), enable Game Center, and add a leaderboard for each
-   board, ID `apex.harbour_park.r1.p1`, score format Elapsed Time to the hundredth of a second, sorted low to high.
+   board: `apex.harbour_park.r1.p1`, `apex.old_town.r1.p1` and `apex.ridgeway.r1.p1`, score format Elapsed Time to
+   the hundredth of a second, sorted low to high.
 2. BrightBench: set `APEX_APP_KEY` (`apex-laps-v1`) and `APEX_PLAYER_SALT` in the marketing project, add Vercel rate
    limits for `/api/apex/*`, and deploy.
 3. Set `ApexOnline.isEnabled = true`.
@@ -84,13 +90,13 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
 player's one control:
 
-| Driver | Lap |
-| --- | --- |
-| Perfect, on the ideal line | 25.7s |
-| Deciding every 50 ms, ideal line | 26.6s |
-| Deciding every ~90 ms (human), ideal line | 28.5s |
-| Deciding every ~90 ms, middle of the road | 30.0s |
-| Sloppy weaver, middle of the road | 37.0s |
+| Driver | Harbour Park | Old Town | Ridgeway |
+| --- | --- | --- | --- |
+| Perfect, on the ideal line | 25.7s | 25.8s | 26.7s |
+| Deciding every 50 ms, ideal line | 26.6s | 26.4s | 27.3s |
+| Deciding every ~90 ms (human), ideal line | 28.6s | 27.9s | 28.9s |
+| Deciding every ~90 ms, middle of the road | 30.0s | 29.3s | 30.5s |
+| Sloppy weaver, middle of the road | 37.0s | 34.9s | 37.2s |
 
 After a retune, print the table with
 `xcodebuild test ... '-only-testing:ApexTests/LapTimeTests/report()'` (lines start with `LAPTIME`) and update the
@@ -108,7 +114,9 @@ fresh best lap.
 ## Layout
 
 - `Apex/TrackLayout.swift`: circuits as pieces you'd drive: straights and constant-radius corners. Two straights
-  (`closingStraights`) are solved so the loop closes exactly, so corners can be tuned freely.
+  (`closingStraights`) are solved so the loop closes exactly, so corners can be tuned freely. `TrackLayout.all` is
+  the track list.
+- `Apex/TrackMenu.swift`: the track list, and `TrackCatalog`, which builds each circuit's geometry once.
 - `Apex/Track.swift`: turns a layout into geometry sampled every unit: centerline, heading, curvature (box-filtered
   so corners ease in), and a smoothed heading for the camera. Positions are (s, n): distance from the line, and offset
   left of the centerline.

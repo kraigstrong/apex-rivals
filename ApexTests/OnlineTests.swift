@@ -14,9 +14,14 @@ struct FreezeTests {
 
     @Test func circuitsMatchTheirRevisions() {
         // A failure means a circuit's shape changed. Once its board is live, bump its `revision` and add the signature.
-        let signatures = ["harbour_park.1": "4bbfe58530adadc8"]
-        let layout = TrackLayout.harbourPark
-        #expect(signatures["\(layout.id).\(layout.revision)"] == LapStore.fingerprint(layout.signature))
+        let signatures = [
+            "harbour_park.1": "4bbfe58530adadc8",
+            "old_town.1": "741bc7985903a9f7",
+            "ridgeway.1": "98e718c3836f16a2",
+        ]
+        for layout in TrackLayout.all {
+            #expect(signatures["\(layout.id).\(layout.revision)"] == LapStore.fingerprint(layout.signature), "\(layout.id)")
+        }
     }
 
     @Test func leaderboardIDsNameTheBoard() {

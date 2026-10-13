@@ -2,12 +2,13 @@ import Foundation
 import Testing
 @testable import Apex
 
-/// Bots lap the circuit with the player's one control. They pin down the difficulty: a perfect line is around 26
-/// seconds, a skilled human-speed player gets near 29, holding the middle of the road is around 30, and a sloppy weaver
-/// still finishes in under 40.
+/// Bots lap every circuit with the player's one control. They pin down the difficulty, the same on each: a perfect line
+/// is around 26 seconds, a skilled human-speed player gets near 29, holding the middle of the road is around 30, and a
+/// sloppy weaver still finishes in under 40.
 struct LapTimeTests {
-    static let track = Track(.harbourPark)
-    static let racingLine = RacingLine(track: track)
+    static let ids = TrackLayout.all.map(\.id)
+    static let tracks = Dictionary(uniqueKeysWithValues: TrackLayout.all.map { ($0.id, Track($0)) })
+    static let lines = tracks.mapValues { RacingLine(track: $0) }
 
     struct Run {
         var laps: [Double]
@@ -16,8 +17,8 @@ struct LapTimeTests {
     }
 
     /// The bot's second and third laps (the first starts from rest).
-    func run(_ driver: AutoDriver, laps: Int = 3) -> Run {
-        let session = RaceSession(track: Self.track)
+    func run(_ driver: AutoDriver, on id: String, laps: Int = 3) -> Run {
+        let session = RaceSession(track: Self.tracks[id]!)
         var driver = driver
         session.start()
         var times: [Double] = []
@@ -34,54 +35,57 @@ struct LapTimeTests {
         return Run(laps: Array(times.dropFirst()), wallHits: hits)
     }
 
-    var idealLine: (Double) -> Double { { Self.racingLine.offset(at: $0) } }
+    func idealLine(_ id: String) -> (Double) -> Double {
+        let line = Self.lines[id]!
+        return { line.offset(at: $0) }
+    }
     var middle: (Double) -> Double { { _ in 0 } }
 
-    @Test func aPerfectLineIsAroundTwentySixSeconds() {
-        let lap = run(AutoDriver(line: idealLine))
+    @Test(arguments: ids) func aPerfectLineIsAroundTwentySixSeconds(id: String) {
+        let lap = run(AutoDriver(line: idealLine(id)), on: id)
         #expect(lap.laps.count == 2)
-        #expect((24.5...27.5).contains(lap.mean), "Perfect line: \(lap.mean)s")
+        #expect((24.5...27.5).contains(lap.mean), "\(id), perfect line: \(lap.mean)s")
     }
 
-    @Test func aSkilledPlayerIsUnderThirty() {
-        let lap = run(AutoDriver(line: idealLine, decisionInterval: 0.09, hesitation: 0.04))
-        #expect((27...30).contains(lap.mean), "Skilled: \(lap.mean)s")
+    @Test(arguments: ids) func aSkilledPlayerIsUnderThirty(id: String) {
+        let lap = run(AutoDriver(line: idealLine(id), decisionInterval: 0.09, hesitation: 0.04), on: id)
+        #expect((27...30).contains(lap.mean), "\(id), skilled: \(lap.mean)s")
     }
 
-    @Test func holdingTheMiddleIsAroundThirty() {
-        let lap = run(AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04))
-        #expect((28.5...32).contains(lap.mean), "Middle of the road: \(lap.mean)s")
+    @Test(arguments: ids) func holdingTheMiddleIsAroundThirty(id: String) {
+        let lap = run(AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04), on: id)
+        #expect((28.5...32).contains(lap.mean), "\(id), middle of the road: \(lap.mean)s")
     }
 
-    @Test func aSloppyWeaverStillFinishes() {
-        let lap = run(AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08))
+    @Test(arguments: ids) func aSloppyWeaverStillFinishes(id: String) {
+        let lap = run(AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08), on: id)
         #expect(lap.laps.count == 2)
-        #expect((33...40).contains(lap.mean), "Sloppy: \(lap.mean)s")
+        #expect((33...40).contains(lap.mean), "\(id), sloppy: \(lap.mean)s")
     }
 
-    @Test func betterDrivingIsFaster() {
-        let perfect = run(AutoDriver(line: idealLine)).mean
-        let skilled = run(AutoDriver(line: idealLine, decisionInterval: 0.09, hesitation: 0.04)).mean
-        let centered = run(AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04)).mean
-        let sloppy = run(AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08)).mean
+    @Test(arguments: ids) func betterDrivingIsFaster(id: String) {
+        let perfect = run(AutoDriver(line: idealLine(id)), on: id).mean
+        let skilled = run(AutoDriver(line: idealLine(id), decisionInterval: 0.09, hesitation: 0.04), on: id).mean
+        let centered = run(AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04), on: id).mean
+        let sloppy = run(AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08), on: id).mean
         #expect(perfect < skilled)
         #expect(skilled < centered)
         #expect(centered < sloppy)
     }
 
     /// Prints a table of bot laps for tuning: `-only-testing:ApexTests/LapTimeTests/report()`.
-    @Test func report() {
+    @Test(arguments: ids) func report(id: String) {
         let rows: [(String, AutoDriver)] = [
-            ("perfect, ideal line", AutoDriver(line: idealLine)),
-            ("50 ms, ideal line", AutoDriver(line: idealLine, decisionInterval: 0.05)),
-            ("90 ms, ideal line", AutoDriver(line: idealLine, decisionInterval: 0.09, hesitation: 0.04)),
+            ("perfect, ideal line", AutoDriver(line: idealLine(id))),
+            ("50 ms, ideal line", AutoDriver(line: idealLine(id), decisionInterval: 0.05)),
+            ("90 ms, ideal line", AutoDriver(line: idealLine(id), decisionInterval: 0.09, hesitation: 0.04)),
             ("perfect, middle", AutoDriver(line: middle)),
             ("90 ms, middle", AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04)),
             ("sloppy, middle", AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08)),
         ]
         for (name, driver) in rows {
-            let lap = run(driver)
-            print("LAPTIME \(name): \(lap.laps.map { String(format: "%.2f", $0) }) walls \(lap.wallHits)")
+            let lap = run(driver, on: id)
+            print("LAPTIME \(id) \(name): \(lap.laps.map { String(format: "%.2f", $0) }) walls \(lap.wallHits)")
         }
     }
 }

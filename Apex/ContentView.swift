@@ -1,14 +1,35 @@
 import SpriteKit
 import SwiftUI
 
+/// The track list, or a race on the track picked from it.
 struct ContentView: View {
+    /// The track being raced; nil shows the track list.
+    @State private var racing: String?
+
+    var body: some View {
+        Group {
+            if let id = racing {
+                RaceView(track: TrackCatalog.track(id), onExit: { racing = nil })
+                    .id(id)
+            } else {
+                TrackMenu(onSelect: { racing = $0 })
+            }
+        }
+        .statusBarHidden()
+        .persistentSystemOverlays(.hidden)
+        .onAppear { GameCenter.shared.signIn() }
+    }
+}
+
+/// One circuit's race: the SpriteKit scene with the HUD over it.
+struct RaceView: View {
     @State private var hud: RaceHUD
     @State private var scene: RaceScene
     @Environment(\.scenePhase) private var scenePhase
 
-    init() {
-        let track = Track(.harbourPark)
+    init(track: Track, onExit: @escaping () -> Void) {
         let hud = RaceHUD(track: track)
+        hud.onExit = onExit
         _hud = State(initialValue: hud)
         _scene = State(initialValue: RaceScene(track: track, hud: hud))
     }
@@ -20,9 +41,6 @@ struct ContentView: View {
                 .ignoresSafeArea()
             RaceOverlay(hud: hud)
         }
-        .statusBarHidden()
-        .persistentSystemOverlays(.hidden)
-        .onAppear { GameCenter.shared.signIn() }
         // Leaving the app ends the session; its summary is waiting on return.
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { scene.endSession() }
@@ -49,7 +67,8 @@ struct RaceOverlay: View {
                 .allowsHitTesting(hud.summary == nil)
 
             if let summary = hud.summary {
-                SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain)
+                SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
+                                   onTracks: hud.onExit)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !hud.racing {
                 // Low and to the right, clear of the car on the left third of the screen.
@@ -86,6 +105,11 @@ struct RaceOverlay: View {
                 MiniMap(hud: hud)
                     .allowsHitTesting(false)
                 HStack(spacing: 10) {
+                    Button {
+                        hud.onLeave()
+                    } label: {
+                        RoundIcon(symbol: "house.fill")
+                    }
                     Menu {
                         Button {
                             hud.onToggleRacingLine()
@@ -246,7 +270,8 @@ struct MiniMap: View {
         let ghost = hud.ghostMarker
         let rival = hud.rivalMarker
         let outline = hud.mapOutline
-        let width: CGFloat = 170
+        // Fits the circuit in a 170 × 100 box, so tall circuits don't push the buttons down.
+        let width = min(170, 100 * hud.mapAspect)
         Canvas { context, size in
             var path = Path()
             path.addLines(outline.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) })
@@ -313,6 +338,7 @@ struct SessionSummaryCard: View {
     let summary: SessionSummary
     let standing: StandingState
     let onRaceAgain: () -> Void
+    let onTracks: () -> Void
 
     private let purple = Color(red: 0.75, green: 0.5, blue: 1)
 
@@ -341,12 +367,21 @@ struct SessionSummaryCard: View {
                     .frame(minWidth: 180, alignment: .leading)
             }
             standingDetail
-            Button(action: onRaceAgain) {
-                Text("RACE AGAIN")
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
-                    .padding(.horizontal, 26)
-                    .padding(.vertical, 10)
-                    .background(Color(red: 0.9, green: 0.12, blue: 0.1), in: Capsule())
+            HStack(spacing: 12) {
+                Button(action: onTracks) {
+                    Text("TRACKS")
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 26)
+                        .padding(.vertical, 10)
+                        .overlay(Capsule().stroke(.white.opacity(0.6), lineWidth: 2))
+                }
+                Button(action: onRaceAgain) {
+                    Text("RACE AGAIN")
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 26)
+                        .padding(.vertical, 10)
+                        .background(Color(red: 0.9, green: 0.12, blue: 0.1), in: Capsule())
+                }
             }
         }
         .padding(20)
