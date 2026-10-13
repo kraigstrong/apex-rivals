@@ -42,8 +42,21 @@ final class RaceHUD {
     var isPractice = false
     /// The car colors picker is open over the race.
     var showsColors = false
+    #if DEBUG
+    /// The tuning panel is open over the race, with the bots' laps on the car as tuned and as released (once known).
+    var showsTuner = false
+    var botLaps: BotLaps?
+    var stockBotLaps: BotLaps?
+    @ObservationIgnored var onTune: () -> Void = {}
+    #endif
     /// A panel is open over the race. The race holds still until it closes.
-    var showsPanel: Bool { showsColors }
+    var showsPanel: Bool {
+        #if DEBUG
+        return showsColors || showsTuner
+        #else
+        return showsColors
+        #endif
+    }
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading
@@ -119,6 +132,8 @@ enum StandingState: Equatable {
 enum LapFormat {
     /// "29.871", or "1:02.345" past a minute.
     static func time(_ seconds: Double, decimals: Int = 3) -> String {
+        // A lap that never finished (a bot's lap of infinity) has no time to show.
+        guard seconds.isFinite else { return "—" }
         let total = max(0, seconds)
         let minutes = Int(total) / 60
         let rest = total - Double(minutes * 60)
@@ -128,7 +143,8 @@ enum LapFormat {
 
     /// "−0.214" or "+0.571".
     static func delta(_ seconds: Double, decimals: Int = 3) -> String {
-        (seconds < 0 ? "\u{2212}" : "+") + String(format: "%.\(decimals)f", abs(seconds))
+        guard seconds.isFinite else { return "—" }
+        return (seconds < 0 ? "\u{2212}" : "+") + String(format: "%.\(decimals)f", abs(seconds))
     }
 
     static func speed(_ unitsPerSecond: Double) -> String {

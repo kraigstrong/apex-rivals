@@ -95,8 +95,9 @@ final class RivalScout {
             if line == nil { line = RacingLine(track: track) }
             guard let line else { return }
             let record = RivalBot.lap(near: target, track: track, line: line)
-            // Nothing to chase once you're faster than the bot can go.
-            if let best, record.time >= best {
+            // Nothing to chase once you're faster than the bot can go, or if it couldn't finish a lap at all (a car
+            // tuned past driving, in the tuning panel).
+            if !record.time.isFinite || best.map({ record.time >= $0 }) == true {
                 deliver(nil)
             } else {
                 deliver(Rival(name: RivalBot.name, record: record, source: .bot))

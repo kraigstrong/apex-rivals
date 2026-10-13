@@ -95,6 +95,19 @@ struct LapTimerTests {
         #expect(record.ghostPose(at: 2, trackLength: length) == nil)
     }
 
+    @Test func aRetunedCarRacesItsOwnBest() {
+        var timer = LapTimer(track: track)
+        var clock = 0.0
+        _ = drive(&timer, from: -10, to: track.length + 1, speed: 300, clock: &clock)
+        #expect(timer.best != nil)
+        timer.replaceBest(with: nil)
+        let events = drive(&timer, from: track.length + 1, to: track.length * 2 + 1, speed: 250, clock: &clock)
+        let lap = events.compactMap { if case .lap(let lap) = $0 { return lap } else { return nil } }.first
+        // Slower than the old car's best, but the first lap on this one.
+        #expect(lap?.isBest == true)
+        #expect(lap?.delta == nil)
+    }
+
     @Test func savedBestLapsComeBack() throws {
         let defaults = try #require(UserDefaults(suiteName: "LapTimerTests.saved"))
         defaults.removePersistentDomain(forName: "LapTimerTests.saved")
@@ -112,5 +125,7 @@ struct LapTimerTests {
         #expect(LapFormat.time(9.5, decimals: 2) == "9.50")
         #expect(LapFormat.delta(-0.2141) == "\u{2212}0.214")
         #expect(LapFormat.delta(0.5) == "+0.500")
+        #expect(LapFormat.time(.infinity) == "—")
+        #expect(LapFormat.delta(.infinity) == "—")
     }
 }

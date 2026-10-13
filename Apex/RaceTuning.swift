@@ -1,6 +1,7 @@
 import Foundation
 
-/// Every feel constant in one place. Distances are world units (the car is 34 long, the track 120 wide wall to wall);
+/// Every feel constant in one place. The handful the Xcode-only tuning panel (`Tuner`) can change live are `var`s;
+/// Release builds never change them. Distances are world units (the car is 34 long, the track 120 wide wall to wall);
 /// speeds are units a second.
 enum RaceTuning {
     // MARK: Track
@@ -17,25 +18,40 @@ enum RaceTuning {
 
     /// Holding swings the car's nose toward the top of the screen (the car's left) at this rate, and letting go swings it
     /// toward the bottom, in radians a second.
-    static let steerRate: Double = 2.4
+    static var steerRate: Double = 2.4
     /// Pulls the nose back toward the track's direction (per second). Holding settles at `steerRate / steerReturn` radians.
-    static let steerReturn: Double = 4.0
+    static var steerReturn: Double = 4.0
 
     // MARK: Speed
 
     static let topSpeed: Double = 500
     /// The fastest a car can follow a path of curvature κ is √(grip / κ), so straighter is faster.
-    static let grip: Double = 480
+    static var grip: Double = 480
     /// The car's heading is smoothed over this distance before its curvature sets the speed. Quick, small corrections
     /// mostly cancel out; slower weaves and corners don't.
-    static let straightnessLength: Double = 90
-    static let acceleration: Double = 280
+    static var straightnessLength: Double = 90
+    static var acceleration: Double = 280
     /// Acceleration fades by this share as the car nears top speed.
     static let accelerationFade: Double = 0.55
     /// How quickly speed drops to what the line allows.
     static let braking: Double = 1500
     /// However badly a lap goes, the car never drops below this speed once it's rolling.
     static let minimumSpeed: Double = 110
+
+    /// The steering and speed constants the tuning panel changes, taken together, so a bot can drive a car tuned
+    /// differently from the one on screen.
+    struct Handling: Equatable {
+        var steerRate: Double
+        var steerReturn: Double
+        var grip: Double
+        var straightnessLength: Double
+        var acceleration: Double
+
+        static var current: Handling {
+            Handling(steerRate: RaceTuning.steerRate, steerReturn: RaceTuning.steerReturn, grip: RaceTuning.grip,
+                     straightnessLength: RaceTuning.straightnessLength, acceleration: RaceTuning.acceleration)
+        }
+    }
 
     // MARK: Walls
 
@@ -102,6 +118,12 @@ enum RaceTuning {
     /// The physics' version. Leaderboards are kept per version (`RaceBoard`), so a change that moves lap times (anything
     /// in `lapSignature`) must bump it once released. `FreezeTests` fails until the new signature is recorded.
     static let physicsVersion = 1
+    /// `lapSignature`'s fingerprint for `physicsVersion`. `FreezeTests` checks the stock car matches it.
+    static let physicsFingerprint = "93a7f30b1b41fad9"
+
+    /// Whether the car is as released (no tuning-panel changes). Only stock laps reach leaderboards and the lap
+    /// service, so a tuned car can't put times on a board it doesn't belong to.
+    static var isStock: Bool { LapStore.fingerprint(lapSignature) == physicsFingerprint }
 
     /// Everything that changes how fast a lap can be: the track's shape and sampling, the car, the walls, the physics
     /// step, and the run-up to the first timed lap. Saved best laps are kept per version of these, so a retune starts a

@@ -19,6 +19,15 @@ struct CarPhysicsTests {
         #expect(abs(car.psi - RaceTuning.steerRate / RaceTuning.steerReturn) < 0.02)
     }
 
+    /// A car can drive with its own handling (as the tuning panel's bots do), whatever `RaceTuning` says.
+    @Test func aCarCanHaveItsOwnHandling() {
+        var handling = RaceTuning.Handling.current
+        handling.steerRate /= 2
+        var car = Car(track: track, distanceBeforeLine: -100, n: -50)
+        for _ in 0..<240 { CarPhysics.step(&car, holding: true, dt: dt, on: track, handling: handling) }
+        #expect(abs(car.psi - handling.steerRate / handling.steerReturn) < 0.02)
+    }
+
     @Test func holdingMovesTowardTheTopAndLettingGoTowardTheBottom() {
         var up = carOnStraight(), down = carOnStraight()
         for _ in 0..<60 {

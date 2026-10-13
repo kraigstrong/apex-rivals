@@ -37,4 +37,5 @@ geometry, physics, timing, saves); the SpriteKit scene is checked by running the
   player ID is stored, with the player's public alias, best time and ghost.
 - **Draw order:** the SpriteView ignores sibling order, so anything that overlaps needs its own depth
   (`TrackArt.Depth`).
-- **Debug-only tools go behind `#if DEBUG`**, like the autopilot and FPS launch arguments.
+- **Debug-only tools go behind `#if DEBUG`**, like the autopilot and FPS launch arguments and the tuning panel
+  (`Tuner`). Tuned laps stay off the boards: anything that uploads or submits a lap checks `RaceTuning.isStock`.

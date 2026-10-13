@@ -53,6 +53,11 @@ final class RaceScene: SKScene {
     /// Launch with `-ApexAutopilot perfect` to watch a bot drive the ideal line, or `-ApexAutopilot human` for one
     /// that reacts at human speed (so its laps differ and the ghost shows). Its laps are never saved.
     private var autopilot: AutoDriver?
+    /// The tuning the race is set up for; a change in the tuning panel starts it over on the new car.
+    private var tunedVersion = Tuner.shared.version
+    /// When to time the bots and find a rival for the new car: once the sliders have been still for a moment.
+    private var retuneSettles: TimeInterval?
+    private lazy var stopwatch = BotStopwatch(track: track)
     #endif
 
     init(track: Track, hud: RaceHUD) {
@@ -77,6 +82,7 @@ final class RaceScene: SKScene {
             GameCenter.shared.showLeaderboard(board)
         }
         #if DEBUG
+        hud.onTune = { [weak self] in self?.openTuner() }
         if let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") {
             let line = RacingLine(track: track)
             autopilot = mode == "human"
@@ -154,6 +160,9 @@ final class RaceScene: SKScene {
 
     override func update(_ currentTime: TimeInterval) {
         if Livery.shared.version != paintedLivery { repaint() }
+        #if DEBUG
+        retuneIfNeeded(at: currentTime)
+        #endif
         // Paused behind a panel: the lap picks up where it was once the panel closes.
         if hud.showsPanel {
             lastTime = nil
@@ -558,4 +567,45 @@ final class RaceScene: SKScene {
         ghost?.isHidden = true
         findRival()
     }
+
+    // MARK: Tuning
+
+    #if DEBUG
+    /// The tuning panel covers the race, which holds still while it's open.
+    private func openTuner() {
+        hud.showsTuner = true
+        if hud.botLaps == nil { timeBots() }
+    }
+
+    /// A different car: back to the grid, racing its own best lap, with a fresh session. Its bots and rival wait until
+    /// the sliders settle.
+    private func retuneIfNeeded(at time: TimeInterval) {
+        if Tuner.shared.version != tunedVersion {
+            tunedVersion = Tuner.shared.version
+            sessionLaps = 0
+            sessionBest = nil
+            restart()
+            session.replaceBest(with: LapStore.load(for: track))
+            hud.bestLap = session.timer.best?.time
+            hud.lastLap = nil
+            hud.botLaps = nil
+            stopwatch.cancel()
+            retuneSettles = time + 0.4
+            // Back on the stock car: any stock best that missed Game Center or the lap service goes up now.
+            if RaceTuning.isStock { BestLapDelivery.sendSaved() }
+        }
+        if let settles = retuneSettles, time >= settles {
+            retuneSettles = nil
+            findRival()
+            timeBots()
+        }
+    }
+
+    private func timeBots() {
+        stopwatch.time(.current, stock: Tuner.shared.stockHandling) { [weak self] laps, stock in
+            self?.hud.botLaps = laps
+            self?.hud.stockBotLaps = stock
+        }
+    }
+    #endif
 }

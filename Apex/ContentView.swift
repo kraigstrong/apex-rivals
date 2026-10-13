@@ -68,28 +68,46 @@ struct RaceOverlay: View {
 
     var body: some View {
         ZStack {
-            racingHUD
-                .opacity(hud.summary == nil && !hud.showsPanel ? 1 : 0)
-                .allowsHitTesting(hud.summary == nil && !hud.showsPanel)
-
-            if hud.showsColors {
+            // A panel dims the race edge to edge, and keeps touches off it.
+            if hud.showsPanel {
                 Color.black.opacity(0.35).ignoresSafeArea()
-                LiveryPicker(livery: Livery.shared, onDone: { hud.showsColors = false })
-            } else if let summary = hud.summary {
-                SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
-                                   onTracks: hud.onExit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if !hud.racing {
-                // Low and to the right, clear of the car on the left third of the screen.
-                StartCard(name: hud.trackName, best: hud.bestLap, practice: hud.isPractice)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.leading, 240)
-                    .allowsHitTesting(false)
             }
+            ZStack {
+                racingHUD
+                    .opacity(hud.summary == nil && !hud.showsPanel ? 1 : 0)
+                    .allowsHitTesting(hud.summary == nil && !hud.showsPanel)
+
+                if hud.showsColors {
+                    LiveryPicker(livery: Livery.shared, onDone: { hud.showsColors = false })
+                } else if showsTuner {
+                    #if DEBUG
+                    TunerPanel(tuner: Tuner.shared, trackName: hud.trackName, laps: hud.botLaps,
+                               stockLaps: hud.stockBotLaps, onDone: { hud.showsTuner = false })
+                    #endif
+                } else if let summary = hud.summary {
+                    SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
+                                       onTracks: hud.onExit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if !hud.racing {
+                    // Low and to the right, clear of the car on the left third of the screen.
+                    StartCard(name: hud.trackName, best: hud.bestLap, practice: hud.isPractice)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .padding(.leading, 240)
+                        .allowsHitTesting(false)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
         .foregroundStyle(.white)
+    }
+
+    private var showsTuner: Bool {
+        #if DEBUG
+        return hud.showsTuner
+        #else
+        return false
+        #endif
     }
 
     /// Timing, splits, map, buttons and speed: everything shown while racing.
@@ -131,6 +149,13 @@ struct RaceOverlay: View {
                         } label: {
                             Label("Car colors", systemImage: "paintpalette")
                         }
+                        #if DEBUG
+                        Button {
+                            hud.onTune()
+                        } label: {
+                            Label("Tune controls", systemImage: "slider.horizontal.3")
+                        }
+                        #endif
                         Button(role: .destructive) {
                             hud.onForgetBest()
                         } label: {

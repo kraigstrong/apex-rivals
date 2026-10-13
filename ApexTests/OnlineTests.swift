@@ -9,6 +9,8 @@ struct FreezeTests {
         // A failure means the car changed. Once boards are live, bump `RaceTuning.physicsVersion` and add its signature.
         let signatures = [1: "93a7f30b1b41fad9"]
         #expect(signatures[RaceTuning.physicsVersion] == LapStore.fingerprint(RaceTuning.lapSignature))
+        #expect(signatures[RaceTuning.physicsVersion] == RaceTuning.physicsFingerprint)
+        #expect(RaceTuning.isStock)
         #expect(RaceTuning.physicsStep == 1.0 / 240)
     }
 

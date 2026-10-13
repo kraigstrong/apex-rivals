@@ -164,6 +164,11 @@ struct LapTimer {
     mutating func forgetBest() {
         best = nil
     }
+
+    /// Races against a different best lap, as when the car's tuning changes.
+    mutating func replaceBest(with record: LapRecord?) {
+        best = record
+    }
 }
 
 /// Best laps, kept on the device per circuit and per version of the car's tuning.
