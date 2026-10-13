@@ -51,8 +51,8 @@ What the game shows you:
   the ideal line painted on, TURN IN / APEX / EXIT markers at every corner, a coach with one big cue that changes
   three times a corner (STAY WIDE, then LET GO at turn-in to dive for the apex, then HOLD to ease back out on a
   right-hander) with a haptic tick at turn-in and at the apex, a verdict after every
-  corner (how wide of the apex, and your slowest speed against the ideal line's), your own line traced behind the car,
-  and the Instructor (the ideal line, driven perfectly) as the gold ghost. No leaderboard; nothing leaves the device.
+  corner (how wide of the apex, and your slowest speed against the ideal line's), and your own line traced behind the
+  car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
 - **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
 - **Session summary**: the chequered flag ends a session (so does leaving the app). The summary shows the session's
   best lap and where it falls among other players' bests: the share it beats, its place, and a histogram of everyone's

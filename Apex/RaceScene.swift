@@ -7,8 +7,8 @@ final class RaceScene: SKScene {
     let session: RaceSession
     let hud: RaceHUD
     let board: RaceBoard
-    /// Apex School: the ideal line and its markers on the track, a coach, a verdict after every corner, a trail of
-    /// your own line, and the Instructor as the rival. Nothing leaves the device.
+    /// Apex School: the ideal line and its markers on the track, a coach, a verdict after every corner, and a trail of
+    /// your own line. No ghosts or rival (the line is the guide), and nothing leaves the device.
     let practice: Bool
     private var guide: ApexGuide?
     private var judge = CornerJudge()
@@ -60,7 +60,7 @@ final class RaceScene: SKScene {
         self.hud = hud
         board = RaceBoard(track: track)
         practice = track.layout.isPractice
-        scout = RivalScout(track: track, instructor: practice)
+        scout = RivalScout(track: track)
         super.init(size: CGSize(width: 874, height: 402))
         hud.isPractice = practice
         scaleMode = .resizeFill
@@ -186,7 +186,7 @@ final class RaceScene: SKScene {
         car?.position = position
         car?.zRotation = CGFloat(heading)
 
-        if let best = session.timer.best, let lapTime = session.timer.lapTime(at: session.clock),
+        if !practice, let best = session.timer.best, let lapTime = session.timer.lapTime(at: session.clock),
            let pose = best.ghostPose(at: lapTime, trackLength: track.length) {
             ghost?.isHidden = false
             ghost?.position = track.point(s: Double(pose.s), n: Double(pose.n))
@@ -386,6 +386,7 @@ final class RaceScene: SKScene {
     }
 
     private func findRival() {
+        guard !practice else { return }
         scout.find(beating: session.timer.best?.time) { [weak self] rival in
             guard let self else { return }
             self.rival = rival
