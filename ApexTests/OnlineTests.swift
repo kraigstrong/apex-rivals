@@ -15,9 +15,12 @@ struct FreezeTests {
     @Test func circuitsMatchTheirRevisions() {
         // A failure means a circuit's shape changed. Once its board is live, bump its `revision` and add the signature.
         let signatures = [
-            "harbour_park.1": "4bbfe58530adadc8",
-            "old_town.1": "741bc7985903a9f7",
-            "ridgeway.1": "98e718c3836f16a2",
+            "ardennes.1": "361e53068f255da0",
+            "swirl.1": "b41cb960ba96883b",
+            "snake.1": "9e81af1a445d6099",
+            "mirage.1": "fee011a2a6e7a2",
+            "island.1": "4af6a572035d9fa6",
+            "harbour.1": "4bc651367b3ce1b8",
         ]
         for layout in TrackLayout.all {
             #expect(signatures["\(layout.id).\(layout.revision)"] == LapStore.fingerprint(layout.signature), "\(layout.id)")
@@ -25,13 +28,13 @@ struct FreezeTests {
     }
 
     @Test func leaderboardIDsNameTheBoard() {
-        let board = RaceBoard(track: Track(.harbourPark))
-        #expect(board.leaderboardID == "apex.harbour_park.r1.p\(RaceTuning.physicsVersion)")
+        let board = RaceBoard(track: Track(.ardennes))
+        #expect(board.leaderboardID == "apex.ardennes.r1.p\(RaceTuning.physicsVersion)")
     }
 }
 
 struct RivalTests {
-    static let track = Track(.harbourPark)
+    static let track = Track(.ardennes)
     static let line = RacingLine(track: track)
 
     @Test(arguments: [27.5, 29.0, 31.0])
@@ -64,17 +67,17 @@ struct OnlineTests {
     }
 
     @Test func lapEntriesAreWholeMillisecondsAndNameTheBoard() {
-        let board = RaceBoard(trackID: "harbour_park", trackRevision: 1, physicsVersion: 1)
+        let board = RaceBoard(trackID: "ardennes", trackRevision: 1, physicsVersion: 1)
         let entry = LapEntry(lap: LapRecord(time: 28.5976, splits: [10.1234, 19.0005], ghost: []), board: board, walls: 2)
         #expect(entry == LapEntry(lap: LapRecord(time: 28.598, splits: [10.123, 19.001], ghost: []), board: board,
                                   walls: 2))
         #expect(entry.ms == 28_598)
-        #expect(entry.track == "harbour_park" && entry.revision == 1 && entry.physics == 1)
+        #expect(entry.track == "ardennes" && entry.revision == 1 && entry.physics == 1)
     }
 
     func entry(_ ms: Int) -> LapEntry {
         LapEntry(lap: LapRecord(time: Double(ms) / 1000, splits: [], ghost: []),
-                 board: RaceBoard(trackID: "harbour_park", trackRevision: 1), walls: 0)
+                 board: RaceBoard(trackID: "ardennes", trackRevision: 1), walls: 0)
     }
 
     func freshDefaults(_ name: String) throws -> UserDefaults {

@@ -40,7 +40,8 @@ struct Track {
         // absorb rounding to whole samples.
         var segments = layout.segments
         let (a, b) = layout.closingStraights
-        var path = Track.trace(segments, spacing: spacing, smoothing: smoothing)
+        let startHeading = layout.startHeading * .pi / 180
+        var path = Track.trace(segments, spacing: spacing, smoothing: smoothing, startHeading: startHeading)
         for _ in 0..<3 {
             let gapX = path.x[path.x.count - 1] - path.x[0]
             let gapY = path.y[path.y.count - 1] - path.y[0]
@@ -56,7 +57,7 @@ struct Track {
                 precondition(length + delta > 0, "Segment \(index) would need a negative length to close the circuit")
                 segments[index] = .straight(length + delta)
             }
-            path = Track.trace(segments, spacing: spacing, smoothing: smoothing)
+            path = Track.trace(segments, spacing: spacing, smoothing: smoothing, startHeading: startHeading)
         }
         self.segments = segments
 
@@ -165,7 +166,8 @@ struct Track {
         var heading: [Double]
     }
 
-    private static func trace(_ segments: [TrackSegment], spacing: Double, smoothing: Double) -> Trace {
+    private static func trace(_ segments: [TrackSegment], spacing: Double, smoothing: Double,
+                              startHeading: Double) -> Trace {
         var raw: [Double] = []
         var starts: [Int] = [], middles: [Int] = []
         for segment in segments {
@@ -184,7 +186,7 @@ struct Track {
             }
         }
         let curvature = boxFilter(raw, width: Int((smoothing / spacing).rounded()))
-        var x = [0.0], y = [0.0], heading = [0.0]
+        var x = [0.0], y = [0.0], heading = [startHeading]
         x.reserveCapacity(curvature.count + 1)
         y.reserveCapacity(curvature.count + 1)
         heading.reserveCapacity(curvature.count + 1)

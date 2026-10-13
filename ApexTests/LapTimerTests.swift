@@ -3,7 +3,7 @@ import Testing
 @testable import Apex
 
 struct LapTimerTests {
-    let track = Track(.harbourPark)
+    let track = Track(.ardennes)
 
     /// Drives `timer` steadily from progress `from` to `to` at `speed`, starting at `clock`.
     func drive(_ timer: inout LapTimer, from: Double, to: Double, speed: Double, clock: inout Double)
@@ -50,7 +50,8 @@ struct LapTimerTests {
         let lap = events.compactMap { if case .lap(let lap) = $0 { return lap } else { return nil } }.first
         #expect(lap?.isBest == true)
         #expect((lap?.delta ?? 0) < 0)
-        #expect(abs((timer.best?.time ?? 0) - track.length / 400) < 1e-3)
+        // The first unit or so past the line was covered at the old lap's speed.
+        #expect(abs((timer.best?.time ?? 0) - track.length / 400) < 0.01)
     }
 
     @Test func liveDeltaComparesAtTheSameDistance() {

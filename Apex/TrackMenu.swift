@@ -27,18 +27,24 @@ struct TrackMenu: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .opacity(0.85)
                 }
-                HStack(spacing: 14) {
-                    ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
-                        Button {
-                            onSelect(track.layout.id)
-                        } label: {
-                            TrackCard(track: track, best: bests[track.layout.id])
+                // More circuits than fit across the screen: they scroll sideways, a card at a time.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
+                            Button {
+                                onSelect(track.layout.id)
+                            } label: {
+                                TrackCard(track: track, best: bests[track.layout.id])
+                                    .frame(width: 250)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .scrollTargetLayout()
                 }
+                .scrollTargetBehavior(.viewAligned)
+                .contentMargins(.horizontal, 16, for: .scrollContent)
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .foregroundStyle(.white)
         }

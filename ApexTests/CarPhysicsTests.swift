@@ -3,7 +3,7 @@ import Testing
 @testable import Apex
 
 struct CarPhysicsTests {
-    let track = Track(.harbourPark)
+    let track = Track(.testOval)
     let dt = RaceTuning.physicsStep
 
     /// A car on the main straight, `distanceBeforeLine` short of the line.

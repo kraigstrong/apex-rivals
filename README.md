@@ -3,11 +3,18 @@
 A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+). Working title.
 
 **Hold to steer up. Let go to steer down.** Pick a circuit from the track list and set the fastest lap you can. A
-good lap is about 30 seconds on each. All three circuits are original, with the bones of F1 tracks:
+good lap is about 30 seconds on each. The six circuits are original, each with the feel of a famous F1 track:
 
-- **Harbour Park**, the all-rounder: a long straight into a hairpin, flowing esses and a tight chicane.
-- **Old Town**, a clockwise street circuit: square corners, a double-hairpin switchback and a chicane.
-- **Ridgeway**, fast and flowing: a big sweeper, four linked esses, a heavy stop and a flat-out kink.
+- **Ardennes** (clockwise): a hairpin, a plunging left-right-left, a long straight to a twisty far end, a fast
+  sweep home.
+- **Swirl**: a hairpin at the top of the hill, esses across the top, a stadium section and a three-apex swirl.
+- **Snake**: a double right into esses up the hill, a hairpin, a fast sweep and a chicane.
+- **Mirage**: a long straight into a hairpin, an angular stadium climb and a hairpin at the top.
+- **Island**: long and narrow, chicanes down both sides and a hairpin at the far end.
+- **Harbour** (clockwise): a street circuit with a climb, a hairpin, a curving tunnel and a swimming-pool wiggle.
+
+They were sketched as track maps, a polygon of corner points each rounded with its own radius, then exported to the
+game's straights and corners; see `TrackLayout`.
 
 ## The idea
 
@@ -64,8 +71,8 @@ The service is off (`ApexOnline.isEnabled = false`) until the routes are deploye
 device (`LapLog`) and rivals are bots. To go live:
 
 1. App Store Connect: create the app (`com.kraigstrong.apex`), enable Game Center, and add a leaderboard for each
-   board: `apex.harbour_park.r1.p1`, `apex.old_town.r1.p1` and `apex.ridgeway.r1.p1`, score format Elapsed Time to
-   the hundredth of a second, sorted low to high.
+   board: `apex.ardennes.r1.p1`, `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and
+   `apex.harbour.r1.p1`, score format Elapsed Time to the hundredth of a second, sorted low to high.
 2. BrightBench: set `APEX_APP_KEY` (`apex-laps-v1`) and `APEX_PLAYER_SALT` in the marketing project, add Vercel rate
    limits for `/api/apex/*`, and deploy.
 3. Set `ApexOnline.isEnabled = true`.
@@ -90,13 +97,11 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
 player's one control:
 
-| Driver | Harbour Park | Old Town | Ridgeway |
-| --- | --- | --- | --- |
-| Perfect, on the ideal line | 25.7s | 25.8s | 26.7s |
-| Deciding every 50 ms, ideal line | 26.6s | 26.4s | 27.3s |
-| Deciding every ~90 ms (human), ideal line | 28.6s | 27.9s | 28.9s |
-| Deciding every ~90 ms, middle of the road | 30.0s | 29.3s | 30.5s |
-| Sloppy weaver, middle of the road | 37.0s | 34.9s | 37.2s |
+| Driver | Ardennes | Swirl | Snake | Mirage | Island | Harbour |
+| --- | --- | --- | --- | --- | --- | --- |
+| Perfect, on the ideal line | 25.9s | 25.8s | 25.4s | 26.4s | 26.8s | 24.9s |
+| Deciding every ~90 ms, middle of the road | 29.8s | 30.2s | 30.0s | 30.0s | 29.7s | 30.0s |
+| Sloppy weaver, middle of the road | 35.8s | 35.5s | 34.6s | 36.2s | 36.7s | 34.7s |
 
 After a retune, print the table with
 `xcodebuild test ... '-only-testing:ApexTests/LapTimeTests/report()'` (lines start with `LAPTIME`) and update the
