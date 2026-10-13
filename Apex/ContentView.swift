@@ -5,6 +5,7 @@ import SwiftUI
 struct ContentView: View {
     /// The track being raced; nil shows the track list.
     @State private var racing: String?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -18,6 +19,11 @@ struct ContentView: View {
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .onAppear { GameCenter.shared.signIn() }
+        // Laps that couldn't go up before (offline, or the service was down) try again at launch and on every return
+        // to the app, not only after the next lap.
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            if phase == .active { LapLog.shared.flush() }
+        }
     }
 }
 
