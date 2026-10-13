@@ -42,6 +42,8 @@ final class RaceHUD {
     var isPractice = false
     /// The car colors picker is open over the race.
     var showsColors = false
+    /// A panel is open over the race. The race holds still until it closes.
+    var showsPanel: Bool { showsColors }
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading

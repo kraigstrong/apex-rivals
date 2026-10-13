@@ -63,8 +63,8 @@ struct RaceOverlay: View {
     var body: some View {
         ZStack {
             racingHUD
-                .opacity(hud.summary == nil && !hud.showsColors ? 1 : 0)
-                .allowsHitTesting(hud.summary == nil && !hud.showsColors)
+                .opacity(hud.summary == nil && !hud.showsPanel ? 1 : 0)
+                .allowsHitTesting(hud.summary == nil && !hud.showsPanel)
 
             if hud.showsColors {
                 Color.black.opacity(0.35).ignoresSafeArea()

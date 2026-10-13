@@ -154,6 +154,12 @@ final class RaceScene: SKScene {
 
     override func update(_ currentTime: TimeInterval) {
         if Livery.shared.version != paintedLivery { repaint() }
+        // Paused behind a panel: the lap picks up where it was once the panel closes.
+        if hud.showsPanel {
+            lastTime = nil
+            holdTouches.removeAll()
+            return
+        }
         let dt = lastTime.map { min(max(currentTime - $0, 0), 1.0 / 15) } ?? 0
         lastTime = currentTime
         session.holding = !holdTouches.isEmpty
