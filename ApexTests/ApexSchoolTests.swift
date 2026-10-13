@@ -33,23 +33,15 @@ struct ApexSchoolTests {
         #expect(guide.situation(at: corner.turnIn - 200)?.phase == .lineUp)
         #expect(guide.situation(at: corner.turnIn + 20)?.phase == .turnIn)
         #expect(guide.situation(at: corner.apex + 20)?.phase == .runOut)
-        // A right-hander's outside is the top of the screen, its inside the bottom.
-        #expect(ApexGuide.prompt(.lineUp, side: -1).title == "KEEP TO THE TOP")
+        // A right-hander: stay wide at the top, let go to dive to the apex at the bottom, hold to ease back out.
+        #expect(ApexGuide.prompt(.lineUp, side: -1).title == "STAY WIDE")
+        #expect(ApexGuide.prompt(.lineUp, side: -1).detail.contains("top"))
+        #expect(ApexGuide.prompt(.turnIn, side: -1).title == "LET GO")
         #expect(ApexGuide.prompt(.turnIn, side: -1).detail.contains("bottom"))
-    }
-
-    @Test func adviceSteersTowardTheLine() {
-        let guide = Self.guide
-        let s = guide.corners[0].turnIn - 400
-        let target = guide.line.offset(at: s)
-        func car(n: Double) -> Car {
-            var car = Car(track: Self.track, distanceBeforeLine: 0, n: n, speed: 400)
-            car.s = s
-            return car
-        }
-        #expect(guide.advice(for: car(n: target)) == .feather)
-        #expect(guide.advice(for: car(n: target - 40)) == .hold)
-        #expect(guide.advice(for: car(n: target + 40)) == .letGo)
+        #expect(ApexGuide.prompt(.runOut, side: -1).title == "HOLD")
+        // A left-hander is the mirror image.
+        #expect(ApexGuide.prompt(.turnIn, side: 1).title == "HOLD")
+        #expect(ApexGuide.prompt(.runOut, side: 1).title == "LET GO")
     }
 
     /// Driving the ideal line hits every apex; driving down the middle misses them.

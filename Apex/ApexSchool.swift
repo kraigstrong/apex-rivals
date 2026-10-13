@@ -37,11 +37,6 @@ struct ApexGuide {
         var idealSpeed: Double = 0
     }
 
-    /// What the driver should be doing to stay on the line right now.
-    enum Advice: Equatable {
-        case hold, feather, letGo
-    }
-
     /// Where the car is relative to a corner.
     enum Phase: Equatable {
         /// Approaching: stay on the outside.
@@ -130,28 +125,21 @@ struct ApexGuide {
         return (next, .lineUp)
     }
 
-    /// Hold, feather or let go, to bring the car onto the line a moment from now.
-    func advice(for car: Car) -> Advice {
-        let look = 0.15
-        let predicted = car.n + car.speed * sin(car.psi) * look
-        let miss = line.offset(at: car.s + car.speed * look) - predicted
-        if miss > 6 { return .hold }
-        if miss < -6 { return .letGo }
-        return .feather
-    }
-
-    /// The coach's words for where the car is.
+    /// The coach's cue for where the car is. It changes only three times a corner: the rhythm of a corner is two
+    /// moments, turning in toward the apex and then easing back out from it; the painted line covers the fine control.
     static func prompt(_ phase: Phase, side: Double) -> (title: String, detail: String) {
-        // On screen, a left-hander's inside is the top; a right-hander's is the bottom.
+        // On screen, a left-hander's inside is the top and a right-hander's the bottom. Holding moves the car up.
         let outside = side > 0 ? "bottom" : "top"
         let inside = side > 0 ? "top" : "bottom"
+        let towardInside = side > 0 ? "HOLD" : "LET GO"
+        let towardOutside = side > 0 ? "LET GO" : "HOLD"
         switch phase {
         case .lineUp:
-            return ("KEEP TO THE \(outside.uppercased())", "Line up on the outside, away from the corner.")
+            return ("STAY WIDE", "Keep to the \(outside). At TURN IN, \(towardInside.lowercased()).")
         case .turnIn:
-            return ("TURN IN", "Head down to the apex on the \(inside) kerb.")
+            return (towardInside, "Turn in: aim for the APEX on the \(inside) kerb.")
         case .runOut:
-            return ("RUN OUT WIDE", "Let the car drift back to the \(outside) on the way out.")
+            return (towardOutside, "Past the apex: ease back out to the \(outside).")
         }
     }
 

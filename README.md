@@ -48,8 +48,9 @@ What the game shows you:
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
 - **Apex School**: the first card in the track list. A practice square of four identical right-angle corners, with
-  the ideal line painted on, TURN IN / APEX / EXIT markers at every corner, a coach that says where you are in the
-  corner and lights HOLD, FEATHER or LET GO to stay on the line (green when you're doing it), a verdict after every
+  the ideal line painted on, TURN IN / APEX / EXIT markers at every corner, a coach with one big cue that changes
+  three times a corner (STAY WIDE, then LET GO at turn-in to dive for the apex, then HOLD to ease back out on a
+  right-hander) with a haptic tick at turn-in and at the apex, a verdict after every
   corner (how wide of the apex, and your slowest speed against the ideal line's), your own line traced behind the car,
   and the Instructor (the ideal line, driven perfectly) as the gold ghost. No leaderboard; nothing leaves the device.
 - **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
@@ -128,7 +129,7 @@ fresh best lap.
   the track list.
 - `Apex/TrackMenu.swift`: the track list, and `TrackCatalog`, which builds each circuit's geometry once.
 - `Apex/ApexSchool.swift`: the practice circuit, `ApexGuide` (each corner's turn-in, apex and exit on the ideal line,
-  the coach's prompts and HOLD/FEATHER/LET GO advice) and `CornerJudge` (the verdict after each corner).
+  and the coach's cues) and `CornerJudge` (the verdict after each corner).
 - `Apex/Track.swift`: turns a layout into geometry sampled every unit: centerline, heading, curvature (box-filtered
   so corners ease in), and a smoothed heading for the camera. Positions are (s, n): distance from the line, and offset
   left of the centerline.

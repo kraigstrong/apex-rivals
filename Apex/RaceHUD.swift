@@ -88,18 +88,7 @@ extension RaceHUD {
     struct Coach: Equatable {
         var title: String
         var detail: String
-        var advice: ApexGuide.Advice
-        /// Whether the player is touching the screen.
-        var holding: Bool
-
-        /// Whether the player's thumb is doing what the coach asks (feathering counts either way).
-        var following: Bool {
-            switch advice {
-            case .hold: return holding
-            case .letGo: return !holding
-            case .feather: return true
-            }
-        }
+        var phase: ApexGuide.Phase
     }
 }
 

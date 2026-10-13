@@ -315,7 +315,7 @@ struct StartCard: View {
             Text("Hold to steer up. Let go to steer down.")
                 .font(.system(size: 17, weight: .bold, design: .rounded))
             Text(practice
-                 ? "Follow the yellow line: stay on the outside, turn in at TURN IN, clip the yellow APEX, and drift out to EXIT. The coach says when to hold, feather or let go."
+                 ? "Follow the yellow line: stay wide, and when you reach TURN IN let go to dive for the yellow APEX, then hold to ease back out to EXIT. You'll feel a tick at each."
                  : "Straight is fast: every weave costs speed. Swing wide, clip the apex, and run out wide.")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .multilineTextAlignment(.center)
@@ -501,40 +501,31 @@ struct StandingChart: View {
     }
 }
 
-/// Apex School's coach: where you are in the corner, and which way to push your thumb to stay on the line. The
-/// lit input turns green when you're doing it.
+/// Apex School's coach: one big cue that changes three times a corner (stay wide, then turn in, then ease out), with a
+/// line on where to aim.
 struct CoachPanel: View {
     let coach: RaceHUD.Coach
 
-    var body: some View {
-        VStack(spacing: 5) {
-            Text(coach.title)
-                .font(.system(size: 20, weight: .black, design: .rounded).italic())
-            Text(coach.detail)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .opacity(0.85)
-            HStack(spacing: 8) {
-                pill("HOLD", symbol: "arrow.up", .hold)
-                pill("FEATHER", symbol: "arrow.up.arrow.down", .feather)
-                pill("LET GO", symbol: "arrow.down", .letGo)
-            }
+    private var tint: Color {
+        switch coach.phase {
+        case .lineUp: return .white
+        case .turnIn: return Color(red: 1, green: 0.82, blue: 0.1)
+        case .runOut: return Color(red: 0.4, green: 0.7, blue: 1)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14))
     }
 
-    private func pill(_ label: String, symbol: String, _ advice: ApexGuide.Advice) -> some View {
-        let lit = coach.advice == advice
-        let tint = coach.following ? Color(red: 0.15, green: 0.75, blue: 0.35) : Color(red: 0.95, green: 0.55, blue: 0.1)
-        return HStack(spacing: 4) {
-            Image(systemName: symbol)
-            Text(label)
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(coach.title)
+                .font(.system(size: 26, weight: .black, design: .rounded).italic())
+                .foregroundStyle(tint)
+            Text(coach.detail)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .opacity(0.9)
         }
-        .font(.system(size: 13, weight: .heavy, design: .rounded))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(lit ? tint : Color.white.opacity(0.1), in: Capsule())
-        .opacity(lit ? 1 : 0.5)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14))
+        .animation(.easeOut(duration: 0.15), value: coach.title)
     }
 }

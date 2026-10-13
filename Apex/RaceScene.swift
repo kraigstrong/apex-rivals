@@ -13,6 +13,8 @@ final class RaceScene: SKScene {
     private var guide: ApexGuide?
     private var judge = CornerJudge()
     private var trail: [SKSpriteNode] = []
+    private var coachPhase: ApexGuide.Phase?
+    private let tick = UISelectionFeedbackGenerator()
     private var nextTrail = 0
     private var trailGap = 0.0
     private var track: Track { session.track }
@@ -161,8 +163,12 @@ final class RaceScene: SKScene {
         #endif
         let events = session.advance(by: dt, control: control)
         events.forEach(handle)
-        if let guide, session.phase == .racing, let verdict = judge.update(car: session.car, guide: guide) {
-            show(verdict)
+        if let guide, session.phase == .racing {
+            if let verdict = judge.update(car: session.car, guide: guide) { show(verdict) }
+            // A tick in the thumb at TURN IN and at the APEX: the corner's two moments.
+            let phase = guide.situation(at: session.car.s)?.phase
+            if phase != coachPhase, phase == .turnIn || phase == .runOut { tick.selectionChanged() }
+            coachPhase = phase
         }
         render(dt: dt)
         placeCamera(dt: dt, snap: false)
@@ -392,8 +398,7 @@ final class RaceScene: SKScene {
         let state = session.car
         if let guide, let situation = guide.situation(at: state.s) {
             let words = ApexGuide.prompt(situation.phase, side: situation.corner.side)
-            hud.coach = RaceHUD.Coach(title: words.title, detail: words.detail, advice: guide.advice(for: state),
-                                      holding: !holdTouches.isEmpty)
+            hud.coach = RaceHUD.Coach(title: words.title, detail: words.detail, phase: situation.phase)
         }
         hud.racing = session.phase == .racing
         hud.lapNumber = session.timer.lapNumber
