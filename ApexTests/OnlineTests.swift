@@ -53,6 +53,11 @@ struct OnlineTests {
         }
     }
 
+    @Test func playerTokensMatchTheServer() {
+        // The same value BrightBench's `playerToken('T:_racer1')` gives: SHA-256 of "apex:T:_racer1", in hex.
+        #expect(ApexOnline.playerToken("T:_racer1") == "2875da87c19cb7ed75a836acdbe89118fba9c47d0382c86197d52c53c2b1e151")
+    }
+
     @Test func lapEntriesAreWholeMillisecondsAndNameTheBoard() {
         let board = RaceBoard(trackID: "harbour_park", trackRevision: 1, physicsVersion: 1)
         let entry = LapEntry(lap: LapRecord(time: 28.5976, splits: [10.1234, 19.0005], ghost: []), board: board, walls: 2)

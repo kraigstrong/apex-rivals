@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import GameKit
 
@@ -17,6 +18,12 @@ enum ApexOnline {
         #else
         return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" ? "testflight" : "appstore"
         #endif
+    }
+
+    /// How the service names the signed-in player when it needs to leave out their own best: SHA-256 of "apex:" and
+    /// their team player ID, sent in a header so the raw ID never appears in a URL.
+    static func playerToken(_ teamPlayerID: String) -> String {
+        SHA256.hash(data: Data("apex:\(teamPlayerID)".utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     static var appVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0" }
@@ -217,6 +224,12 @@ enum ApexService {
         return request
     }
 
+    /// Lets the service leave out the signed-in player's own best.
+    private static func identify(_ request: inout URLRequest) {
+        guard GKLocalPlayer.local.isAuthenticated else { return }
+        request.setValue(ApexOnline.playerToken(GKLocalPlayer.local.teamPlayerID), forHTTPHeaderField: "X-Apex-Player")
+    }
+
     static func send(_ batch: LapBatch, completion: @escaping (Bool) -> Void) {
         guard let body = try? JSONEncoder().encode(batch) else { return completion(true) }
         URLSession.shared.dataTask(with: request("laps", body: body)) { _, response, _ in
@@ -248,19 +261,17 @@ enum ApexService {
     static func standing(of lapTime: Double, on board: RaceBoard, completion: @escaping (Standing?) -> Void) {
         var components = URLComponents(url: ApexOnline.base.appendingPathComponent("standing"),
                                        resolvingAgainstBaseURL: false)
-        var items = [
+        let items = [
             URLQueryItem(name: "track", value: board.trackID),
             URLQueryItem(name: "revision", value: String(board.trackRevision)),
             URLQueryItem(name: "physics", value: String(board.physicsVersion)),
             URLQueryItem(name: "ms", value: String(Int((lapTime * 1000).rounded()))),
         ]
-        if GKLocalPlayer.local.isAuthenticated {
-            items.append(URLQueryItem(name: "player", value: GKLocalPlayer.local.teamPlayerID))
-        }
         components?.queryItems = items
         guard let url = components?.url else { return completion(nil) }
         var request = request("standing", method: "GET")
         request.url = url
+        identify(&request)
         URLSession.shared.dataTask(with: request) { data, response, _ in
             guard (response as? HTTPURLResponse)?.statusCode == 200, let data,
                   let standing = try? JSONDecoder().decode(Standing.self, from: data) else { return completion(nil) }
@@ -271,19 +282,17 @@ enum ApexService {
     /// Another player's ghost that beats `best` by `RaceTuning.rivalWindow`, or nil.
     static func rival(on board: RaceBoard, beating best: Double, completion: @escaping (Rival?) -> Void) {
         var components = URLComponents(url: ApexOnline.base.appendingPathComponent("rival"), resolvingAgainstBaseURL: false)
-        var items = [
+        let items = [
             URLQueryItem(name: "track", value: board.trackID),
             URLQueryItem(name: "revision", value: String(board.trackRevision)),
             URLQueryItem(name: "physics", value: String(board.physicsVersion)),
             URLQueryItem(name: "ms", value: String(Int((best * 1000).rounded()))),
         ]
-        if GKLocalPlayer.local.isAuthenticated {
-            items.append(URLQueryItem(name: "player", value: GKLocalPlayer.local.teamPlayerID))
-        }
         components?.queryItems = items
         guard let url = components?.url else { return completion(nil) }
         var request = request("rival", method: "GET")
         request.url = url
+        identify(&request)
         URLSession.shared.dataTask(with: request) { data, response, _ in
             guard (response as? HTTPURLResponse)?.statusCode == 200, let data,
                   let ghost = try? JSONDecoder().decode(RivalGhost.self, from: data),
