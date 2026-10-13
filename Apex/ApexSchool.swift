@@ -137,7 +137,7 @@ struct ApexGuide {
         case .lineUp:
             return ("STAY WIDE", "Keep to the \(outside). At TURN IN, \(towardInside.lowercased()).")
         case .turnIn:
-            return (towardInside, "Turn in: aim for the APEX on the \(inside) kerb.")
+            return (towardInside, "Turn in: aim for the APEX on the \(inside) curb.")
         case .runOut:
             return (towardOutside, "Past the apex: ease back out to the \(outside).")
         }

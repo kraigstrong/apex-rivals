@@ -25,7 +25,7 @@ struct TrackMenu: View {
                 VStack(spacing: 6) {
                     Text("APEX RIVALS")
                         .font(.system(size: 34, weight: .black, design: .rounded).italic())
-                    KerbStripe().frame(width: 200, height: 6)
+                    CurbStripe().frame(width: 200, height: 6)
                     Text("Hold to steer up. Let go to steer down. Straight is fast.")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .opacity(0.85)
@@ -115,7 +115,7 @@ struct TrackCard: View {
                 }
             }
             Text(practice ? "4 identical corners · learn the line"
-                          : "\(corners) corners · \(track.turning > 0 ? "anticlockwise" : "clockwise")")
+                          : "\(corners) corners · \(track.turning > 0 ? "counterclockwise" : "clockwise")")
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .opacity(0.65)
             Text(track.layout.summary)
@@ -196,8 +196,8 @@ struct MowedGrass: View {
     }
 }
 
-/// A run of red and white kerb blocks.
-struct KerbStripe: View {
+/// A run of red and white curb blocks.
+struct CurbStripe: View {
     var body: some View {
         Canvas { context, size in
             let block: CGFloat = 12

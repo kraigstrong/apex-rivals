@@ -1,4 +1,4 @@
-"""Draws the app icon: an S-bend running left to right, as the game shows it, with kerbs on the inside of each bend,
+"""Draws the app icon: an S-bend running left to right, as the game shows it, with curbs on the inside of each bend,
 the racing line cutting nearly straight through it (straight is fast), and the car mid-S.
 
 Run with python3 (needs Pillow): writes Apex/Assets.xcassets/AppIcon.appiconset/AppIcon.png at 1024 x 1024, no alpha.
@@ -23,7 +23,7 @@ def P(x, y):
 TOP, DROP, START, SPAN = 300, 430, 120, 790
 W = 280  # road width
 
-def centre(x):
+def center(x):
     """Centerline y at x, and its slope: a smoothstep from TOP down to TOP + DROP."""
     u = min(max((x - START) / SPAN, 0), 1)
     y = TOP + DROP * (u * u * (3 - 2 * u))
@@ -32,7 +32,7 @@ def centre(x):
 
 def edge(x, offset):
     """A point `offset` across the road from the centerline at x (positive is toward the bottom of the icon)."""
-    y, dy = centre(x)
+    y, dy = center(x)
     n = math.hypot(1, dy)
     return (x - dy / n * offset, y + 1 / n * offset)
 
@@ -51,8 +51,8 @@ def stroke(points, width, fill):
     for x, y in dense + points[-1:]:
         d.ellipse([x * S - r, y * S - r, x * S + r, y * S + r], fill=fill)
 
-# Kerbs on the inside of each bend: the lower edge through the first, the upper edge through the second.
-def kerb(x0, x1, side, blocks):
+# Curbs on the inside of each bend: the lower edge through the first, the upper edge through the second.
+def curb(x0, x1, side, blocks):
     for b in range(blocks):
         a, z = x0 + (x1 - x0) * b / blocks, x0 + (x1 - x0) * (b + 1) / blocks
         span = [a + (z - a) * k / 20 for k in range(21)]
@@ -60,13 +60,13 @@ def kerb(x0, x1, side, blocks):
         inner = [edge(x, side * (W / 2 - 32)) for x in reversed(span)]
         d.polygon([P(*p) for p in outer + inner], fill=(222, 38, 38) if b % 2 == 0 else (246, 246, 246))
 
-kerb(START + 40, START + SPAN * 0.42, 1, 8)
-kerb(START + SPAN * 0.58, START + SPAN - 40, -1, 8)
+curb(START + 40, START + SPAN * 0.42, 1, 8)
+curb(START + SPAN * 0.58, START + SPAN - 40, -1, 8)
 
 stroke(upper, 12, (214, 218, 226))
 stroke(lower, 12, (214, 218, 226))
 
-# The racing line: wide at the top on the way in, clipping each kerb, wide at the bottom on the way out. Through an
+# The racing line: wide at the top on the way in, clipping each curb, wide at the bottom on the way out. Through an
 # S it's nearly straight.
 def catmull(points, samples=80):
     out = []

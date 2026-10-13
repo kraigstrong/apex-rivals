@@ -11,7 +11,7 @@ good lap is about 30 seconds on each. The six circuits are original, each with t
 - **Snake**: a double right into esses up the hill, a hairpin, a fast sweep and a chicane.
 - **Mirage**: a long straight into a hairpin, an angular stadium climb and a hairpin at the top.
 - **Island**: long and narrow, chicanes down both sides and a hairpin at the far end.
-- **Harbour** (clockwise): a street circuit with a climb, a hairpin, a curving tunnel and a swimming-pool wiggle.
+- **Harbor** (clockwise): a street circuit with a climb, a hairpin, a curving tunnel and a swimming-pool wiggle.
 
 They were sketched as track maps, a polygon of corner points each rounded with its own radius, then exported to the
 game's straights and corners; see `TrackLayout`.
@@ -54,9 +54,9 @@ What the game shows you:
   corner (how wide of the apex, and your slowest speed against the ideal line's), and your own line traced behind the
   car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
 - **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
-- **Session summary**: the chequered flag ends a session (so does leaving the app). The summary shows the session's
+- **Session summary**: the checkered flag ends a session (so does leaving the app). The summary shows the session's
   best lap and where it falls among other players' bests: the share it beats, its place, and a histogram of everyone's
-  times with yours marked. Xcode builds show labelled sample players while the lap service is off.
+  times with yours marked. Xcode builds show labeled sample players while the lap service is off.
 - **Ideal line**: the ••• menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 
 ## Online
@@ -100,7 +100,7 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
 player's one control:
 
-| Driver | Ardennes | Swirl | Snake | Mirage | Island | Harbour |
+| Driver | Ardennes | Swirl | Snake | Mirage | Island | Harbor |
 | --- | --- | --- | --- | --- | --- | --- |
 | Perfect, on the ideal line | 25.9s | 25.8s | 25.4s | 26.4s | 26.8s | 24.9s |
 | Deciding every ~90 ms, middle of the road | 29.8s | 30.2s | 30.0s | 30.0s | 29.7s | 30.0s |
@@ -141,7 +141,7 @@ fresh best lap.
 - `Apex/RaceBoard.swift`, `Apex/GameCenter.swift`, `Apex/ApexOnline.swift`: boards, Game Center, and the lap service
   (the lap log queue, ghost sharing and rival lookup).
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.
-- `Apex/TrackArt.swift`: procedural art: track pieces, kerbs, start line, the car, and the grass shader.
+- `Apex/TrackArt.swift`: procedural art: track pieces, curbs, start line, the car, and the grass shader.
 - `Apex/RaceHUD.swift`, `Apex/ContentView.swift`: the SwiftUI overlay: timing, splits, speed, map and menu.
 
 ## License

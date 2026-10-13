@@ -12,7 +12,7 @@ enum TrackArt {
     enum Depth {
         static let grass: CGFloat = -100
         static let asphalt: CGFloat = 2
-        static let kerbs: CGFloat = 3
+        static let curbs: CGFloat = 3
         static let paint: CGFloat = 4
         static let walls: CGFloat = 5
         static let skids: CGFloat = 6
@@ -26,27 +26,27 @@ enum TrackArt {
 
     static let asphalt = SKColor(red: 0.27, green: 0.28, blue: 0.30, alpha: 1)
     static let grassColor = SKColor(red: 0.30, green: 0.52, blue: 0.26, alpha: 1)
-    static let kerbRed = SKColor(red: 0.86, green: 0.13, blue: 0.13, alpha: 1)
-    static let kerbWhite = SKColor(white: 0.96, alpha: 1)
+    static let curbRed = SKColor(red: 0.86, green: 0.13, blue: 0.13, alpha: 1)
+    static let curbWhite = SKColor(white: 0.96, alpha: 1)
     static let wall = SKColor(red: 0.80, green: 0.82, blue: 0.86, alpha: 1)
 
     /// Length of track in each drawn piece. Pieces off screen are culled.
     private static let chunkLength = 240.0
     /// Samples between the points of a drawn edge.
     private static let edgeStep = 3
-    private static let kerbWidth = 12.0
-    private static let kerbBlock = 20.0
+    private static let curbWidth = 12.0
+    private static let curbBlock = 20.0
     /// The white line's offset in from each wall.
     private static let lineInset = 15.0
 
     // MARK: The circuit
 
-    /// The circuit in pieces of `chunkLength`, each with its own asphalt, paint, walls and kerbs. SpriteKit doesn't
+    /// The circuit in pieces of `chunkLength`, each with its own asphalt, paint, walls and curbs. SpriteKit doesn't
     /// cull these shapes on its own, so the scene hides the pieces the camera can't see (`TrackPiece.frame`).
     static func circuit(_ track: Track) -> [TrackPiece] {
         let half = track.width / 2
         let samples = max(1, Int(chunkLength / track.spacing))
-        let kerbThreshold = 1 / RaceTuning.kerbRadius
+        let curbThreshold = 1 / RaceTuning.curbRadius
         var pieces: [TrackPiece] = []
 
         var start = 0
@@ -71,17 +71,17 @@ enum TrackArt {
             piece.addChild(shape(paint, stroke: SKColor(white: 1, alpha: 0.85), width: 2.5, depth: Depth.paint))
             piece.addChild(shape(walls, stroke: wall, width: 6, depth: Depth.walls))
 
-            // Red and white kerb blocks along both edges wherever the track is cornering.
+            // Red and white curb blocks along both edges wherever the track is cornering.
             let red = CGMutablePath(), white = CGMutablePath()
-            let firstBlock = Int((Double(start) * track.spacing / kerbBlock).rounded(.up))
+            let firstBlock = Int((Double(start) * track.spacing / curbBlock).rounded(.up))
             var block = firstBlock
-            while Double(block) * kerbBlock < Double(end) * track.spacing {
-                let s0 = Double(block) * kerbBlock
-                if abs(track.curvature(at: s0 + kerbBlock / 2)) > kerbThreshold {
-                    let along = Array(stride(from: s0, through: s0 + kerbBlock, by: 5))
+            while Double(block) * curbBlock < Double(end) * track.spacing {
+                let s0 = Double(block) * curbBlock
+                if abs(track.curvature(at: s0 + curbBlock / 2)) > curbThreshold {
+                    let along = Array(stride(from: s0, through: s0 + curbBlock, by: 5))
                     for side in [1.0, -1.0] {
                         let outer = along.map { track.point(s: $0, n: side * half) }
-                        let inner = along.reversed().map { track.point(s: $0, n: side * (half - kerbWidth)) }
+                        let inner = along.reversed().map { track.point(s: $0, n: side * (half - curbWidth)) }
                         let path = block % 2 == 0 ? red : white
                         path.addLines(between: outer + inner)
                         path.closeSubpath()
@@ -89,8 +89,8 @@ enum TrackArt {
                 }
                 block += 1
             }
-            if !red.isEmpty { piece.addChild(shape(red, fill: kerbRed, depth: Depth.kerbs)) }
-            if !white.isEmpty { piece.addChild(shape(white, fill: kerbWhite, depth: Depth.kerbs)) }
+            if !red.isEmpty { piece.addChild(shape(red, fill: curbRed, depth: Depth.curbs)) }
+            if !white.isEmpty { piece.addChild(shape(white, fill: curbWhite, depth: Depth.curbs)) }
 
             if start == 0 { piece.addChild(startLine(track)) }
             pieces.append(TrackPiece(node: piece, frame: piece.calculateAccumulatedFrame()))
@@ -99,7 +99,7 @@ enum TrackArt {
         return pieces
     }
 
-    /// A chequered band across the track at s = 0.
+    /// A checkered band across the track at s = 0.
     private static func startLine(_ track: Track) -> SKNode {
         let node = SKNode()
         let half = track.width / 2
@@ -118,7 +118,7 @@ enum TrackArt {
                 path.closeSubpath()
             }
         }
-        node.addChild(shape(white, fill: kerbWhite, depth: Depth.paint))
+        node.addChild(shape(white, fill: curbWhite, depth: Depth.paint))
         node.addChild(shape(black, fill: SKColor(white: 0.1, alpha: 1), depth: Depth.paint))
         return node
     }
