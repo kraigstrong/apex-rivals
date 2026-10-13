@@ -125,3 +125,10 @@ fresh best lap.
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.
 - `Apex/TrackArt.swift`: procedural art: track pieces, kerbs, start line, the car, and the grass shader.
 - `Apex/RaceHUD.swift`, `Apex/ContentView.swift`: the SwiftUI overlay: timing, splits, speed, map and menu.
+
+## License
+
+The source code is under the [PolyForm Noncommercial License 1.0.0](LICENSE): free to read, learn from, and use
+for noncommercial purposes, but not in anything commercial. (The license also permits any use by charities,
+schools, and public and government institutions; see its Noncommercial Organizations section.) The names, icons,
+art, and videos are all rights reserved.
