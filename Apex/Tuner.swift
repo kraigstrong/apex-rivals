@@ -239,9 +239,10 @@ struct TunerPanel: View {
                     Spacer()
                     if let laps {
                         let time = laps[keyPath: driver.lap]
-                        Text(LapFormat.time(time, decimals: 2))
+                        // A bot that can't finish two laps in 200 seconds on this car didn't finish.
+                        Text(time.isFinite ? LapFormat.time(time, decimals: 2) : "DNF")
                             .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
-                        if let stock = stockLaps?[keyPath: driver.lap], !RaceTuning.isStock {
+                        if let stock = stockLaps?[keyPath: driver.lap], !RaceTuning.isStock, time.isFinite {
                             Text(LapFormat.delta(time - stock, decimals: 2))
                                 .font(.system(size: 11, weight: .bold, design: .rounded).monospacedDigit())
                                 .foregroundStyle(time <= stock ? Color(red: 0.3, green: 0.9, blue: 0.45)

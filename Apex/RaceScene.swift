@@ -591,6 +591,8 @@ final class RaceScene: SKScene {
             hud.botLaps = nil
             stopwatch.cancel()
             retuneSettles = time + 0.4
+            // Back on the stock car: any stock best that missed Game Center or the lap service goes up now.
+            if RaceTuning.isStock { BestLapDelivery.sendSaved() }
         }
         if let settles = retuneSettles, time >= settles {
             retuneSettles = nil

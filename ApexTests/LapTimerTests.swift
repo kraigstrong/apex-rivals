@@ -125,5 +125,7 @@ struct LapTimerTests {
         #expect(LapFormat.time(9.5, decimals: 2) == "9.50")
         #expect(LapFormat.delta(-0.2141) == "\u{2212}0.214")
         #expect(LapFormat.delta(0.5) == "+0.500")
+        #expect(LapFormat.time(.infinity) == "—")
+        #expect(LapFormat.delta(.infinity) == "—")
     }
 }
