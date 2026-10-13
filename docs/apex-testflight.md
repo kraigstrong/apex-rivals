@@ -70,7 +70,7 @@ Ready to paste into App Store Connect.
 
 **What to Test**
 
-> Start with Apex School (the first card) to learn the line, then pick any circuit. Sign in to Game Center and add
+> Start with Apex School (top left) to learn the line: hit two apexes and it sends you racing. Sign in to Game Center and add
 > your friends there: you'll race each other's ghosts, and the trophy shows your friends' times. Tap the flag to end a
 > session and see where your best lap falls. We'd love to hear which circuits you like most, whether the controls feel
 > fair, and anything that breaks.
@@ -81,10 +81,12 @@ Feedback email: your choice. A privacy policy isn't needed for TestFlight.
 
 On a physical iPhone, signed in to Game Center, with a fresh install:
 
-- The Game Center welcome banner shows at launch, then the track list: Apex School first (marked Practice), then the
-  six circuits, scrolling sideways.
+- The Game Center welcome banner shows at launch, then the track list: the yellow Apex School button marked START
+  HERE top left, and the six circuits scrolling sideways.
 - Apex School: the yellow line, TURN IN / APEX / EXIT, the coach's three cues with a tick at turn-in and the apex,
-  a verdict after each corner, your trail, and no ghosts. The house button goes straight back to the list.
+  a verdict after each corner, your trail, and no ghosts. The second real apex (turned in to from wide) brings
+  "You're ready", whose button goes to the track list; afterwards the home button is quiet. Riding the inside wall
+  shows "TURN IN FROM WIDE TO COUNT" and doesn't count. SKIP (or the house button) goes straight back to the list.
 - Each circuit: a lap is timed, splits show at sectors 1 and 2, and the live delta shows after the first lap. A new
   best lap shows the purple banner; the blue ghost replays it on the next lap.
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.

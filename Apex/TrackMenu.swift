@@ -17,30 +17,42 @@ struct TrackMenu: View {
     /// Each circuit's saved best lap, read whenever the menu appears.
     @State private var bests: [String: Double] = [:]
     @State private var showsColors = false
+    /// Apex School has been graduated or skipped, so it no longer needs pointing out.
+    @State private var schoolDone = SchoolProgress.isDone()
 
     var body: some View {
         ZStack {
             MowedGrass().ignoresSafeArea()
             VStack(spacing: 14) {
-                VStack(spacing: 6) {
-                    Text("APEX RIVALS")
-                        .font(.system(size: 34, weight: .black, design: .rounded).italic())
-                    CurbStripe().frame(width: 200, height: 6)
-                    Text("Hold to steer up. Let go to steer down. Straight is fast.")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .opacity(0.85)
+                // Apex School, the title and COLORS share the top bar, so on a small phone none sits on another.
+                HStack(alignment: .top, spacing: 12) {
+                    SchoolButton(done: schoolDone) { onSelect(TrackCatalog.school.layout.id) }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(spacing: 6) {
+                        Text("APEX RIVALS")
+                            .font(.system(size: 34, weight: .black, design: .rounded).italic())
+                        CurbStripe().frame(width: 200, height: 6)
+                    }
+                    .fixedSize()
+                    Button {
+                        showsColors = true
+                    } label: {
+                        Label("COLORS", systemImage: "paintpalette.fill")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.black.opacity(0.45), in: Capsule())
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .padding(.horizontal, 16)
+                Text("Hold to steer up. Let go to steer down. Straight is fast.")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .opacity(0.85)
+                    .padding(.top, -8)
                 // More circuits than fit across the screen: they scroll sideways, a card at a time.
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        Button {
-                            onSelect(TrackCatalog.school.layout.id)
-                        } label: {
-                            TrackCard(track: TrackCatalog.school, best: bests[TrackCatalog.school.layout.id],
-                                      practice: true)
-                                .frame(width: 250)
-                        }
-                        .buttonStyle(.plain)
                         ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
                             Button {
                                 onSelect(track.layout.id)
@@ -59,29 +71,56 @@ struct TrackMenu: View {
             .padding(.vertical, 12)
             .foregroundStyle(.white)
 
-            Button {
-                showsColors = true
-            } label: {
-                Label("COLORS", systemImage: "paintpalette.fill")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.black.opacity(0.45), in: Capsule())
-                    .foregroundStyle(.white)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-
             if showsColors {
                 Color.black.opacity(0.45).ignoresSafeArea()
                 LiveryPicker(livery: Livery.shared, onDone: { showsColors = false })
             }
         }
         .onAppear {
-            bests = Dictionary(uniqueKeysWithValues: ([TrackCatalog.school] + TrackCatalog.tracks).compactMap { track in
+            bests = Dictionary(uniqueKeysWithValues: TrackCatalog.tracks.compactMap { track in
                 LapStore.load(for: track).map { (track.layout.id, $0.time) }
             })
+            schoolDone = SchoolProgress.isDone()
+        }
+    }
+}
+
+/// Apex School, top left of the menu: yellow and marked START HERE until it's been graduated or skipped, then as quiet
+/// as the COLORS button.
+struct SchoolButton: View {
+    let done: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            // Side by side where there's room; on a narrow phone, START HERE goes under the name.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { name; tag }
+                VStack(alignment: .leading, spacing: 4) { name; tag }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(done ? AnyShapeStyle(.black.opacity(0.45)) : AnyShapeStyle(Color.schoolYellow),
+                        in: RoundedRectangle(cornerRadius: 18))
+            .foregroundStyle(done ? .white : .black)
+        }
+    }
+
+    private var name: some View {
+        Label("APEX SCHOOL", systemImage: "graduationcap.fill")
+            .font(.system(size: 13, weight: .heavy, design: .rounded))
+            .fixedSize()
+    }
+
+    @ViewBuilder private var tag: some View {
+        if !done {
+            Text("START HERE")
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.black, in: Capsule())
+                .foregroundStyle(Color.schoolYellow)
+                .fixedSize()
         }
     }
 }
@@ -90,8 +129,6 @@ struct TrackMenu: View {
 struct TrackCard: View {
     let track: Track
     let best: Double?
-    /// Apex School: marked as practice, with a yellow edge.
-    var practice = false
 
     private var corners: Int {
         track.layout.segments.filter { if case .corner = $0 { return true } else { return false } }.count
@@ -102,20 +139,9 @@ struct TrackCard: View {
             TrackOutline(track: track)
                 .frame(height: 104)
                 .frame(maxWidth: .infinity)
-            HStack(spacing: 8) {
-                Text(track.layout.name.uppercased())
-                    .font(.system(size: 20, weight: .heavy, design: .rounded).italic())
-                if practice {
-                    Text("PRACTICE")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color(red: 1, green: 0.82, blue: 0.1), in: Capsule())
-                }
-            }
-            Text(practice ? "4 identical corners · learn the line"
-                          : "\(corners) corners · \(track.turning > 0 ? "counterclockwise" : "clockwise")")
+            Text(track.layout.name.uppercased())
+                .font(.system(size: 20, weight: .heavy, design: .rounded).italic())
+            Text("\(corners) corners · \(track.turning > 0 ? "counterclockwise" : "clockwise")")
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .opacity(0.65)
             Text(track.layout.summary)
@@ -140,11 +166,6 @@ struct TrackCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            if practice {
-                RoundedRectangle(cornerRadius: 16).stroke(Color(red: 1, green: 0.82, blue: 0.1), lineWidth: 2)
-            }
-        }
         .contentShape(RoundedRectangle(cornerRadius: 16))
     }
 }

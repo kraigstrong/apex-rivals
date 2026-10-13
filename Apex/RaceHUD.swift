@@ -40,6 +40,9 @@ final class RaceHUD {
     /// Apex School's coach: where you are in the corner, and what to do with your thumb.
     var coach: Coach?
     var isPractice = false
+    /// Apex School: apexes hit toward the goal, and the "you're ready" card once it's reached.
+    var schoolHits = 0
+    var showsGraduation = false
     /// The car colors picker is open over the race.
     var showsColors = false
     #if DEBUG
@@ -52,9 +55,9 @@ final class RaceHUD {
     /// A panel is open over the race. The race holds still until it closes.
     var showsPanel: Bool {
         #if DEBUG
-        return showsColors || showsTuner
+        return showsColors || showsTuner || showsGraduation
         #else
-        return showsColors
+        return showsColors || showsGraduation
         #endif
     }
     /// The card shown when a session ends, and where its best lap falls among other players.

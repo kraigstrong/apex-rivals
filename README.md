@@ -47,7 +47,9 @@ What the game shows you:
   player's best lap when the lap service has one close enough, otherwise a bot driving the ideal line at whatever
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
-- **Apex School**: the first card in the track list. A practice square of four identical right-angle corners, with
+- **Apex School**: the button top left of the track list (yellow, marked START HERE, until you've graduated or
+  skipped it). A short tutorial with a goal: hit 2 apexes, each turned in to from wide (riding the inside wall doesn't
+  count), and a "You're ready" card sends you to the track list to pick a circuit (or lets you keep practicing). SKIP bails straight to the track list. It's a practice square of four identical right-angle corners, with
   the ideal line painted on, TURN IN / APEX / EXIT markers at every corner, a coach with one big cue that changes
   three times a corner (STAY WIDE, then LET GO at turn-in to dive for the apex, then HOLD to ease back out on a
   right-hander) with a haptic tick at turn-in and at the apex, a verdict after every

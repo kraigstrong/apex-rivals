@@ -84,6 +84,8 @@ struct RaceOverlay: View {
                     TunerPanel(tuner: Tuner.shared, trackName: hud.trackName, laps: hud.botLaps,
                                stockLaps: hud.stockBotLaps, onDone: { hud.showsTuner = false })
                     #endif
+                } else if hud.showsGraduation {
+                    GraduationCard(onPickTrack: hud.onExit, onKeepPracticing: { hud.showsGraduation = false })
                 } else if let summary = hud.summary {
                     SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
                                        onTracks: hud.onExit)
@@ -113,78 +115,30 @@ struct RaceOverlay: View {
     /// Timing, splits, map, buttons and speed: everything shown while racing.
     private var racingHUD: some View {
         ZStack {
-            timing
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .allowsHitTesting(false)
-
-            if let banner = hud.banner {
-                SplitBanner(banner: banner)
-                    .id(banner.id)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // One row across the top, above the track wherever it runs: timing, then the buttons with split and lap
+            // banners under them, then the minimap. Side by side, so none can sit on another, whatever the screen
+            // width or the lap time; both sides keep a fixed width so the buttons don't shift as times change.
+            HStack(alignment: .top, spacing: 12) {
+                timing
                     .allowsHitTesting(false)
-                    .task(id: banner.id) {
-                        try? await Task.sleep(for: .seconds(2.4))
-                        if hud.banner?.id == banner.id { hud.banner = nil }
-                    }
-            }
-
-            VStack(alignment: .trailing, spacing: 10) {
-                MiniMap(hud: hud)
-                    .allowsHitTesting(false)
-                HStack(spacing: 10) {
-                    Button {
-                        hud.onLeave()
-                    } label: {
-                        RoundIcon(symbol: "house.fill")
-                    }
-                    Menu {
-                        Button {
-                            hud.onToggleRacingLine()
-                        } label: {
-                            Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
-                                  systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-                        }
-                        Button {
-                            hud.showsColors = true
-                        } label: {
-                            Label("Car colors", systemImage: "paintpalette")
-                        }
-                        #if DEBUG
-                        Button {
-                            hud.onTune()
-                        } label: {
-                            Label("Tune controls", systemImage: "slider.horizontal.3")
-                        }
-                        #endif
-                        Button(role: .destructive) {
-                            hud.onForgetBest()
-                        } label: {
-                            Label("Clear best lap", systemImage: "trash")
-                        }
-                    } label: {
-                        RoundIcon(symbol: "ellipsis")
-                    }
-                    // Apex School has no standings or leaderboard.
-                    if !hud.isPractice {
-                        Button {
-                            hud.onEndSession()
-                        } label: {
-                            RoundIcon(symbol: "flag.checkered")
-                        }
-                        Button {
-                            hud.onShowLeaderboard()
-                        } label: {
-                            RoundIcon(symbol: "trophy.fill")
-                        }
-                    }
-                    Button {
-                        hud.onRestart()
-                    } label: {
-                        RoundIcon(symbol: "arrow.counterclockwise")
+                VStack(spacing: 8) {
+                    controls
+                    if let banner = hud.banner {
+                        SplitBanner(banner: banner)
+                            .id(banner.id)
+                            .allowsHitTesting(false)
+                            .task(id: banner.id) {
+                                try? await Task.sleep(for: .seconds(2.4))
+                                if hud.banner?.id == banner.id { hud.banner = nil }
+                            }
                     }
                 }
+                .frame(maxWidth: .infinity)
+                MiniMap(hud: hud)
+                    .allowsHitTesting(false)
+                    .frame(width: 170, alignment: .topTrailing)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             SpeedGauge(hud: hud)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
@@ -199,6 +153,73 @@ struct RaceOverlay: View {
         }
     }
 
+    /// Home, the menu, the tutorial's skip or the race's flag and trophy, and restart.
+    private var controls: some View {
+        HStack(spacing: 8) {
+            Button {
+                hud.onLeave()
+            } label: {
+                RoundIcon(symbol: "house.fill")
+            }
+            Menu {
+                Button {
+                    hud.onToggleRacingLine()
+                } label: {
+                    Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
+                          systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                }
+                Button {
+                    hud.showsColors = true
+                } label: {
+                    Label("Car colors", systemImage: "paintpalette")
+                }
+                #if DEBUG
+                Button {
+                    hud.onTune()
+                } label: {
+                    Label("Tune controls", systemImage: "slider.horizontal.3")
+                }
+                #endif
+                Button(role: .destructive) {
+                    hud.onForgetBest()
+                } label: {
+                    Label("Clear best lap", systemImage: "trash")
+                }
+            } label: {
+                RoundIcon(symbol: "ellipsis")
+            }
+            // Apex School has no standings or leaderboard, but a way out for anyone who'd rather just race.
+            if hud.isPractice {
+                Button {
+                    SchoolProgress.markDone()
+                    hud.onExit()
+                } label: {
+                    Label("SKIP", systemImage: "forward.fill")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 14)
+                        .frame(height: 40)
+                        .background(.black.opacity(0.45), in: Capsule())
+                }
+            } else {
+                Button {
+                    hud.onEndSession()
+                } label: {
+                    RoundIcon(symbol: "flag.checkered")
+                }
+                Button {
+                    hud.onShowLeaderboard()
+                } label: {
+                    RoundIcon(symbol: "trophy.fill")
+                }
+            }
+            Button {
+                hud.onRestart()
+            } label: {
+                RoundIcon(symbol: "arrow.counterclockwise")
+            }
+        }
+    }
+
     private var timing: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(hud.lapNumber == 0 ? "OUT LAP" : "LAP \(hud.lapNumber)")
@@ -206,10 +227,14 @@ struct RaceOverlay: View {
                 .opacity(0.8)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(hud.lapTime.map { LapFormat.time($0, decimals: 2) } ?? "--.--")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .font(.system(size: 34, weight: .heavy, design: .rounded).monospacedDigit().italic())
                 if let delta = hud.liveDelta {
                     // Live against the best lap, so you can see which corner the time goes in.
                     Text(LapFormat.delta(delta, decimals: 2))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         .font(.system(size: 20, weight: .heavy, design: .rounded).monospacedDigit())
                         .foregroundStyle(delta <= 0 ? Color(red: 0.3, green: 0.9, blue: 0.45)
                                                     : Color(red: 1, green: 0.38, blue: 0.32))
@@ -217,16 +242,31 @@ struct RaceOverlay: View {
             }
             row("BEST", hud.bestLap, color: Color(red: 0.75, green: 0.5, blue: 1))
             row("LAST", hud.lastLap, color: .white)
+            if hud.isPractice {
+                // Apex School's goal: a dot per apex to hit.
+                HStack(spacing: 5) {
+                    Text("APEXES").font(.system(size: 12, weight: .heavy, design: .rounded)).opacity(0.7)
+                    ForEach(0..<SchoolProgress.goal, id: \.self) { index in
+                        Image(systemName: index < hud.schoolHits ? "circle.fill" : "circle")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(index < hud.schoolHits ? Color.schoolYellow : .white.opacity(0.6))
+                    }
+                }
+                .padding(.top, 2)
+            }
             if let rivalTime = hud.rivalTime {
                 // The gold ghost: who you're chasing.
                 HStack(spacing: 6) {
                     row("RIVAL", rivalTime, color: Livery.shared.paint(for: .rival).labelColor)
                     if let name = hud.rivalName {
+                        // A Game Center alias can be long: it's cut short rather than widening the panel.
                         Text(name).font(.system(size: 12, weight: .semibold, design: .rounded)).opacity(0.75)
+                            .lineLimit(1)
                     }
                 }
             }
         }
+        .frame(width: 176, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
@@ -262,9 +302,13 @@ struct SplitBanner: View {
                 .opacity(0.85)
             Text(banner.value)
                 .font(.system(size: 24, weight: .heavy, design: .rounded).monospacedDigit().italic())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             if let detail = banner.detail {
                 Text(detail)
                     .font(.system(size: 14, weight: .heavy, design: .rounded).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(tint, in: Capsule())
@@ -362,6 +406,11 @@ struct StartCard: View {
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .multilineTextAlignment(.center)
                 .opacity(0.85)
+            if practice {
+                Text("GOAL: HIT \(SchoolProgress.goal) APEXES")
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color.schoolYellow)
+            }
             if let best {
                 Text("Best lap \(LapFormat.time(best))")
                     .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
@@ -375,6 +424,47 @@ struct StartCard: View {
         .frame(maxWidth: 420)
         .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 18))
     }
+}
+
+/// Apex School's end: the goal's reached, so off to pick a real circuit, or a little more practice first.
+struct GraduationCard: View {
+    let onPickTrack: () -> Void
+    let onKeepPracticing: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "graduationcap.fill")
+                .font(.system(size: 34))
+                .foregroundStyle(Color.schoolYellow)
+            Text("YOU'RE READY")
+                .font(.system(size: 30, weight: .black, design: .rounded).italic())
+            Text("\(SchoolProgress.goal) apexes hit. Swing wide, clip the apex, run out wide: that's the whole game. Now do it against the clock.")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .multilineTextAlignment(.center)
+                .opacity(0.85)
+            Button(action: onPickTrack) {
+                Label("PICK A TRACK", systemImage: "flag.checkered")
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 10)
+                    .background(Color(red: 0.9, green: 0.12, blue: 0.1), in: Capsule())
+            }
+            .padding(.top, 4)
+            Button(action: onKeepPracticing) {
+                Text("Keep practicing")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .opacity(0.8)
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: 420)
+        .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+extension Color {
+    /// Apex School's yellow: its home-screen button, goal and turn-in cue.
+    static let schoolYellow = Color(red: 1, green: 0.82, blue: 0.1)
 }
 
 struct RoundIcon: View {
@@ -552,7 +642,7 @@ struct CoachPanel: View {
     private var tint: Color {
         switch coach.phase {
         case .lineUp: return .white
-        case .turnIn: return Color(red: 1, green: 0.82, blue: 0.1)
+        case .turnIn: return .schoolYellow
         case .runOut: return Color(red: 0.4, green: 0.7, blue: 1)
         }
     }

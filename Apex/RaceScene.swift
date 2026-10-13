@@ -12,6 +12,7 @@ final class RaceScene: SKScene {
     let practice: Bool
     private var guide: ApexGuide?
     private var judge = CornerJudge()
+    private var school = SchoolProgress()
     private var trail: [SKSpriteNode] = []
     private var coachPhase: ApexGuide.Phase?
     /// The livery version the cars were last painted in; a change (from the colors picker) repaints them.
@@ -182,7 +183,11 @@ final class RaceScene: SKScene {
         let events = session.advance(by: dt, control: control)
         events.forEach(handle)
         if let guide, session.phase == .racing {
-            if let verdict = judge.update(car: session.car, guide: guide) { show(verdict) }
+            if let verdict = judge.update(car: session.car, guide: guide) {
+                show(verdict)
+                if school.record(verdict) { graduate() }
+                hud.schoolHits = school.hits
+            }
             // A tick in the thumb at TURN IN and at the APEX: the corner's two moments.
             let phase = guide.situation(at: session.car.s)?.phase
             if phase != coachPhase, phase == .turnIn || phase == .runOut { tick.selectionChanged() }
@@ -394,11 +399,21 @@ final class RaceScene: SKScene {
         }
     }
 
+    /// The goal's reached: the race holds while the card offers a real circuit.
+    private func graduate() {
+        SchoolProgress.markDone()
+        notice.notificationOccurred(.success)
+        hud.showsGraduation = true
+    }
+
     private func show(_ verdict: CornerJudge.Verdict) {
         let slowest = LapFormat.speed(verdict.slowest) + " km/h"
         let ideal = "ideal " + LapFormat.speed(verdict.idealSpeed)
         let wide = "\(Int(verdict.apexGap.rounded())) wide"
-        if verdict.hitApex {
+        if verdict.hitApex, !verdict.turnedInWide {
+            // On the apex, but only by hugging the inside: it doesn't count until the car comes in from wide.
+            hud.show("APEX", "HIT", detail: "TURN IN FROM WIDE TO COUNT", tone: .slower)
+        } else if verdict.hitApex {
             hud.show("APEX", "HIT", detail: "\(slowest) · \(ideal)", tone: .faster)
         } else if verdict.closeToApex {
             hud.show("APEX", "CLOSE", detail: "\(wide) · \(slowest)", tone: .slower)
