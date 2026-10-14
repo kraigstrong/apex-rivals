@@ -199,7 +199,10 @@ struct RaceOverlay: View {
                     hud.onEndSession()
                 } label: {
                     RoundIcon(symbol: "flag.checkered")
+                        .foregroundStyle(.white.opacity(hud.canEndSession ? 1 : 0.35))
                 }
+                // Dimmed until a lap is finished: before that there's no summary, and ending would only restart.
+                .disabled(!hud.canEndSession)
                 Button {
                     hud.onShowLeaderboard()
                 } label: {
