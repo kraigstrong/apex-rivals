@@ -293,7 +293,7 @@ struct RaceOverlay: View {
         .frame(width: 176, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
+        .hudPanel()
     }
 
     private func row(_ label: String, _ time: Double?, color: Color) -> some View {
@@ -391,7 +391,7 @@ struct SpeedGauge: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
+        .hudPanel()
     }
 }
 
@@ -413,6 +413,8 @@ struct MiniMap: View {
             var path = Path()
             path.addLines(outline.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) })
             path.closeSubpath()
+            // A dark casing under the line keeps it crisp over anything light behind the map.
+            context.stroke(path, with: .color(.black.opacity(0.5)), style: StrokeStyle(lineWidth: 6, lineJoin: .round))
             context.stroke(path, with: .color(.white.opacity(0.85)), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
             func dot(_ point: CGPoint, radius: CGFloat, color: Color) {
                 let rect = CGRect(x: point.x * size.width - radius, y: point.y * size.height - radius,
@@ -426,7 +428,7 @@ struct MiniMap: View {
         }
         .frame(width: width, height: width / hud.mapAspect)
         .padding(8)
-        .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .hudPanel(cornerRadius: 10)
     }
 }
 
@@ -518,6 +520,23 @@ struct GraduationCard: View {
 extension Color {
     /// Apex School's yellow: its home-screen button, goal and turn-in cue.
     static let schoolYellow = Color(red: 1, green: 0.82, blue: 0.1)
+}
+
+extension View {
+    /// The panel behind the HUD's timing, map and speed. It blurs what's under it as well as dimming it, so scenery
+    /// passing beneath (a grandstand's crowd, curbs, the track's lines) melts into a soft wash instead of breaking up
+    /// the text and the map's line. The dimming stays light, so the track under it still shows, just softened.
+    func hudPanel(cornerRadius: CGFloat = 12) -> some View {
+        background {
+            let shape = RoundedRectangle(cornerRadius: cornerRadius)
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(.black.opacity(0.3))
+            }
+            // The dark material whatever the phone's appearance: the light one would wash out the white text.
+            .environment(\.colorScheme, .dark)
+        }
+    }
 }
 
 struct RoundIcon: View {
