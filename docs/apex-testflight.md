@@ -61,6 +61,9 @@ Everything between here and a public TestFlight link, in order. The code is in p
     approved, turn on the group's public link and share it.
 11. **Record it** in the build log at the end of this file.
 
+The app's shared laps link to the public TestFlight link (`ApexLinks.join` in `Apex/ShareCard.swift`). If the
+Friends group's link changes, or once the game is on the App Store, change it there.
+
 Only one build of a version can wait for beta review at a time. To replace one that's still waiting (say, with a fix),
 expire it first: that takes it out of the queue (TestFlight has no other way to withdraw it), and the new build can be
 submitted. Later builds of an approved version usually clear review quickly.
@@ -103,6 +106,9 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.
 - The flag ends a session: the summary shows your best lap and, with no one else on the board yet, "You're the
   first!" The trophy opens the circuit's leaderboard with your time on it.
+- SHARE on the summary opens the share sheet: a picture of the circuit with your line in your car's color, the time,
+  medal and standing, and text ending with the public TestFlight link. Send it to yourself in Messages: the link
+  opens TestFlight.
 - Best laps survive force-quitting and reopening. Background the app mid-lap: the session ends and its summary is
   waiting on return.
 

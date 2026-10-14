@@ -26,7 +26,7 @@ final class RaceScene: SKScene {
     private var rivalNode: SKSpriteNode?
     /// Laps finished this session, and the fastest of them.
     private var sessionLaps = 0
-    private var sessionBest: Double?
+    private var sessionBest: LapRecord?
     /// The best lap before this session, to tell whether the session set a new one.
     private var bestBeforeSession: Double?
 
@@ -80,6 +80,7 @@ final class RaceScene: SKScene {
         hud.onEndSession = { [weak self] in self?.endSession() }
         hud.onLeave = { [weak self] in self?.leave() }
         hud.onRaceAgain = { [weak self] in self?.hud.summary = nil }
+        hud.onShare = { [weak self] in self?.shareSessionBest() }
         hud.onShowLeaderboard = { [weak self] in
             guard let self else { return }
             GameCenter.shared.showLeaderboard(board)
@@ -325,7 +326,9 @@ final class RaceScene: SKScene {
                 LapLog.shared.record(LapEntry(lap: record, board: board, walls: session.wallHitsLastLap))
             }
             sessionLaps += 1
-            sessionBest = min(sessionBest ?? .infinity, lap.time)
+            if let record = session.timer.lastRecord, record.time < sessionBest?.time ?? .infinity {
+                sessionBest = record
+            }
             let beatRival = rival.map { lap.time < $0.time } ?? false
             if lap.isBest {
                 let medal = Medal.newlyWon(by: lap.time, after: hud.bestLap, on: track.layout)
@@ -517,7 +520,8 @@ final class RaceScene: SKScene {
             sessionBest = nil
             restart()
         }
-        guard let best = sessionBest, sessionLaps > 0 else { return }
+        guard let bestLap = sessionBest, sessionLaps > 0 else { return }
+        let best = bestLap.time
         let personalBest = session.timer.best?.time
         let next = Medal.next(after: personalBest, on: track.layout)
         hud.summary = SessionSummary(trackName: track.layout.name, laps: sessionLaps, best: best,
@@ -526,7 +530,7 @@ final class RaceScene: SKScene {
                                      medal: Medal.earned(by: best, on: track.layout),
                                      isNewMedal: Medal.newlyWon(by: best, after: bestBeforeSession,
                                                                 on: track.layout) != nil,
-                                     nextMedal: next?.medal, nextMedalTarget: next?.target)
+                                     nextMedal: next?.medal, nextMedalTarget: next?.target, lap: bestLap)
         hud.standing = .loading
         if ApexOnline.isEnabled {
             ApexService.standing(of: best, on: board) { [weak self] standing in
@@ -541,6 +545,14 @@ final class RaceScene: SKScene {
             hud.standing = .unavailable
             #endif
         }
+    }
+
+    /// The share sheet, with a picture of the session's best lap: its line on the circuit, its time, medal and standing.
+    private func shareSessionBest() {
+        guard let summary = hud.summary, let lap = summary.lap else { return }
+        var standing: Standing?
+        if case .ready(let ready, sample: false) = hud.standing { standing = ready }
+        LapShare(track: track, lap: lap, medal: summary.medal, standing: standing).present()
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {

@@ -41,11 +41,6 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
     }
 
     private static func present(_ controller: UIViewController) {
-        let root = UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
-            .first
-        var top = root
-        while let presented = top?.presentedViewController { top = presented }
-        top?.present(controller, animated: true)
+        UIViewController.top?.present(controller, animated: true)
     }
 }
