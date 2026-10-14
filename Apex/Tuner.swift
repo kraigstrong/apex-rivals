@@ -34,6 +34,9 @@ final class Tuner {
              read: { RaceTuning.grip }, write: { RaceTuning.grip = $0 }),
         Knob(id: "acceleration", name: "Acceleration", note: "How much a slow exit costs", range: 150...450, step: 10,
              read: { RaceTuning.acceleration }, write: { RaceTuning.acceleration = $0 }),
+        // Only how the race is drawn, so it never moves a lap time or restarts the race.
+        Knob(id: "cameraHeadingAhead", name: "Camera", note: "How far ahead it turns into corners", range: 0...200,
+             step: 10, read: { RaceTuning.cameraHeadingAhead }, write: { RaceTuning.cameraHeadingAhead = $0 }),
     ]
 
     static let shared = Tuner()
@@ -189,8 +192,8 @@ struct TunerPanel: View {
                 Spacer()
                 Button("RESET") { tuner.resetToStock() }
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    .disabled(RaceTuning.isStock)
-                    .opacity(RaceTuning.isStock ? 0.35 : 1)
+                    .disabled(tuner.values == tuner.stock)
+                    .opacity(tuner.values == tuner.stock ? 0.35 : 1)
                     .padding(.trailing, 6)
                 Button(action: onDone) {
                     Text("DONE")
