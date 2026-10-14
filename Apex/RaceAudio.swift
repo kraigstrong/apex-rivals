@@ -36,7 +36,7 @@ final class RaceAudio {
 
     private init() {}
 
-    /// Starts the sound for a race. The engine idles until `drive` says otherwise.
+    /// Starts the sound for a race. The engine is silent until `drive` says the car is racing.
     func start() {
         let session = AVAudioSession.sharedInstance()
         // Playback ignores the silent switch; mixing keeps the player's own music going underneath.
@@ -75,8 +75,8 @@ final class RaceAudio {
         engine.pause()
     }
 
-    /// Called every frame with what the car is doing. `racing` false (on the grid, or paused behind a panel) quiets the
-    /// tires and curbs and drops the engine to idle.
+    /// Called every frame with what the car is doing. `racing` false (on the grid, under the session's card, or paused
+    /// behind a panel) quiets the engine, tires and curbs.
     func drive(speedKmh: Double, throttle: Double, scrub: Double, onCurb: Bool, racing: Bool) {
         controls.withLock {
             $0.speed = speedKmh
@@ -140,7 +140,7 @@ struct CueCounts {
 
 /// Revs and notes. The levels and pitches are in `RaceTuning`, with the rest of the tuning.
 enum SoundSettings {
-    /// Engine revs, 0...1: from 0.25 at a standstill (idle) to 1 at the car's top speed, with no gear changes between.
+    /// Engine revs, 0...1: from 0.25 at a standstill to 1 at the car's top speed, with no gear changes between.
     static func revs(at kmh: Double) -> Double {
         let top = RaceTuning.topSpeed * RaceTuning.displaySpeedFactor
         return 0.25 + 0.75 * min(1, max(0, kmh / top))
@@ -214,10 +214,11 @@ final class Synth {
 
         let s = SoundSettings.self, t = RaceTuning.self
         let kmh = c.racing ? c.speed : 0
-        let revs = s.revs(at: kmh)
-        let throttle = c.racing ? c.throttle : 0.2
-        let pitchTarget = t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * revs
-        let engineTarget = on ? t.engineLevel * 0.22 * (0.8 + 0.2 * throttle) : 0
+        // Off the track (on the grid, under the session's card, behind a panel) the engine is silent, not idling: it
+        // fades out at the pitch it had and starts again with the race.
+        let pitchTarget = c.racing
+            ? t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * s.revs(at: kmh) : pitch
+        let engineTarget = on && c.racing ? t.engineLevel * 0.22 * (0.8 + 0.2 * c.throttle) : 0
         let engineCut = 1 - exp(-2 * .pi * (300 + 8000 * t.engineBrightness) / rate)
         let tireTarget = on && c.racing ? t.tireLevel * 0.5 * pow(c.scrub, 1.4) : 0
         let squealTarget = on && c.racing ? t.tireLevel * t.tireSqueal * 0.08 * c.scrub * c.scrub : 0

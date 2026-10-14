@@ -70,13 +70,30 @@ struct RaceAudioTests {
         #expect(samples.suffix(4_800).allSatisfy { abs($0) < 1e-3 })
     }
 
-    /// With the music off, an idle car on the grid is a quiet hum; nothing else plays.
-    @Test func theGridIsJustAnIdle() {
+    func peak(_ samples: some Collection<Float>) -> Float { samples.map { abs($0) }.max() ?? 0 }
+
+    /// With the music off, the grid is silent: no engine idling while you wait to start or read the session's card.
+    @Test func theGridIsSilent() {
         let synth = Synth(sampleRate: 48_000)
         var controls = SoundControls()
         controls.musicOn = false
         let samples = render(synth, controls, seconds: 0.6).suffix(9_600)
-        let peak = samples.map { abs($0) }.max() ?? 0
-        #expect(peak > 0.005 && peak < 0.2, "peak \(peak)")
+        #expect(peak(samples) < 1e-3, "peak \(peak(samples))")
+    }
+
+    /// When the race stops (the session ends, or a panel opens), the engine fades out instead of dropping to an idle.
+    @Test func theEngineFadesOutWhenTheRaceStops() {
+        let synth = Synth(sampleRate: 48_000)
+        var controls = SoundControls()
+        controls.musicOn = false
+        controls.racing = true
+        controls.speed = 250
+        controls.throttle = 1
+        let racing = render(synth, controls, seconds: 0.6).suffix(9_600)
+        controls.racing = false
+        controls.speed = 0
+        let stopped = render(synth, controls, seconds: 1).suffix(4_800)
+        #expect(peak(racing) > 0.02, "peak \(peak(racing))")
+        #expect(peak(stopped) < 1e-3, "peak \(peak(stopped))")
     }
 }
