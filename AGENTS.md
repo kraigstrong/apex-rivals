@@ -12,7 +12,8 @@ xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS 
 ```
 
 Tests use Swift Testing (`import Testing`, `@Test`, `#expect`), not XCTest. Unit-test the game logic (track
-geometry, physics, timing, saves); the SpriteKit scene is checked by running the app. Keep the build warning-free.
+geometry, physics, timing, saves); the SpriteKit scene is checked by running the app. Keep the build warning-free:
+CI (`.github/workflows/tests.yml`) runs the tests and a Release build on every PR, with warnings as errors.
 
 ## Conventions
 

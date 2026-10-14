@@ -1,0 +1,32 @@
+# Runs the tests on every pull request and every push to main, and fails on any build warning.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      # The Xcode the project is built with locally. Bump it here and in the README together.
+      DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
+      # Simulator builds need no signing, and the runner has no certificates.
+      STRICT: CODE_SIGNING_ALLOWED=NO SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - name: Test (Debug)
+        run: >
+          xcodebuild test -project Apex.xcodeproj -scheme Apex
+          -destination 'platform=iOS Simulator,name=iPhone 17 Pro' $STRICT
+      - name: Build (Release)
+        run: >
+          xcodebuild build -project Apex.xcodeproj -scheme Apex -configuration Release
+          -destination 'generic/platform=iOS Simulator' $STRICT
