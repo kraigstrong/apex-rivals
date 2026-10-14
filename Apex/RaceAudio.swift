@@ -2,10 +2,11 @@ import AVFoundation
 import Foundation
 import os
 
-/// The race's sound, synthesized as it plays: no audio files, so nothing to license. The engine follows the car's speed
-/// through eight gears, the tires hiss and squeal with the same scrub that leaves skid marks, curbs rumble, walls thump,
-/// splits and best laps chime, and a synthwave loop plays underneath. Tuned in the Apex Sound Lab; these are its
-/// settings. It mixes with the player's own music and respects the silent switch.
+/// The race's sound, synthesized as it plays: no audio files, so nothing to license. The engine is an 8-bit chip's buzz
+/// whose pitch rises and falls with the car's speed (no gear changes), the tires hiss and squeal with the same scrub that leaves skid
+/// marks, curbs rumble, walls thump, splits and best laps chime, and a synthwave loop plays underneath. Tuned in the
+/// Apex Sound Lab; these are its settings. It mixes with the player's own music and plays with the silent switch on
+/// (it's switched off in the menu).
 final class RaceAudio {
     static let shared = RaceAudio()
 
@@ -38,7 +39,8 @@ final class RaceAudio {
     /// Starts the sound for a race. The engine idles until `drive` says otherwise.
     func start() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.ambient)
+        // Playback ignores the silent switch; mixing keeps the player's own music going underneath.
+        try? session.setCategory(.playback, options: .mixWithOthers)
         try? session.setActive(true)
         let otherMusic = session.secondaryAudioShouldBeSilencedHint
         controls.withLock {
@@ -136,22 +138,12 @@ struct CueCounts {
     }
 }
 
-/// Gears and notes. The levels and pitches are in `RaceTuning`, with the rest of the tuning.
+/// Revs and notes. The levels and pitches are in `RaceTuning`, with the rest of the tuning.
 enum SoundSettings {
-    static var gears: [Double] { RaceTuning.gearTopSpeeds }
-
-    static func gear(at kmh: Double) -> Int {
-        var gear = 0
-        while gear < gears.count - 1, kmh > gears[gear] { gear += 1 }
-        return gear
-    }
-
-    /// Engine revs, 0...1: from idle through first gear, then from mid-range to the limiter in every gear after.
+    /// Engine revs, 0...1: from idle at a standstill to the top at the car's top speed, with no gear changes between.
     static func revs(at kmh: Double) -> Double {
-        let gear = gear(at: kmh)
-        let low = gear == 0 ? 0 : gears[gear - 1], high = gears[gear]
-        let through = min(1, max(0, (kmh - low) / (high - low)))
-        return gear == 0 ? 0.25 + 0.75 * through : 0.55 + 0.45 * through
+        let top = RaceTuning.topSpeed * RaceTuning.displaySpeedFactor
+        return 0.25 + 0.75 * min(1, max(0, kmh / top))
     }
 
     static func note(_ midi: Double) -> Double { 440 * pow(2, (midi - 69) / 12) }
@@ -164,9 +156,7 @@ final class Synth {
     private var heard = SoundControls()
 
     // Engine
-    private var pitch = RaceTuning.enginePitch.lowerBound, cutoff = 800.0, engineGain = 0.0
-    private var phase1 = 0.0, phase2 = 0.0, phaseSub = 0.0, low1 = 0.0, low2 = 0.0
-    private var lastGear = 0, shiftCut = 0.0
+    private var pitch = 0.0, untilPitchStep = 0.0, enginePhase = 0.0, engineGain = 0.0, low1 = 0.0, low2 = 0.0
     // Tires
     private var tireGain = 0.0, squealGain = 0.0, svfLow = 0.0, svfBand = 0.0, squealPhase = 0.0, vibrato = 0.0
     // Curbs
@@ -181,10 +171,23 @@ final class Synth {
     init(sampleRate: Double) {
         rate = sampleRate
         // Static tables are built on first use; touch them now, so it isn't the audio thread that builds them.
-        _ = Self.bestRun.count + Self.chords.count + RaceTuning.gearTopSpeeds.count
+        _ = Self.bestRun.count + Self.chords.count
     }
 
     private func smooth(_ tau: Double) -> Double { 1 - exp(-1 / (tau * rate)) }
+
+    /// PolyBLEP: rounds off a jump from -1 to +1 at phase 0 over one sample either side, so a pulse doesn't alias.
+    private static func blep(_ t: Double, _ dt: Double) -> Double {
+        if t < dt {
+            let x = t / dt
+            return 2 * x - x * x - 1
+        }
+        if t > 1 - dt {
+            let x = (t - 1) / dt
+            return x * x + 2 * x + 1
+        }
+        return 0
+    }
 
     private func white() -> Double {
         noise ^= noise << 13
@@ -211,37 +214,41 @@ final class Synth {
 
         let s = SoundSettings.self, t = RaceTuning.self
         let kmh = c.racing ? c.speed : 0
-        let gear = s.gear(at: kmh)
-        if gear != lastGear { shiftCut = 0.06 }
-        lastGear = gear
         let revs = s.revs(at: kmh)
-        let throttle = shiftCut > 0 ? 0 : (c.racing ? c.throttle : 0.2)
+        let throttle = c.racing ? c.throttle : 0.2
         let pitchTarget = t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * revs
-        let cutoffTarget = 250 + (600 + 5200 * t.engineBrightness) * (0.35 + 0.65 * throttle) * (0.4 + 0.6 * revs)
-        let engineTarget = on ? t.engineLevel * 0.22 * (0.55 + 0.45 * throttle) : 0
+        let engineTarget = on ? t.engineLevel * 0.22 * (0.8 + 0.2 * throttle) : 0
+        let engineCut = 1 - exp(-2 * .pi * (300 + 8000 * t.engineBrightness) / rate)
         let tireTarget = on && c.racing ? t.tireLevel * 0.5 * pow(c.scrub, 1.4) : 0
         let squealTarget = on && c.racing ? t.tireLevel * t.tireSqueal * 0.08 * c.scrub * c.scrub : 0
         let curbTarget = on && c.racing && c.onCurb ? t.curbLevel * 0.35 : 0
         let musicTarget = on && c.musicOn ? t.musicLevel : 0
         let fast = smooth(0.02), medium = smooth(0.04), slow = smooth(0.05)
+        // The throttle steps on and off as the line brakes the car; the engine's level swells to follow it.
+        let swell = smooth(0.15)
+        let samplesPerPitchStep = rate / 60
         let svfF = 2 * sin(.pi * t.tireHissPitch / rate), svfQ = 1 / 0.9
         let curbCut = 1 - exp(-2 * .pi * 380 / rate)
         let chopRate = 6 + kmh / 12
         let samplesPerStep = rate * 60 / t.musicTempo / 4
 
         for i in 0..<count {
-            // Engine: two detuned saws and a sub, driven into a soft clip, then filtered.
-            pitch += (pitchTarget - pitch) * fast
-            cutoff += (cutoffTarget - cutoff) * medium
-            engineGain += (engineTarget - engineGain) * slow
-            phase1 = (phase1 + pitch / rate).truncatingRemainder(dividingBy: 1)
-            phase2 = (phase2 + pitch * 1.004_63 / rate).truncatingRemainder(dividingBy: 1)
-            phaseSub = (phaseSub + pitch / 2 / rate).truncatingRemainder(dividingBy: 1)
-            let raw = (2 * phase1 - 1) + (2 * phase2 - 1) + (phaseSub < 0.5 ? 0.35 : -0.35)
-            let driven = tanh(2.2 * min(1, max(-1, raw)))
-            let g = 1 - exp(-2 * .pi * cutoff / rate)
-            low1 += (driven - low1) * g
-            low2 += (low1 - low2) * g
+            // Engine: an 8-bit console's 25% pulse, with a steady tone so pitch alone carries the speed. Like a chip's,
+            // the pitch is set once a frame rather than glided.
+            untilPitchStep -= 1
+            if untilPitchStep <= 0 {
+                pitch = pitchTarget
+                untilPitchStep += samplesPerPitchStep
+            }
+            engineGain += (engineTarget - engineGain) * swell
+            let dt = pitch / rate
+            enginePhase = (enginePhase + dt).truncatingRemainder(dividingBy: 1)
+            // A ±1 pulse with rounded edges (so it doesn't alias), then centered: +1 for a quarter, -1/3 the rest.
+            let fall = (enginePhase + 0.75).truncatingRemainder(dividingBy: 1)
+            let pulse = (enginePhase < 0.25 ? 1.0 : -1.0) + Self.blep(enginePhase, dt) - Self.blep(fall, dt)
+            let driven = tanh(2.2 * (pulse + 0.5) / 1.5)
+            low1 += (driven - low1) * engineCut
+            low2 += (low1 - low2) * engineCut
             var mix = low2 * engineGain
 
             // Tires: band-passed noise, and a wobbling squeal.
@@ -295,7 +302,6 @@ final class Synth {
             }
             mix += music * musicGain
 
-            if shiftCut > 0 { shiftCut -= 1 / rate }
             out[i] = Float(tanh(mix * t.soundMaster * 1.2))
         }
     }

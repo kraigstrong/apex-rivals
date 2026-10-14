@@ -153,7 +153,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
 - `Apex/TrackArt.swift`: procedural art: track pieces, curbs, start line, the car, and the grass shader.
 - `Apex/Scenery.swift`: trees, grandstands and tire walls, placed from each circuit's shape and kept clear of the
   track (`SceneryTests` checks every circuit).
-- `Apex/RaceAudio.swift`: the sound, synthesized live: engine through eight gears, tire scrub, curbs, walls,
+- `Apex/RaceAudio.swift`: the sound, synthesized live: an 8-bit engine rising with speed, tire scrub, curbs, walls,
   cues and a synthwave loop (settings from the Apex Sound Lab). Sound and music switch off from the ••• menu.
 - `Apex/RaceHUD.swift`, `Apex/ContentView.swift`: the SwiftUI overlay: timing, splits, speed, map and menu.
 
