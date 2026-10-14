@@ -33,24 +33,29 @@ enum FriendList: Equatable {
     case ready([FriendTime])
 }
 
-/// The friend picked to race on each board, kept on the device until Auto is picked again.
+/// The friend picked to race on each board, kept on the device until Auto is picked again. A pick belongs to the Game
+/// Center player who made it (`player`, their token), so another account on the device, or none, starts on Auto.
 enum FriendPick {
     struct Pick: Codable, Equatable {
         var token: String
         var name: String
     }
 
-    static func key(_ board: RaceBoard) -> String { "apex.raceFriend.v1." + board.leaderboardID }
-
-    static func load(on board: RaceBoard, defaults: UserDefaults = .standard) -> Pick? {
-        defaults.data(forKey: key(board)).flatMap { try? JSONDecoder().decode(Pick.self, from: $0) }
+    static func key(_ board: RaceBoard, player: String) -> String {
+        "apex.raceFriend.v2.\(player).\(board.leaderboardID)"
     }
 
-    static func save(_ pick: Pick?, on board: RaceBoard, defaults: UserDefaults = .standard) {
+    static func load(on board: RaceBoard, player: String?, defaults: UserDefaults = .standard) -> Pick? {
+        guard let player else { return nil }
+        return defaults.data(forKey: key(board, player: player)).flatMap { try? JSONDecoder().decode(Pick.self, from: $0) }
+    }
+
+    static func save(_ pick: Pick?, on board: RaceBoard, player: String?, defaults: UserDefaults = .standard) {
+        guard let player else { return }
         if let pick, let data = try? JSONEncoder().encode(pick) {
-            defaults.set(data, forKey: key(board))
+            defaults.set(data, forKey: key(board, player: player))
         } else {
-            defaults.removeObject(forKey: key(board))
+            defaults.removeObject(forKey: key(board, player: player))
         }
     }
 }
@@ -58,22 +63,29 @@ enum FriendPick {
 extension GameCenter {
     enum Friends {
         case signedOut
+        /// The player said no to sharing their friends list, or it's restricted.
         case denied
+        /// Game Center couldn't say (offline, or a hiccup): worth trying again.
+        case failed
         case players([GKPlayer])
+    }
+
+    /// The signed-in player's token (`ApexOnline.playerToken`), or nil when signed out.
+    var playerToken: String? {
+        isSignedIn ? ApexOnline.playerToken(GKLocalPlayer.local.teamPlayerID) : nil
     }
 
     /// The signed-in player's Game Center friends. The first time, Game Center asks the player whether to share them.
     func loadFriends(completion: @escaping (Friends) -> Void) {
         let local = GKLocalPlayer.local
         guard local.isAuthenticated else { return completion(.signedOut) }
-        local.loadFriendsAuthorizationStatus { status, _ in
-            guard status != .denied, status != .restricted else { return completion(.denied) }
+        local.loadFriendsAuthorizationStatus { status, error in
+            if status == .denied || status == .restricted { return completion(.denied) }
+            guard error == nil else { return completion(.failed) }
             local.loadFriends { friends, error in
-                if let friends, error == nil {
-                    completion(.players(friends))
-                } else {
-                    completion(.denied)
-                }
+                if let friends, error == nil { return completion(.players(friends)) }
+                let code = (error as? GKError)?.code
+                completion(code == .friendListDenied || code == .friendListRestricted ? .denied : .failed)
             }
         }
     }

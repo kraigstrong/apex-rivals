@@ -86,7 +86,7 @@ final class RaceScene: SKScene {
         hud.onShowFriends = { [weak self] in self?.showFriends() }
         hud.onPickFriend = { [weak self] in self?.pick(friend: $0) }
         if !practice {
-            friend = FriendPick.load(on: board)
+            friend = FriendPick.load(on: board, player: GameCenter.shared.playerToken)
             hud.racingFriend = friend?.token
         }
         hud.onShowLeaderboard = { [weak self] in
@@ -482,9 +482,15 @@ final class RaceScene: SKScene {
             switch answer {
             case .signedOut: finish(.signedOut)
             case .denied: finish(.denied)
+            case .failed: finish(.unavailable)
             case .players(let players):
                 var names: [String: String] = [:]
                 for player in players { names[ApexOnline.playerToken(player.teamPlayerID)] = player.displayName }
+                // Someone who's no longer a friend isn't raced any more.
+                DispatchQueue.main.async {
+                    guard let self, let friend = self.friend, names[friend.token] == nil else { return }
+                    self.forgetFriend()
+                }
                 ApexService.friendTimes(Array(names.keys), on: board) { answer in
                     finish(answer.map { .ready(FriendTime.list($0, names: names)) } ?? .unavailable)
                 }
@@ -492,12 +498,19 @@ final class RaceScene: SKScene {
         }
     }
 
-    /// Races `friend` (kept for this circuit) or, given nil, goes back to the scout's pick.
+    /// Races `friend` (kept for this circuit and this Game Center player) or, given nil, goes back to the scout's pick.
     private func pick(friend picked: FriendTime?) {
-        friend = picked.map { FriendPick.Pick(token: $0.token, name: $0.name) }
-        FriendPick.save(friend, on: board)
-        hud.racingFriend = friend?.token
         hud.showsFriends = false
+        friend = picked.map { FriendPick.Pick(token: $0.token, name: $0.name) }
+        FriendPick.save(friend, on: board, player: GameCenter.shared.playerToken)
+        hud.racingFriend = friend?.token
+        findRival()
+    }
+
+    private func forgetFriend() {
+        friend = nil
+        FriendPick.save(nil, on: board, player: GameCenter.shared.playerToken)
+        hud.racingFriend = nil
         findRival()
     }
 

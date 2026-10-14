@@ -48,7 +48,8 @@ What the game shows you:
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
 - **Race a friend**: the ••• menu lists your Game Center friends with a time on the circuit (fastest first, with how
   far ahead or behind you they are). Pick one and their best lap is your gold rival, on this circuit, until you pick
-  Auto again; beating them doesn't swap them out. The first time, Game Center asks whether to share your friends
+  Auto again; beating them doesn't swap them out. The pick belongs to your Game Center account, so another account on
+  the same device starts on Auto, and a friend who's no longer one is dropped the next time the list loads. The first time, Game Center asks whether to share your friends
   list. Offline, or if their lap can't be found, the rival is the usual pick until it can.
 - **Medals**: bronze, silver, gold and platinum on each circuit, for beating a bot's lap there (see Tuning): a sloppy
   weaver's, the middle of the road's, and the ideal line's at human reaction speed (90 ms) and at a quick 50 ms. The
@@ -171,8 +172,8 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   `ApexLinks.join`, where a shared lap sends people.
 - `Apex/RaceBoard.swift`, `Apex/GameCenter.swift`, `Apex/ApexOnline.swift`: boards, Game Center, and the lap service
   (the lap log queue, ghost sharing, rival lookup and friends' laps).
-- `Apex/Friends.swift`: Race a friend: Game Center's friends list, the friend picked on each board (`FriendPick`), and
-  the picker.
+- `Apex/Friends.swift`: Race a friend: Game Center's friends list, the friend each player picked on each board
+  (`FriendPick`), and the picker.
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.
 - `Apex/TrackArt.swift`: procedural art: track pieces, curbs, start line, the car, and the grass shader.
 - `Apex/Scenery.swift`: trees, grandstands and tire walls, placed from each circuit's shape and kept clear of the
