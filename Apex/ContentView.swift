@@ -50,7 +50,11 @@ struct RaceView: View {
         // Leaving the app ends the session; its summary is waiting on return.
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { scene.endSession() }
+            // Quiet whenever the app isn't in front (Control Center, a call), and back on return.
+            if phase == .active { RaceAudio.shared.start() } else { RaceAudio.shared.stop() }
         }
+        .onAppear { RaceAudio.shared.start() }
+        .onDisappear { RaceAudio.shared.stop() }
     }
 
     /// Launch with `-ApexShowFPS YES` (Xcode builds) to see frame rate, node and draw counts.
@@ -65,6 +69,8 @@ struct RaceView: View {
 /// The timing, speed and map over the race. Only its buttons take touches; everywhere else, touches reach the race.
 struct RaceOverlay: View {
     let hud: RaceHUD
+    @State private var soundOn = RaceAudio.shared.soundOn
+    @State private var musicOn = RaceAudio.shared.musicOn
 
     var body: some View {
         ZStack {
@@ -173,6 +179,8 @@ struct RaceOverlay: View {
                 } label: {
                     Label("Car colors", systemImage: "paintpalette")
                 }
+                Toggle(isOn: $soundOn) { Label("Sound", systemImage: "speaker.wave.2") }
+                Toggle(isOn: $musicOn) { Label("Music", systemImage: "music.note") }
                 #if DEBUG
                 Button {
                     hud.onTune()
@@ -188,6 +196,8 @@ struct RaceOverlay: View {
             } label: {
                 RoundIcon(symbol: "ellipsis")
             }
+            .onChange(of: soundOn) { _, on in RaceAudio.shared.soundOn = on }
+            .onChange(of: musicOn) { _, on in RaceAudio.shared.musicOn = on }
             // Apex School has no standings or leaderboard, but a way out for anyone who'd rather just race.
             if hud.isPractice {
                 Button {

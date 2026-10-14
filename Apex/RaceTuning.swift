@@ -125,6 +125,24 @@ enum RaceTuning {
     static let groveScale = 340.0
     static let groveThreshold = 0.44
     static let treeRadius: ClosedRange<Double> = 20...38
+    // MARK: Sound
+
+    // Tuned in the Apex Sound Lab. Only how the race sounds: none of these are in `lapSignature`.
+    static let soundMaster = 0.7
+    static let engineLevel = 0.55
+    /// The engine's pitch (Hz), from idle to the limiter.
+    static let enginePitch: ClosedRange<Double> = 90...620
+    static let engineBrightness = 0.45
+    static let tireLevel = 0.5
+    static let tireHissPitch = 1800.0
+    static let tireSqueal = 0.25
+    static let curbLevel = 0.45
+    static let wallLevel = 0.7
+    static let cueLevel = 0.5
+    static let musicLevel = 0.35
+    static let musicTempo = 112.0
+    /// The top speed (km/h) in each of the engine's eight gears.
+    static let gearTopSpeeds: [Double] = [95, 135, 170, 205, 240, 272, 302, 335]
 
     // MARK: Rivals
 
