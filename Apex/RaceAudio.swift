@@ -20,7 +20,12 @@ final class RaceAudio {
     }
     var musicOn: Bool {
         get { !defaults.bool(forKey: "apex.music.off") }
-        set { defaults.set(!newValue, forKey: "apex.music.off"); controls.withLock { $0.musicOn = newValue } }
+        set {
+            defaults.set(!newValue, forKey: "apex.music.off")
+            // Someone's own music playing still wins, as it does when a race starts.
+            let otherMusic = AVAudioSession.sharedInstance().secondaryAudioShouldBeSilencedHint
+            controls.withLock { $0.musicOn = newValue && !otherMusic }
+        }
     }
 
     private let defaults = UserDefaults.standard
@@ -131,17 +136,9 @@ struct CueCounts {
     }
 }
 
-/// The settings tuned in the Apex Sound Lab.
+/// Gears and notes. The levels and pitches are in `RaceTuning`, with the rest of the tuning.
 enum SoundSettings {
-    static let master = 0.7
-    static let engineLevel = 0.55, lowPitch = 90.0, redlinePitch = 620.0, brightness = 0.45
-    static let tireLevel = 0.5, hissPitch = 1800.0, squeal = 0.25
-    static let curbLevel = 0.45, wallLevel = 0.7
-    static let cueLevel = 0.5
-    static let musicLevel = 0.35, bpm = 112.0
-
-    /// The top speed (km/h) of each of eight gears.
-    static let gears: [Double] = [95, 135, 170, 205, 240, 272, 302, 335]
+    static var gears: [Double] { RaceTuning.gearTopSpeeds }
 
     static func gear(at kmh: Double) -> Int {
         var gear = 0
@@ -167,7 +164,7 @@ final class Synth {
     private var heard = SoundControls()
 
     // Engine
-    private var pitch = SoundSettings.lowPitch, cutoff = 800.0, engineGain = 0.0
+    private var pitch = RaceTuning.enginePitch.lowerBound, cutoff = 800.0, engineGain = 0.0
     private var phase1 = 0.0, phase2 = 0.0, phaseSub = 0.0, low1 = 0.0, low2 = 0.0
     private var lastGear = 0, shiftCut = 0.0
     // Tires
@@ -183,6 +180,8 @@ final class Synth {
 
     init(sampleRate: Double) {
         rate = sampleRate
+        // Static tables are built on first use; touch them now, so it isn't the audio thread that builds them.
+        _ = Self.bestRun.count + Self.chords.count + RaceTuning.gearTopSpeeds.count
     }
 
     private func smooth(_ tau: Double) -> Double { 1 - exp(-1 / (tau * rate)) }
@@ -203,32 +202,32 @@ final class Synth {
         }
         if c.wallCount != heard.wallCount, on {
             let severity = c.wallSeverity
-            wallEnv = SoundSettings.wallLevel * (0.3 + 0.7 * severity)
+            wallEnv = RaceTuning.wallLevel * (0.3 + 0.7 * severity)
             wallDecay = 0.18 + 0.2 * severity
             wallCut = 1 - exp(-2 * .pi * (1200 + 3000 * severity) / rate)
             thumpTime = 0
         }
         heard = c
 
-        let s = SoundSettings.self
+        let s = SoundSettings.self, t = RaceTuning.self
         let kmh = c.racing ? c.speed : 0
         let gear = s.gear(at: kmh)
         if gear != lastGear { shiftCut = 0.06 }
         lastGear = gear
         let revs = s.revs(at: kmh)
         let throttle = shiftCut > 0 ? 0 : (c.racing ? c.throttle : 0.2)
-        let pitchTarget = s.lowPitch + (s.redlinePitch - s.lowPitch) * revs
-        let cutoffTarget = 250 + (600 + 5200 * s.brightness) * (0.35 + 0.65 * throttle) * (0.4 + 0.6 * revs)
-        let engineTarget = on ? s.engineLevel * 0.22 * (0.55 + 0.45 * throttle) : 0
-        let tireTarget = on && c.racing ? s.tireLevel * 0.5 * pow(c.scrub, 1.4) : 0
-        let squealTarget = on && c.racing ? s.tireLevel * s.squeal * 0.08 * c.scrub * c.scrub : 0
-        let curbTarget = on && c.racing && c.onCurb ? s.curbLevel * 0.35 : 0
-        let musicTarget = on && c.musicOn ? s.musicLevel : 0
+        let pitchTarget = t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * revs
+        let cutoffTarget = 250 + (600 + 5200 * t.engineBrightness) * (0.35 + 0.65 * throttle) * (0.4 + 0.6 * revs)
+        let engineTarget = on ? t.engineLevel * 0.22 * (0.55 + 0.45 * throttle) : 0
+        let tireTarget = on && c.racing ? t.tireLevel * 0.5 * pow(c.scrub, 1.4) : 0
+        let squealTarget = on && c.racing ? t.tireLevel * t.tireSqueal * 0.08 * c.scrub * c.scrub : 0
+        let curbTarget = on && c.racing && c.onCurb ? t.curbLevel * 0.35 : 0
+        let musicTarget = on && c.musicOn ? t.musicLevel : 0
         let fast = smooth(0.02), medium = smooth(0.04), slow = smooth(0.05)
-        let svfF = 2 * sin(.pi * s.hissPitch / rate), svfQ = 1 / 0.9
+        let svfF = 2 * sin(.pi * t.tireHissPitch / rate), svfQ = 1 / 0.9
         let curbCut = 1 - exp(-2 * .pi * 380 / rate)
         let chopRate = 6 + kmh / 12
-        let samplesPerStep = rate * 60 / s.bpm / 4
+        let samplesPerStep = rate * 60 / t.musicTempo / 4
 
         for i in 0..<count {
             // Engine: two detuned saws and a sub, driven into a soft clip, then filtered.
@@ -297,14 +296,14 @@ final class Synth {
             mix += music * musicGain
 
             if shiftCut > 0 { shiftCut -= 1 / rate }
-            out[i] = Float(tanh(mix * s.master * 1.2))
+            out[i] = Float(tanh(mix * t.soundMaster * 1.2))
         }
     }
 
     // MARK: Cues
 
     private func play(_ cue: RaceAudio.Cue) {
-        let v = SoundSettings.cueLevel * 0.3, n = SoundSettings.note
+        let v = RaceTuning.cueLevel * 0.3, n = SoundSettings.note
         switch cue {
         case .faster:
             start(Voice(wave: .triangle, freq: n(76), dur: 0.12, vol: v))

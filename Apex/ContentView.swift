@@ -50,7 +50,8 @@ struct RaceView: View {
         // Leaving the app ends the session; its summary is waiting on return.
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { scene.endSession() }
-            if phase == .active { RaceAudio.shared.start() }
+            // Quiet whenever the app isn't in front (Control Center, a call), and back on return.
+            if phase == .active { RaceAudio.shared.start() } else { RaceAudio.shared.stop() }
         }
         .onAppear { RaceAudio.shared.start() }
         .onDisappear { RaceAudio.shared.stop() }
