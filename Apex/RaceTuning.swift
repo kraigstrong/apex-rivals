@@ -79,8 +79,11 @@ enum RaceTuning {
     static let minimumViewHeight: Double = 380
     /// The camera leads the car by this share of the visible width, so the car sits left of center.
     static let cameraLead: Double = 0.17
-    /// The camera turns with the track this far ahead of the car...
-    static let cameraHeadingAhead: Double = 140
+    /// The camera turns with the track this far ahead of the car... Its smoothing and easing make it trail the road a
+    /// little; this cancels that out, so through corners the screen stays square to the road under the car and "hold"
+    /// keeps meaning "up". At 140 the camera ran ahead: tilted over 10° from the road for a fifth to a third of a lap,
+    /// up to 41°. At 80, over 10° for 2–6% of a lap, at most 18°. Only how the race is drawn: not in `lapSignature`.
+    static var cameraHeadingAhead: Double = 80
     /// ...smoothed along the track over this length...
     static let cameraHeadingSmoothing: Double = 220
     /// ...and eased over this many seconds, so a hairpin swings the world around rather than snapping it.

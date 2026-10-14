@@ -56,6 +56,8 @@ final class RaceScene: SKScene {
     private var autopilot: AutoDriver?
     /// The tuning the race is set up for; a change in the tuning panel starts it over on the new car.
     private var tunedVersion = Tuner.shared.version
+    /// The car the race is set up for. A change that leaves it alone (the camera) doesn't start the race over.
+    private var tunedSignature = RaceTuning.lapSignature
     /// When to time the bots and find a rival for the new car: once the sliders have been still for a moment.
     private var retuneSettles: TimeInterval?
     private lazy var stopwatch = BotStopwatch(track: track)
@@ -595,8 +597,8 @@ final class RaceScene: SKScene {
     /// A different car: back to the grid, racing its own best lap, with a fresh session. Its bots and rival wait until
     /// the sliders settle.
     private func retuneIfNeeded(at time: TimeInterval) {
-        if Tuner.shared.version != tunedVersion {
-            tunedVersion = Tuner.shared.version
+        if Tuner.shared.version != tunedVersion, RaceTuning.lapSignature != tunedSignature {
+            tunedSignature = RaceTuning.lapSignature
             sessionLaps = 0
             sessionBest = nil
             restart()
@@ -609,6 +611,7 @@ final class RaceScene: SKScene {
             // Back on the stock car: any stock best that missed Game Center or the lap service goes up now.
             if RaceTuning.isStock { BestLapDelivery.sendSaved() }
         }
+        tunedVersion = Tuner.shared.version
         if let settles = retuneSettles, time >= settles {
             retuneSettles = nil
             findRival()
