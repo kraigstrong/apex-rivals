@@ -122,7 +122,7 @@ With a second phone on a different Game Center account (a friend's, or a test ac
 - The flag on either phone shows a real standing: "#1 of 2" or "#2 of 2", and the histogram.
 - Both times show on the circuit's leaderboard (friends board if you're Game Center friends, global board either
   way).
-- If the two accounts are Game Center friends: ••• → Race a friend on the slower phone asks to share the friends list,
+- If the two accounts are Game Center friends: ⚙︎ → Race a friend on the slower phone asks to share the friends list,
   then lists the other player with their time and how far ahead they are. Pick them: the gold rival is their ghost,
   named as Game Center names them, and it stays after you beat it, and after relaunching. Pick Auto to go back.
 - In Airplane Mode, laps still save on the device; back online, the next lap sends the queued ones.
