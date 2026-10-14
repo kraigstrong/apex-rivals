@@ -21,7 +21,8 @@ geometry, physics, timing, saves); the SpriteKit scene is checked by running the
 - **Tuning constants stay in one place:** `RaceTuning` in `Apex/RaceTuning.swift`.
 - **Lap times are pinned by bots.** `LapTimeTests` drives laps with the player's one control at several skill levels.
   A change to physics, tuning or the circuit that moves lap times should move them on purpose: print the table with
-  `-only-testing:ApexTests/LapTimeTests/report()` and update the ranges and the README's table together.
+  `-only-testing:ApexTests/LapTimeTests/report(id:)` and update the ranges, the medal times
+  (`RaceTuning.medalTimes`, which are bot laps) and the README's table together.
 - **Circuits are segment lists** (`TrackLayout`). Keep the two closing straights long and running in different
   directions; `TrackTests` checks every circuit closes, never overlaps itself, and fits its corners, and
   `LapTimeTests` holds each to the same bot lap times. To add one: add it to `TrackLayout.all`, record its

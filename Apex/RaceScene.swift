@@ -328,6 +328,7 @@ final class RaceScene: SKScene {
             sessionBest = min(sessionBest ?? .infinity, lap.time)
             let beatRival = rival.map { lap.time < $0.time } ?? false
             if lap.isBest {
+                let medal = Medal.newlyWon(by: lap.time, after: hud.bestLap, on: track.layout)
                 hud.bestLap = lap.time
                 if let best = session.timer.best, !isAutopilot {
                     LapStore.save(best, for: track)
@@ -335,7 +336,7 @@ final class RaceScene: SKScene {
                 }
                 let detail = beatRival ? "BEAT \(rival?.name.uppercased() ?? "RIVAL")"
                     : lap.delta.map { "BEST " + LapFormat.delta($0) } ?? "BEST"
-                hud.show("LAP \(lap.number)", LapFormat.time(lap.time), detail: detail, tone: .best)
+                hud.show("LAP \(lap.number)", LapFormat.time(lap.time), detail: detail, tone: .best, medal: medal)
                 notice.notificationOccurred(.success)
                 RaceAudio.shared.play(.best)
                 // Chase someone new once this rival is beaten or barely ahead.
@@ -518,9 +519,14 @@ final class RaceScene: SKScene {
         }
         guard let best = sessionBest, sessionLaps > 0 else { return }
         let personalBest = session.timer.best?.time
+        let next = Medal.next(after: personalBest, on: track.layout)
         hud.summary = SessionSummary(trackName: track.layout.name, laps: sessionLaps, best: best,
                                      personalBest: personalBest,
-                                     isPersonalBest: bestBeforeSession.map { best < $0 } ?? true)
+                                     isPersonalBest: bestBeforeSession.map { best < $0 } ?? true,
+                                     medal: Medal.earned(by: best, on: track.layout),
+                                     isNewMedal: Medal.newlyWon(by: best, after: bestBeforeSession,
+                                                                on: track.layout) != nil,
+                                     nextMedal: next?.medal, nextMedalTarget: next?.target)
         hud.standing = .loading
         if ApexOnline.isEnabled {
             ApexService.standing(of: best, on: board) { [weak self] standing in

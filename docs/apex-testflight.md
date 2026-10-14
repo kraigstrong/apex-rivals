@@ -97,6 +97,9 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
   shows "TURN IN FROM WIDE TO COUNT" and doesn't count. SKIP (or the house button) goes straight back to the list.
 - Each circuit: a lap is timed, splits show at sectors 1 and 2, and the live delta shows after the first lap. A new
   best lap shows the purple banner; the blue ghost replays it on the next lap.
+- Medals: each track card shows the next medal to win (an outline and its time; bronze to start). A lap that wins
+  one shows it under the lap banner (SILVER MEDAL), the medal sits beside BEST in the timing panel, and the summary
+  says NEW SILVER MEDAL with the next one to chase.
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.
 - The flag ends a session: the summary shows your best lap and, with no one else on the board yet, "You're the
   first!" The trophy opens the circuit's leaderboard with your time on it.

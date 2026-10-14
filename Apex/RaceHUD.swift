@@ -11,6 +11,8 @@ final class RaceHUD {
         var value: String
         var detail: String?
         var tone: Tone
+        /// A medal this lap just won.
+        var medal: Medal?
         var id: Int
     }
 
@@ -20,6 +22,9 @@ final class RaceHUD {
     /// Nil on the out lap.
     var lapTime: Double?
     var bestLap: Double?
+    /// The medal the best lap has won, and the next one to chase.
+    var bestMedal: Medal? { Medal.earned(by: bestLap, on: layout) }
+    var nextMedal: (medal: Medal, target: Double)? { Medal.next(after: bestLap, on: layout) }
     var lastLap: Double?
     /// Against the best lap at this point of the lap: negative is ahead. Nil on the out lap or with no best lap.
     var liveDelta: Double?
@@ -69,6 +74,7 @@ final class RaceHUD {
     /// The circuit's width over its height.
     let mapAspect: CGFloat
     let trackName: String
+    let layout: TrackLayout
 
     @ObservationIgnored var onRestart: () -> Void = {}
     @ObservationIgnored var onToggleRacingLine: () -> Void = {}
@@ -88,6 +94,7 @@ final class RaceHUD {
         bounds = box
         mapAspect = box.width / max(box.height, 1)
         trackName = track.layout.name
+        layout = track.layout
         mapOutline = stride(from: 0, to: track.count, by: 30).map { i in
             CGPoint(x: (track.x[i] - box.minX) / box.width, y: 1 - (track.y[i] - box.minY) / box.height)
         }
@@ -98,9 +105,9 @@ final class RaceHUD {
         CGPoint(x: (point.x - bounds.minX) / bounds.width, y: 1 - (point.y - bounds.minY) / bounds.height)
     }
 
-    func show(_ title: String, _ value: String, detail: String? = nil, tone: Banner.Tone) {
+    func show(_ title: String, _ value: String, detail: String? = nil, tone: Banner.Tone, medal: Medal? = nil) {
         nextBannerID += 1
-        banner = Banner(title: title, value: value, detail: detail, tone: tone, id: nextBannerID)
+        banner = Banner(title: title, value: value, detail: detail, tone: tone, medal: medal, id: nextBannerID)
     }
 }
 
@@ -122,6 +129,12 @@ struct SessionSummary: Equatable {
     var personalBest: Double?
     /// The session set a new personal best.
     var isPersonalBest: Bool
+    /// The medal the session's best lap won, and whether this session won it for the first time.
+    var medal: Medal?
+    var isNewMedal = false
+    /// The next medal to chase after the personal best, and the lap that earns it.
+    var nextMedal: Medal?
+    var nextMedalTarget: Double?
 }
 
 enum StandingState: Equatable {

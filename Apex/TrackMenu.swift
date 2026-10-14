@@ -125,7 +125,7 @@ struct SchoolButton: View {
     }
 }
 
-/// One circuit on the menu: its shape, name, character, and your best lap there.
+/// One circuit on the menu: its shape, name, character, your best lap there and its medal, and the next medal to chase.
 struct TrackCard: View {
     let track: Track
     let best: Double?
@@ -156,10 +156,14 @@ struct TrackCard: View {
                     Text(LapFormat.time(best))
                         .font(.system(size: 16, weight: .heavy, design: .rounded).monospacedDigit())
                         .foregroundStyle(Color(red: 0.75, green: 0.5, blue: 1))
+                    if let medal = Medal.earned(by: best, on: track.layout) { MedalIcon(medal: medal) }
                 } else {
                     Text("No lap yet").font(.system(size: 13, weight: .semibold, design: .rounded)).opacity(0.6)
                 }
                 Spacer()
+                if let next = Medal.next(after: best, on: track.layout) {
+                    NextMedalLabel(medal: next.medal, target: next.target)
+                }
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy)).opacity(0.6)
             }
         }
