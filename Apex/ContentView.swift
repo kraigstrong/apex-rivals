@@ -4,7 +4,7 @@ import SwiftUI
 /// The track list, or a race on the track picked from it.
 struct ContentView: View {
     /// The track being raced; nil shows the track list.
-    @State private var racing: String?
+    @State private var racing: String? = Self.launchTrack
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -24,6 +24,18 @@ struct ContentView: View {
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase == .active { LapLog.shared.flush() }
         }
+    }
+
+    /// Launch with `-ApexTrack snake` (Xcode builds) to skip the track list and race that circuit. An unknown id
+    /// shows the list.
+    private static var launchTrack: String? {
+        #if DEBUG
+        if let id = UserDefaults.standard.string(forKey: "ApexTrack"),
+           id == TrackCatalog.school.layout.id || TrackCatalog.tracks.contains(where: { $0.layout.id == id }) {
+            return id
+        }
+        #endif
+        return nil
     }
 }
 

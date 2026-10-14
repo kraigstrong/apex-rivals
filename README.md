@@ -117,6 +117,9 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
 - `-ApexAutopilot perfect` drives the ideal line perfectly; `-ApexAutopilot human` drives it at human reaction
   speed, so laps vary and the ghost shows. Autopilot laps are never saved.
 - `-ApexShowFPS YES` shows frame rate, node and draw counts.
+- `-ApexTrack snake` skips the track list and opens that circuit's race (`ardennes`, `swirl`, `snake`, `mirage`,
+  `island`, `harbor`, or `apex_school`). An unknown id shows the list. With `-ApexAutopilot`, it makes simulator
+  checks scriptable: launch, then `xcrun simctl io <udid> screenshot <file>`.
 
 ## Tuning
 
