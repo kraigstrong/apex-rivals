@@ -61,6 +61,10 @@ Everything between here and a public TestFlight link, in order. The code is in p
     approved, turn on the group's public link and share it.
 11. **Record it** in the build log at the end of this file.
 
+Only one build of a version can wait for beta review at a time. To replace one that's still waiting (say, with a fix),
+expire it first: that takes it out of the queue (TestFlight has no other way to withdraw it), and the new build can be
+submitted. Later builds of an approved version usually clear review quickly.
+
 ## Test Information
 
 Ready to paste into App Store Connect.
@@ -112,4 +116,5 @@ With a second phone on a different Game Center account (a friend's, or a test ac
 
 | Version | Build | Commit | Notes |
 | --- | --- | --- | --- |
-| 0.1.0 | 1 | 388a24a (`apex-v0.1-beta.1`) | First beta: six circuits, Apex School, Game Center, lap service. Uploaded and submitted for beta review 2026-10-13; Friends group public link: https://testflight.apple.com/join/dt7sHRvR |
+| 0.1.0 | 1 | 388a24a (`apex-v0.1-beta.1`) | First beta: six circuits, Apex School, Game Center, lap service. Submitted for beta review 2026-10-13, then expired before review in favor of build 2. |
+| 0.1.0 | 2 | 812a4fc (`apex-v0.1-beta.2`) | Build 1 plus the camera kept square to the road through corners (#7). Submitted for beta review 2026-10-13; the Friends group's public link: https://testflight.apple.com/join/dt7sHRvR |
