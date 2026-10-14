@@ -1,0 +1,193 @@
+import Foundation
+import GameKit
+import SwiftUI
+
+/// A Game Center friend's best lap on a board: named from Game Center, timed by the lap service.
+struct FriendTime: Equatable, Identifiable {
+    /// Their `ApexOnline.playerToken`: how the lap service names them.
+    var token: String
+    var name: String
+    var time: Double
+
+    var id: String { token }
+
+    /// The service's answer (fastest first) with each friend's Game Center name. A token Game Center didn't name isn't
+    /// a friend, so it's left out.
+    static func list(_ answer: [FriendsAnswer.Friend], names: [String: String]) -> [FriendTime] {
+        answer.compactMap { friend in
+            names[friend.player].map { FriendTime(token: friend.player, name: $0, time: Double(friend.ms) / 1000) }
+        }
+        .sorted { $0.time < $1.time }
+    }
+}
+
+/// What the Race a friend picker shows.
+enum FriendList: Equatable {
+    case loading
+    case signedOut
+    /// The player said no to sharing their friends list (or it's restricted).
+    case denied
+    /// The lap service didn't answer.
+    case unavailable
+    /// Friends with a best on this board, fastest first; none yet if empty.
+    case ready([FriendTime])
+}
+
+/// The friend picked to race on each board, kept on the device until Auto is picked again.
+enum FriendPick {
+    struct Pick: Codable, Equatable {
+        var token: String
+        var name: String
+    }
+
+    static func key(_ board: RaceBoard) -> String { "apex.raceFriend.v1." + board.leaderboardID }
+
+    static func load(on board: RaceBoard, defaults: UserDefaults = .standard) -> Pick? {
+        defaults.data(forKey: key(board)).flatMap { try? JSONDecoder().decode(Pick.self, from: $0) }
+    }
+
+    static func save(_ pick: Pick?, on board: RaceBoard, defaults: UserDefaults = .standard) {
+        if let pick, let data = try? JSONEncoder().encode(pick) {
+            defaults.set(data, forKey: key(board))
+        } else {
+            defaults.removeObject(forKey: key(board))
+        }
+    }
+}
+
+extension GameCenter {
+    enum Friends {
+        case signedOut
+        case denied
+        case players([GKPlayer])
+    }
+
+    /// The signed-in player's Game Center friends. The first time, Game Center asks the player whether to share them.
+    func loadFriends(completion: @escaping (Friends) -> Void) {
+        let local = GKLocalPlayer.local
+        guard local.isAuthenticated else { return completion(.signedOut) }
+        local.loadFriendsAuthorizationStatus { status, _ in
+            guard status != .denied, status != .restricted else { return completion(.denied) }
+            local.loadFriends { friends, error in
+                if let friends, error == nil {
+                    completion(.players(friends))
+                } else {
+                    completion(.denied)
+                }
+            }
+        }
+    }
+}
+
+/// Race a friend, over the race: Auto (the rival scout's pick), then each Game Center friend with a time here.
+struct FriendPicker: View {
+    let trackName: String
+    let list: FriendList
+    /// The friend being raced, or nil for Auto.
+    let racing: String?
+    let yourBest: Double?
+    let onPick: (FriendTime?) -> Void
+    let onDone: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("RACE A FRIEND").font(.system(size: 20, weight: .black, design: .rounded).italic())
+                    Text(trackName.uppercased()).font(.system(size: 12, weight: .heavy, design: .rounded)).opacity(0.7)
+                }
+                Spacer()
+                Button(action: onDone) {
+                    Text("DONE")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(.white.opacity(0.15), in: Capsule())
+                }
+            }
+            // As tall as the list, scrolling once it's longer than the screen.
+            ViewThatFits(in: .vertical) {
+                rows
+                ScrollView { rows }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: 440)
+        .background(Color(white: 0.07).opacity(0.94), in: RoundedRectangle(cornerRadius: 18))
+        .foregroundStyle(.white)
+    }
+
+    private var rows: some View {
+        VStack(spacing: 6) {
+            row(title: "Auto", detail: "The nearest player who beats you, or a pace bot", time: nil,
+                picked: racing == nil) { onPick(nil) }
+            content
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch list {
+        case .loading:
+            ProgressView().tint(.white).padding(.vertical, 12)
+        case .signedOut:
+            note("Sign in to Game Center to race your friends' best laps.")
+        case .denied:
+            note("Apex Rivals can't see your Game Center friends. You can allow it in Settings, under Game Center.")
+        case .unavailable:
+            note("Friends' times aren't available right now. Try again when you're online.")
+        case .ready(let friends) where friends.isEmpty:
+            note("None of your Game Center friends have a time on \(trackName) yet. Share a lap to invite them.")
+        case .ready(let friends):
+            ForEach(friends) { friend in
+                row(title: friend.name, detail: gap(friend.time), time: friend.time, picked: racing == friend.token) {
+                    onPick(friend)
+                }
+            }
+        }
+    }
+
+    /// How far ahead of (or behind) your best the friend's lap is.
+    private func gap(_ time: Double) -> String? {
+        guard let yourBest else { return nil }
+        let gap = yourBest - time
+        if abs(gap) < 0.0005 { return "Level with you" }
+        return gap > 0 ? "\(LapFormat.time(gap)) s ahead of you" : "\(LapFormat.time(-gap)) s behind you"
+    }
+
+    private func row(title: String, detail: String?, time: Double?, picked: Bool,
+                     action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: picked ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(picked ? Livery.shared.paint(for: .rival).labelColor : .white.opacity(0.5))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).font(.system(size: 15, weight: .heavy, design: .rounded)).lineLimit(1)
+                    if let detail {
+                        Text(detail).font(.system(size: 11, weight: .semibold, design: .rounded)).opacity(0.7).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 8)
+                if let time {
+                    Text(LapFormat.time(time))
+                        .font(.system(size: 16, weight: .heavy, design: .rounded).monospacedDigit())
+                        .foregroundStyle(Livery.shared.paint(for: .rival).labelColor)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.white.opacity(picked ? 0.14 : 0.06), in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func note(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13, weight: .semibold, design: .rounded))
+            .opacity(0.85)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+    }
+}

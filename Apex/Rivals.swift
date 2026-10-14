@@ -50,7 +50,8 @@ enum RivalBot {
 }
 
 /// Finds the next rival: another player's ghost that beats your best by a little (when the lap service is on), or else
-/// a bot driven to beat it by `RaceTuning.rivalGap`. Work happens off the main thread; answers come back on it.
+/// a bot driven to beat it by `RaceTuning.rivalGap`; or the Game Center friend picked to race. Work happens off the main
+/// thread; answers come back on it.
 final class RivalScout {
     private let track: Track
     private let board: RaceBoard
@@ -83,6 +84,18 @@ final class RivalScout {
                 deliver(player)
             } else {
                 self?.findBot(beating: best, deliver: deliver)
+            }
+        }
+    }
+
+    /// A Game Center friend's best lap to race, named as Game Center names them, or nil if the service can't say.
+    func find(friend pick: FriendPick.Pick, completion: @escaping (Rival?) -> Void) {
+        request += 1
+        let id = request
+        ApexService.friendGhost(pick.token, on: board) { [weak self] ghost in
+            DispatchQueue.main.async {
+                guard let self, id == self.request else { return }
+                completion(ghost.map { Rival(name: pick.name, record: $0.rival.record, source: .player) })
             }
         }
     }

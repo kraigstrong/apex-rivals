@@ -90,6 +90,9 @@ struct RaceOverlay: View {
                     TunerPanel(tuner: Tuner.shared, trackName: hud.trackName, laps: hud.botLaps,
                                stockLaps: hud.stockBotLaps, onDone: { hud.showsTuner = false })
                     #endif
+                } else if hud.showsFriends {
+                    FriendPicker(trackName: hud.trackName, list: hud.friends, racing: hud.racingFriend,
+                                 yourBest: hud.bestLap, onPick: hud.onPickFriend, onDone: { hud.showsFriends = false })
                 } else if hud.showsGraduation {
                     GraduationCard(onPickTrack: hud.onExit, onKeepPracticing: { hud.showsGraduation = false })
                 } else if let summary = hud.summary {
@@ -174,6 +177,13 @@ struct RaceOverlay: View {
                 } label: {
                     Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
                           systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                }
+                if !hud.isPractice {
+                    Button {
+                        hud.onShowFriends()
+                    } label: {
+                        Label("Race a friend", systemImage: "person.2")
+                    }
                 }
                 Button {
                     hud.showsColors = true

@@ -50,6 +50,10 @@ final class RaceHUD {
     var showsGraduation = false
     /// The car colors picker is open over the race.
     var showsColors = false
+    /// Race a friend is open over the race, with what it lists, and the friend being raced (their token; nil is Auto).
+    var showsFriends = false
+    var friends: FriendList = .loading
+    var racingFriend: String?
     #if DEBUG
     /// The tuning panel is open over the race, with the bots' laps on the car as tuned and as released (once known).
     var showsTuner = false
@@ -60,9 +64,9 @@ final class RaceHUD {
     /// A panel is open over the race. The race holds still until it closes.
     var showsPanel: Bool {
         #if DEBUG
-        return showsColors || showsTuner || showsGraduation
+        return showsColors || showsFriends || showsTuner || showsGraduation
         #else
-        return showsColors || showsGraduation
+        return showsColors || showsFriends || showsGraduation
         #endif
     }
     /// The card shown when a session ends, and where its best lap falls among other players.
@@ -84,6 +88,9 @@ final class RaceHUD {
     @ObservationIgnored var onRaceAgain: () -> Void = {}
     /// The summary's share button.
     @ObservationIgnored var onShare: () -> Void = {}
+    /// Race a friend: open it (which loads the list), and pick a friend or Auto (nil).
+    @ObservationIgnored var onShowFriends: () -> Void = {}
+    @ObservationIgnored var onPickFriend: (FriendTime?) -> Void = { _ in }
     /// The house button: ends the session (showing its summary if a lap was finished), or goes straight to the tracks.
     @ObservationIgnored var onLeave: () -> Void = {}
     /// Back to the track list.

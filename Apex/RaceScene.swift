@@ -24,6 +24,8 @@ final class RaceScene: SKScene {
     private let scout: RivalScout
     private var rival: Rival?
     private var rivalNode: SKSpriteNode?
+    /// The Game Center friend picked to race here, who stays the rival until Auto is picked. Nil: the scout picks.
+    private var friend: FriendPick.Pick?
     /// Laps finished this session, and the fastest of them.
     private var sessionLaps = 0
     private var sessionBest: LapRecord?
@@ -81,6 +83,12 @@ final class RaceScene: SKScene {
         hud.onLeave = { [weak self] in self?.leave() }
         hud.onRaceAgain = { [weak self] in self?.hud.summary = nil }
         hud.onShare = { [weak self] in self?.shareSessionBest() }
+        hud.onShowFriends = { [weak self] in self?.showFriends() }
+        hud.onPickFriend = { [weak self] in self?.pick(friend: $0) }
+        if !practice {
+            friend = FriendPick.load(on: board)
+            hud.racingFriend = friend?.token
+        }
         hud.onShowLeaderboard = { [weak self] in
             guard let self else { return }
             GameCenter.shared.showLeaderboard(board)
@@ -342,8 +350,10 @@ final class RaceScene: SKScene {
                 hud.show("LAP \(lap.number)", LapFormat.time(lap.time), detail: detail, tone: .best, medal: medal)
                 notice.notificationOccurred(.success)
                 RaceAudio.shared.play(.best)
-                // Chase someone new once this rival is beaten or barely ahead.
-                if rival.map({ $0.time > lap.time - RaceTuning.rivalWindow.lowerBound }) ?? true { findRival() }
+                // Chase someone new once this rival is beaten or barely ahead, unless it's the friend picked to race.
+                if friend == nil, rival.map({ $0.time > lap.time - RaceTuning.rivalWindow.lowerBound }) ?? true {
+                    findRival()
+                }
             } else {
                 hud.show("LAP \(lap.number)", LapFormat.time(lap.time), detail: lap.delta.map { LapFormat.delta($0) },
                          tone: .slower)
@@ -447,12 +457,48 @@ final class RaceScene: SKScene {
 
     private func findRival() {
         guard !practice else { return }
-        scout.find(beating: session.timer.best?.time) { [weak self] rival in
+        let show: (Rival?) -> Void = { [weak self] rival in
             guard let self else { return }
             self.rival = rival
             hud.rivalName = rival?.name
             hud.rivalTime = rival?.time
         }
+        guard let friend else { return scout.find(beating: session.timer.best?.time, completion: show) }
+        scout.find(friend: friend) { [weak self] rival in
+            guard let self else { return }
+            if let rival { return show(rival) }
+            // Offline, or the friend's lap is gone: the scout's pick until the friend can be found again.
+            scout.find(beating: session.timer.best?.time, completion: show)
+        }
+    }
+
+    /// Opens Race a friend: the signed-in player's Game Center friends with a best lap here, fastest first.
+    private func showFriends() {
+        hud.showsFriends = true
+        hud.friends = .loading
+        let board = board
+        GameCenter.shared.loadFriends { [weak self] answer in
+            let finish: (FriendList) -> Void = { list in DispatchQueue.main.async { self?.hud.friends = list } }
+            switch answer {
+            case .signedOut: finish(.signedOut)
+            case .denied: finish(.denied)
+            case .players(let players):
+                var names: [String: String] = [:]
+                for player in players { names[ApexOnline.playerToken(player.teamPlayerID)] = player.displayName }
+                ApexService.friendTimes(Array(names.keys), on: board) { answer in
+                    finish(answer.map { .ready(FriendTime.list($0, names: names)) } ?? .unavailable)
+                }
+            }
+        }
+    }
+
+    /// Races `friend` (kept for this circuit) or, given nil, goes back to the scout's pick.
+    private func pick(friend picked: FriendTime?) {
+        friend = picked.map { FriendPick.Pick(token: $0.token, name: $0.name) }
+        FriendPick.save(friend, on: board)
+        hud.racingFriend = friend?.token
+        hud.showsFriends = false
+        findRival()
     }
 
     private func refreshHUD() {
