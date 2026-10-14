@@ -46,6 +46,11 @@ What the game shows you:
 - **Rival**: a gold ghost a little faster than your best (`RaceTuning.rivalGap`, 0.4 s) to chase. It's another
   player's best lap when the lap service has one close enough, otherwise a bot driving the ideal line at whatever
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
+- **Medals**: bronze, silver, gold and platinum on each circuit, for beating a bot's lap there (see Tuning): a sloppy
+  weaver's, the middle of the road's, and the ideal line's at human reaction speed (90 ms) and at a quick 50 ms. The
+  track list shows each circuit's best medal and the next to chase (an outline and its time), as does the start card.
+  The timing panel shows the best lap's medal, and a lap that wins a new one says so in its banner. Only the stock car
+  wins medals; Apex School has none.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
 - **Apex School**: the button top left of the track list (yellow, marked START HERE, until you've graduated or
   skipped it). A short tutorial with a goal: hit 2 apexes, each turned in to from wide (riding the inside wall doesn't
@@ -57,8 +62,8 @@ What the game shows you:
   car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
 - **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
 - **Session summary**: the checkered flag ends a session (so does leaving the app). The summary shows the session's
-  best lap and where it falls among other players' bests: the share it beats, its place, and a histogram of everyone's
-  times with yours marked. Xcode builds show labeled sample players while the lap service is off.
+  best lap, its medal (NEW the first time) and the next one to chase, and where it falls among other players' bests:
+  the share it beats, its place, and a histogram of everyone's times with yours marked. Xcode builds show labeled sample players while the lap service is off.
 - **Ideal line**: the ••• menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 
 ## Online
@@ -104,17 +109,20 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
 ## Tuning
 
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
-player's one control:
+player's one control. Four of them set the medals (`RaceTuning.medalTimes`, these laps to the tenth):
 
-| Driver | Ardennes | Swirl | Snake | Mirage | Island | Harbor |
-| --- | --- | --- | --- | --- | --- | --- |
-| Perfect, on the ideal line | 25.9s | 25.8s | 25.4s | 26.4s | 26.8s | 24.9s |
-| Deciding every ~90 ms, middle of the road | 29.8s | 30.2s | 30.0s | 30.0s | 29.7s | 30.0s |
-| Sloppy weaver, middle of the road | 35.8s | 35.5s | 34.6s | 36.2s | 36.7s | 34.7s |
+| Driver | Medal | Ardennes | Swirl | Snake | Mirage | Island | Harbor |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Perfect, on the ideal line | | 25.9s | 25.8s | 25.4s | 26.4s | 26.8s | 24.9s |
+| Deciding every 50 ms, on the ideal line | Platinum | 26.6s | 26.7s | 26.3s | 27.0s | 27.1s | 25.7s |
+| Deciding every ~90 ms, on the ideal line | Gold | 28.5s | 28.9s | 28.5s | 28.7s | 28.8s | 27.7s |
+| Deciding every ~90 ms, middle of the road | Silver | 29.8s | 30.2s | 30.0s | 30.0s | 29.7s | 30.0s |
+| Sloppy weaver, middle of the road | Bronze | 35.8s | 35.5s | 34.6s | 36.2s | 36.7s | 34.7s |
 
 After a retune, print the table with
-`xcodebuild test ... '-only-testing:ApexTests/LapTimeTests/report()'` (lines start with `LAPTIME`) and update the
-ranges in `LapTimeTests` if the change was meant to move them. The knobs that matter most:
+`xcodebuild test ... '-only-testing:ApexTests/LapTimeTests/report(id:)'` (lines start with `LAPTIME`), and if the
+change was meant to move lap times, update the ranges in `LapTimeTests`, the medal times and this table together
+(`medalsAreTheBotsLaps` fails while a medal is more than a quarter second off its bot). The knobs that matter most:
 
 - `straightnessLength`: longer forgives more weaving; shorter punishes every correction.
 - `grip`: higher makes corners faster and lines matter less.
@@ -151,6 +159,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
 - `Apex/RacingLine.swift`: the minimum-curvature line (LAPACK), for the ideal-line overlay and the fastest bot.
 - `Apex/AutoDriver.swift`: a bot that drives with hold/let-go to follow a line.
 - `Apex/Rivals.swift`: rivals, bot rivals tuned to a target lap time, and `RivalScout`, which picks the next one.
+- `Apex/Medals.swift`: medals: which one a lap wins on a circuit, the next to chase, and how they're drawn.
 - `Apex/RaceBoard.swift`, `Apex/GameCenter.swift`, `Apex/ApexOnline.swift`: boards, Game Center, and the lap service
   (the lap log queue, ghost sharing and rival lookup).
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.

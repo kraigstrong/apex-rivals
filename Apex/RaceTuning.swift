@@ -153,6 +153,21 @@ enum RaceTuning {
     /// Before you've set a lap, the rival is a bot lapping in about this long.
     static let firstRivalTime: Double = 31
 
+    // MARK: Medals
+
+    /// Each circuit's medal times in seconds: bronze, silver, gold and platinum. Each is a bot's lap there, rounded to
+    /// the tenth: a sloppy weaver, the middle of the road at human reaction speed (90 ms), the ideal line at 90 ms, and
+    /// the ideal line at 50 ms. `LapTimeTests` holds them to the bots, so a change that moves lap times moves these
+    /// too. They don't change how fast a lap can be, so they aren't in `lapSignature`.
+    static let medalTimes: [String: [Double]] = [
+        "ardennes": [35.8, 29.8, 28.5, 26.6],
+        "swirl": [35.5, 30.2, 28.9, 26.7],
+        "snake": [34.6, 30.0, 28.5, 26.3],
+        "mirage": [36.2, 30.0, 28.7, 27.0],
+        "island": [36.7, 29.7, 28.8, 27.1],
+        "harbor": [34.7, 30.0, 27.7, 25.7],
+    ]
+
     // MARK: Versions
 
     /// The physics' version. Leaderboards are kept per version (`RaceBoard`), so a change that moves lap times (anything

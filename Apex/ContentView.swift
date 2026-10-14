@@ -98,7 +98,8 @@ struct RaceOverlay: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if !hud.racing {
                     // Low and to the right, clear of the car on the left third of the screen.
-                    StartCard(name: hud.trackName, best: hud.bestLap, practice: hud.isPractice)
+                    StartCard(name: hud.trackName, best: hud.bestLap, medal: hud.bestMedal, next: hud.nextMedal,
+                              practice: hud.isPractice)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         .padding(.leading, 240)
                         .allowsHitTesting(false)
@@ -250,7 +251,10 @@ struct RaceOverlay: View {
                                                     : Color(red: 1, green: 0.38, blue: 0.32))
                 }
             }
-            row("BEST", hud.bestLap, color: Color(red: 0.75, green: 0.5, blue: 1))
+            HStack(spacing: 5) {
+                row("BEST", hud.bestLap, color: Color(red: 0.75, green: 0.5, blue: 1))
+                if let medal = hud.bestMedal { MedalIcon(medal: medal, size: 12) }
+            }
             row("LAST", hud.lastLap, color: .white)
             if hud.isPractice {
                 // Apex School's goal: a dot per apex to hit.
@@ -306,6 +310,23 @@ struct SplitBanner: View {
     }
 
     var body: some View {
+        // A medal won gets its own line: beside the lap and its detail, it would crowd them out on a phone.
+        VStack(spacing: 6) {
+            times
+            if let medal = banner.medal {
+                Label("\(medal.name.uppercased()) MEDAL", systemImage: "medal.fill")
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(medal.color, in: Capsule())
+            }
+        }
+    }
+
+    private var times: some View {
         HStack(spacing: 10) {
             Text(banner.title)
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
@@ -402,6 +423,8 @@ struct MiniMap: View {
 struct StartCard: View {
     let name: String
     let best: Double?
+    var medal: Medal?
+    var next: (medal: Medal, target: Double)?
     var practice = false
 
     var body: some View {
@@ -421,10 +444,20 @@ struct StartCard: View {
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
                     .foregroundStyle(Color.schoolYellow)
             }
-            if let best {
-                Text("Best lap \(LapFormat.time(best))")
-                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(Color(red: 0.75, green: 0.5, blue: 1))
+            if best != nil || next != nil {
+                HStack(spacing: 14) {
+                    if let best {
+                        HStack(spacing: 5) {
+                            Text("Best lap \(LapFormat.time(best))")
+                                .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+                                .foregroundStyle(Color(red: 0.75, green: 0.5, blue: 1))
+                            if let medal { MedalIcon(medal: medal) }
+                        }
+                    }
+                    if let next {
+                        NextMedalLabel(medal: next.medal, target: next.target, size: 13, showsName: true)
+                    }
+                }
             }
             Text("TOUCH TO START")
                 .font(.system(size: 16, weight: .heavy, design: .rounded))
@@ -517,6 +550,7 @@ struct SessionSummaryCard: View {
                     }
                     Text("\(summary.laps) lap\(summary.laps == 1 ? "" : "s")")
                         .font(.system(size: 12, weight: .semibold, design: .rounded)).opacity(0.7)
+                    medals.padding(.top, 2)
                 }
                 standingHeadline
                     .frame(minWidth: 180, alignment: .leading)
@@ -542,6 +576,25 @@ struct SessionSummaryCard: View {
         .padding(20)
         .frame(maxWidth: 520)
         .background(Color(white: 0.07).opacity(0.94), in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    /// The session best's medal ("NEW GOLD MEDAL" the first time), then the next medal to chase.
+    @ViewBuilder private var medals: some View {
+        if summary.medal != nil || summary.nextMedal != nil {
+            HStack(spacing: 10) {
+                if let medal = summary.medal {
+                    HStack(spacing: 4) {
+                        MedalIcon(medal: medal, size: 13)
+                        Text((summary.isNewMedal ? "NEW " : "") + "\(medal.name.uppercased()) MEDAL")
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundStyle(medal.color)
+                    }
+                }
+                if let next = summary.nextMedal, let target = summary.nextMedalTarget {
+                    NextMedalLabel(medal: next, target: target, showsName: true)
+                }
+            }
+        }
     }
 
     @ViewBuilder private var standingHeadline: some View {

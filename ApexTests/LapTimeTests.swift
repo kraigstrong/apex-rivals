@@ -73,7 +73,24 @@ struct LapTimeTests {
         #expect(centered < sloppy)
     }
 
-    /// Prints a table of bot laps for tuning: `-only-testing:ApexTests/LapTimeTests/report()`.
+    /// Each medal is a bot's lap, rounded to the tenth (`RaceTuning.medalTimes`): bronze the sloppy weaver, silver the
+    /// middle of the road at 90 ms, gold the ideal line at 90 ms, and platinum the ideal line at 50 ms.
+    @Test(arguments: ids) func medalsAreTheBotsLaps(id: String) throws {
+        let bots: [(Medal, AutoDriver)] = [
+            (.bronze, AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08)),
+            (.silver, AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04)),
+            (.gold, AutoDriver(line: idealLine(id), decisionInterval: 0.09, hesitation: 0.04)),
+            (.platinum, AutoDriver(line: idealLine(id), decisionInterval: 0.05)),
+        ]
+        let layout = try #require(TrackLayout.named(id))
+        for (medal, bot) in bots {
+            let lap = run(bot, on: id).mean
+            let target = try #require(medal.target(on: layout))
+            #expect(abs(target - lap) < 0.25, "\(id) \(medal.name): the bot laps in \(lap)s, the medal is \(target)s")
+        }
+    }
+
+    /// Prints a table of bot laps for tuning: `-only-testing:ApexTests/LapTimeTests/report(id:)`.
     @Test(arguments: ids) func report(id: String) {
         let rows: [(String, AutoDriver)] = [
             ("perfect, ideal line", AutoDriver(line: idealLine(id))),
