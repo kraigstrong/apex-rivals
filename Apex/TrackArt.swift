@@ -11,10 +11,14 @@ enum TrackArt {
     /// Draw order. The SpriteView ignores sibling order, so anything that overlaps needs its own depth.
     enum Depth {
         static let grass: CGFloat = -100
+        /// Trees and grandstands, in the grass.
+        static let scenery: CGFloat = 1
         static let asphalt: CGFloat = 2
         static let curbs: CGFloat = 3
         static let paint: CGFloat = 4
         static let walls: CGFloat = 5
+        /// Tire walls, just outside the track's wall.
+        static let tires: CGFloat = 5.5
         static let skids: CGFloat = 6
         static let racingLine: CGFloat = 7
         static let trail: CGFloat = 7.5
