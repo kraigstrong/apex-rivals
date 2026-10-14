@@ -140,7 +140,7 @@ struct CueCounts {
 
 /// Revs and notes. The levels and pitches are in `RaceTuning`, with the rest of the tuning.
 enum SoundSettings {
-    /// Engine revs, 0...1: from idle at a standstill to the top at the car's top speed, with no gear changes between.
+    /// Engine revs, 0...1: from 0.25 at a standstill (idle) to 1 at the car's top speed, with no gear changes between.
     static func revs(at kmh: Double) -> Double {
         let top = RaceTuning.topSpeed * RaceTuning.displaySpeedFactor
         return 0.25 + 0.75 * min(1, max(0, kmh / top))
