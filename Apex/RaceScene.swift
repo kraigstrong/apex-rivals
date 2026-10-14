@@ -170,6 +170,7 @@ final class RaceScene: SKScene {
         if hud.showsPanel {
             lastTime = nil
             holdTouches.removeAll()
+            RaceAudio.shared.drive(speedKmh: 0, throttle: 0, scrub: 0, onCurb: false, racing: false)
             return
         }
         let dt = lastTime.map { min(max(currentTime - $0, 0), 1.0 / 15) } ?? 0
@@ -184,6 +185,7 @@ final class RaceScene: SKScene {
         #endif
         let events = session.advance(by: dt, control: control)
         events.forEach(handle)
+        sound()
         if let guide, session.phase == .racing {
             if let verdict = judge.update(car: session.car, guide: guide) {
                 show(verdict)
@@ -308,10 +310,12 @@ final class RaceScene: SKScene {
         switch event {
         case .wallHit(let hit):
             impact.impactOccurred(intensity: CGFloat(hit.severity))
+            RaceAudio.shared.wall(severity: hit.severity)
             sparks(hit)
         case .timing(.sector(let split)):
             if let delta = split.delta {
                 hud.show("S\(split.sector)", LapFormat.delta(delta), tone: delta < 0 ? .faster : .slower)
+                RaceAudio.shared.play(delta < 0 ? .faster : .slower)
             } else {
                 hud.show("S\(split.sector)", LapFormat.time(split.time), tone: .neutral)
             }
@@ -333,11 +337,13 @@ final class RaceScene: SKScene {
                     : lap.delta.map { "BEST " + LapFormat.delta($0) } ?? "BEST"
                 hud.show("LAP \(lap.number)", LapFormat.time(lap.time), detail: detail, tone: .best)
                 notice.notificationOccurred(.success)
+                RaceAudio.shared.play(.best)
                 // Chase someone new once this rival is beaten or barely ahead.
                 if rival.map({ $0.time > lap.time - RaceTuning.rivalWindow.lowerBound }) ?? true { findRival() }
             } else {
                 hud.show("LAP \(lap.number)", LapFormat.time(lap.time), detail: lap.delta.map { LapFormat.delta($0) },
                          tone: .slower)
+                RaceAudio.shared.play(.slower)
             }
         }
     }
@@ -376,6 +382,16 @@ final class RaceScene: SKScene {
         car?.texture = TrackArt.carTexture(in: view, paint: livery.paint(for: .car))
         ghost?.texture = TrackArt.carTexture(in: view, paint: livery.paint(for: .best))
         rivalNode?.texture = TrackArt.carTexture(in: view, paint: livery.paint(for: .rival))
+    }
+
+    /// The engine follows the speed (and the throttle: on while accelerating, off while the line brakes the car), the
+    /// tires the scrub, and the curbs rumble while the car's wheels are on them.
+    private func sound() {
+        let state = session.car
+        let throttle = state.speed < state.lineSpeed - 1 ? 1 : (state.scrub > RaceTuning.skidThreshold ? 0 : 0.6)
+        let onCurb = abs(track.curvature(at: state.s)) > 1 / RaceTuning.curbRadius && abs(state.n) > track.width / 2 - 18
+        RaceAudio.shared.drive(speedKmh: state.speed * RaceTuning.displaySpeedFactor, throttle: throttle,
+                               scrub: state.scrub, onCurb: onCurb, racing: session.phase == .racing)
     }
 
     // MARK: Apex School
@@ -417,6 +433,7 @@ final class RaceScene: SKScene {
             hud.show("APEX", "HIT", detail: "TURN IN FROM WIDE TO COUNT", tone: .slower)
         } else if verdict.hitApex {
             hud.show("APEX", "HIT", detail: "\(slowest) · \(ideal)", tone: .faster)
+            RaceAudio.shared.play(.apex)
         } else if verdict.closeToApex {
             hud.show("APEX", "CLOSE", detail: "\(wide) · \(slowest)", tone: .slower)
         } else {
