@@ -64,6 +64,10 @@ What the game shows you:
 - **Session summary**: the checkered flag ends a session (so does leaving the app). The summary shows the session's
   best lap, its medal (NEW the first time) and the next one to chase, and where it falls among other players' bests:
   the share it beats, its place, and a histogram of everyone's times with yours marked. Xcode builds show labeled sample players while the lap service is off.
+- **Share**: the summary's SHARE button opens the share sheet with a picture of the session's best lap (the circuit
+  drawn to scale with your line on it in your car's color, the time, its medal and, if it beats anyone, its standing) and a line of text:
+  "27.843 at Ardennes in Apex Rivals, a gold medal lap. Beat it:" and the link to the game (`ApexLinks.join`, the
+  public TestFlight link for now).
 - **Ideal line**: the ••• menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 
 ## Online
@@ -160,6 +164,8 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
 - `Apex/AutoDriver.swift`: a bot that drives with hold/let-go to follow a line.
 - `Apex/Rivals.swift`: rivals, bot rivals tuned to a target lap time, and `RivalScout`, which picks the next one.
 - `Apex/Medals.swift`: medals: which one a lap wins on a circuit, the next to chase, and how they're drawn.
+- `Apex/ShareCard.swift`: sharing a lap: the picture (`ShareCard`, with `LapLineMap` drawing its line), its text, and
+  `ApexLinks.join`, where a shared lap sends people.
 - `Apex/RaceBoard.swift`, `Apex/GameCenter.swift`, `Apex/ApexOnline.swift`: boards, Game Center, and the lap service
   (the lap log queue, ghost sharing and rival lookup).
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.

@@ -94,7 +94,7 @@ struct RaceOverlay: View {
                     GraduationCard(onPickTrack: hud.onExit, onKeepPracticing: { hud.showsGraduation = false })
                 } else if let summary = hud.summary {
                     SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
-                                       onTracks: hud.onExit)
+                                       onTracks: hud.onExit, onShare: hud.onShare)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if !hud.racing {
                     // Low and to the right, clear of the car on the left third of the screen.
@@ -527,6 +527,7 @@ struct SessionSummaryCard: View {
     let standing: StandingState
     let onRaceAgain: () -> Void
     let onTracks: () -> Void
+    let onShare: () -> Void
 
     private let purple = Color(red: 0.75, green: 0.5, blue: 1)
 
@@ -563,6 +564,15 @@ struct SessionSummaryCard: View {
                         .padding(.horizontal, 26)
                         .padding(.vertical, 10)
                         .overlay(Capsule().stroke(.white.opacity(0.6), lineWidth: 2))
+                }
+                if summary.lap != nil {
+                    Button(action: onShare) {
+                        Label("SHARE", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 10)
+                            .overlay(Capsule().stroke(.white.opacity(0.6), lineWidth: 2))
+                    }
                 }
                 Button(action: onRaceAgain) {
                     Text("RACE AGAIN")

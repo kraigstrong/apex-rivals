@@ -82,6 +82,8 @@ final class RaceHUD {
     @ObservationIgnored var onShowLeaderboard: () -> Void = {}
     @ObservationIgnored var onEndSession: () -> Void = {}
     @ObservationIgnored var onRaceAgain: () -> Void = {}
+    /// The summary's share button.
+    @ObservationIgnored var onShare: () -> Void = {}
     /// The house button: ends the session (showing its summary if a lap was finished), or goes straight to the tracks.
     @ObservationIgnored var onLeave: () -> Void = {}
     /// Back to the track list.
@@ -135,6 +137,8 @@ struct SessionSummary: Equatable {
     /// The next medal to chase after the personal best, and the lap that earns it.
     var nextMedal: Medal?
     var nextMedalTarget: Double?
+    /// The session's fastest lap itself, with its line, for sharing.
+    var lap: LapRecord?
 }
 
 enum StandingState: Equatable {
