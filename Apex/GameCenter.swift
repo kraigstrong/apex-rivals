@@ -28,8 +28,15 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
                                   leaderboardIDs: [board.leaderboardID]) { error in completion(error == nil) }
     }
 
-    /// Opens on your Game Center friends' times; the global board is a tap away in the same screen.
+    /// Opens on your Game Center friends' times; the global board is a tap away in the same screen. iOS 26 replaced
+    /// Game Center's view controller with its overlay, opened through the access point: presented there, the view
+    /// controller came up empty and was hard to get out of.
     func showLeaderboard(_ board: RaceBoard) {
+        if #available(iOS 26, *) {
+            GKAccessPoint.shared.trigger(leaderboardID: board.leaderboardID, playerScope: .friendsOnly,
+                                         timeScope: .allTime) {}
+            return
+        }
         let controller = GKGameCenterViewController(leaderboardID: board.leaderboardID, playerScope: .friendsOnly,
                                                     timeScope: .allTime)
         controller.gameCenterDelegate = self
