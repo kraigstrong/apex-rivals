@@ -81,8 +81,6 @@ struct RaceView: View {
 /// The timing, speed and map over the race. Only its buttons take touches; everywhere else, touches reach the race.
 struct RaceOverlay: View {
     let hud: RaceHUD
-    @State private var soundOn = RaceAudio.shared.soundOn
-    @State private var musicOn = RaceAudio.shared.musicOn
 
     var body: some View {
         ZStack {
@@ -175,7 +173,7 @@ struct RaceOverlay: View {
         }
     }
 
-    /// Home, the menu, the tutorial's skip or the race's flag and trophy, and restart.
+    /// Home, settings, the tutorial's skip or the race's flag and trophy, and restart.
     private var controls: some View {
         HStack(spacing: 8) {
             Button {
@@ -183,44 +181,7 @@ struct RaceOverlay: View {
             } label: {
                 RoundIcon(symbol: "house.fill")
             }
-            Menu {
-                Button {
-                    hud.onToggleRacingLine()
-                } label: {
-                    Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
-                          systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-                }
-                if !hud.isPractice {
-                    Button {
-                        hud.onShowFriends()
-                    } label: {
-                        Label("Race a friend", systemImage: "person.2")
-                    }
-                }
-                Button {
-                    hud.showsColors = true
-                } label: {
-                    Label("Car colors", systemImage: "paintpalette")
-                }
-                Toggle(isOn: $soundOn) { Label("Sound", systemImage: "speaker.wave.2") }
-                Toggle(isOn: $musicOn) { Label("Music", systemImage: "music.note") }
-                #if DEBUG
-                Button {
-                    hud.onTune()
-                } label: {
-                    Label("Tune controls", systemImage: "slider.horizontal.3")
-                }
-                #endif
-                Button(role: .destructive) {
-                    hud.onForgetBest()
-                } label: {
-                    Label("Clear best lap", systemImage: "trash")
-                }
-            } label: {
-                RoundIcon(symbol: "ellipsis")
-            }
-            .onChange(of: soundOn) { _, on in RaceAudio.shared.soundOn = on }
-            .onChange(of: musicOn) { _, on in RaceAudio.shared.musicOn = on }
+            RaceMenu(hud: hud)
             // Apex School has no standings or leaderboard, but a way out for anyone who'd rather just race.
             if hud.isPractice {
                 Button {
@@ -548,6 +509,57 @@ extension View {
             // The dark material whatever the phone's appearance: the light one would wash out the white text.
             .environment(\.colorScheme, .dark)
         }
+    }
+}
+
+/// The race's settings: the ideal line, race a friend, car colors, sound and music, and clearing the best lap. A view
+/// of its own that reads only what it shows: the timing updates 20 times a second while racing, and rebuilding the
+/// open menu that often drops a finger's tap on it.
+struct RaceMenu: View {
+    let hud: RaceHUD
+    @State private var soundOn = RaceAudio.shared.soundOn
+    @State private var musicOn = RaceAudio.shared.musicOn
+
+    var body: some View {
+        Menu {
+            Button {
+                hud.onToggleRacingLine()
+            } label: {
+                Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
+                      systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+            }
+            if !hud.isPractice {
+                Button {
+                    hud.onShowFriends()
+                } label: {
+                    Label("Race a friend", systemImage: "person.2")
+                }
+            }
+            Button {
+                hud.showsColors = true
+            } label: {
+                Label("Car colors", systemImage: "paintpalette")
+            }
+            Toggle(isOn: $soundOn) { Label("Sound", systemImage: "speaker.wave.2") }
+            Toggle(isOn: $musicOn) { Label("Music", systemImage: "music.note") }
+            #if DEBUG
+            Button {
+                hud.onTune()
+            } label: {
+                Label("Tune controls", systemImage: "slider.horizontal.3")
+            }
+            #endif
+            Button(role: .destructive) {
+                hud.onForgetBest()
+            } label: {
+                Label("Clear best lap", systemImage: "trash")
+            }
+        } label: {
+            RoundIcon(symbol: "gearshape.fill")
+        }
+        .accessibilityLabel("Settings")
+        .onChange(of: soundOn) { _, on in RaceAudio.shared.soundOn = on }
+        .onChange(of: musicOn) { _, on in RaceAudio.shared.musicOn = on }
     }
 }
 

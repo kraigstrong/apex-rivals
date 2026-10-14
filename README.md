@@ -46,7 +46,7 @@ What the game shows you:
 - **Rival**: a gold ghost a little faster than your best (`RaceTuning.rivalGap`, 0.4 s) to chase. It's another
   player's best lap when the lap service has one close enough, otherwise a bot driving the ideal line at whatever
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
-- **Race a friend**: the ••• menu lists your Game Center friends with a time on the circuit (fastest first, with how
+- **Race a friend**: the ⚙︎ menu lists your Game Center friends with a time on the circuit (fastest first, with how
   far ahead or behind you they are). Pick one and their best lap is your gold rival, on this circuit, until you pick
   Auto again; beating them doesn't swap them out. The pick belongs to your Game Center account, so another account on
   the same device starts on Auto, and a friend who's no longer one is dropped the next time the list loads. The first time, Game Center asks whether to share your friends
@@ -73,7 +73,7 @@ What the game shows you:
   drawn to scale with your line on it in your car's color, the time, its medal and, if it beats anyone, its standing) and a line of text:
   "27.843 at Ardennes in Apex Rivals, a gold medal lap. Beat it:" and the link to the game (`ApexLinks.join`, the
   public TestFlight link for now).
-- **Ideal line**: the ••• menu draws the minimum-curvature line on the track. The menu also clears your best lap.
+- **Ideal line**: the ⚙︎ menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 
 ## Online
 
@@ -148,7 +148,7 @@ change was meant to move lap times, update the ranges in `LapTimeTests`, the med
 Best laps are saved per circuit and per version of the tuning (`RaceTuning.lapSignature`), so a retune starts a
 fresh best lap.
 
-To feel a change before making it, use the tuning panel in Xcode (Debug) builds: ••• → **Tune controls** in a race.
+To feel a change before making it, use the tuning panel in Xcode (Debug) builds: ⚙︎ → **Tune controls** in a race.
 It has sliders for steering, return, smoothing, grip and acceleration (plus the camera's look-ahead, which only
 changes how the race is drawn), and shows what the bots lap in on that circuit,
 tuned against stock. Changes apply at once and last across launches. A tuned car keeps its own best laps and never
@@ -187,7 +187,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   track (`SceneryTests` checks every circuit).
 - `Apex/RaceAudio.swift`: the sound, synthesized live: an 8-bit engine rising with speed (silent on the grid and under
   the cards), tire scrub, curbs, walls, cues and a synthwave loop (settings from the Apex Sound Lab). Sound and music
-  switch off from the ••• menu.
+  switch off from the ⚙︎ menu.
 - `Apex/RaceHUD.swift`, `Apex/ContentView.swift`: the SwiftUI overlay: timing, splits, speed, map and menu.
 
 ## License
