@@ -21,18 +21,6 @@ enum Scenery {
         var size: Double
     }
 
-    /// Trees start this far beyond the wall...
-    static let treeClearance = 40.0
-    /// ...and grow up to this far from it, about as far as the camera sees.
-    static let treeReach = 470.0
-    static let treeSpacing = 62.0
-    static let grandstandDepth = 76.0
-    /// A gap between the wall and a grandstand's front.
-    static let grandstandGap = 26.0
-    /// Corners tighter than this radius get a tire wall on the outside.
-    static let tireWallRadius = 330.0
-    static let tireRadius = 7.5
-
     // MARK: Placing
 
     static func layout(for track: Track) -> [Item] {
@@ -49,16 +37,16 @@ enum Scenery {
         var found: [Item] = []
         let half = track.width / 2
         func fits(center s: Double, side: Double, length: Double) -> Item? {
-            let n = side * (half + 3 + grandstandGap + grandstandDepth / 2)
+            let n = side * (half + 3 + RaceTuning.grandstandGap + RaceTuning.grandstandDepth / 2)
             let center = track.point(s: s, n: n)
             let heading = track.heading(at: s)
             // Every corner and edge midpoint of the stand must be clear of the track, and of any stand already placed.
             let along = CGVector(dx: cos(heading), dy: sin(heading)), across = CGVector(dx: -sin(heading), dy: cos(heading))
             for u in stride(from: -0.5, through: 0.5, by: 0.125) {
                 for v in [-0.5, 0.0, 0.5] {
-                    let p = CGPoint(x: center.x + along.dx * length * u + across.dx * grandstandDepth * v,
-                                    y: center.y + along.dy * length * u + across.dy * grandstandDepth * v)
-                    if !clearance.isClear(p, by: half + 3 + grandstandGap - 2) { return nil }
+                    let p = CGPoint(x: center.x + along.dx * length * u + across.dx * RaceTuning.grandstandDepth * v,
+                                    y: center.y + along.dy * length * u + across.dy * RaceTuning.grandstandDepth * v)
+                    if !clearance.isClear(p, by: half + 3 + RaceTuning.grandstandGap - 2) { return nil }
                     if found.contains(where: { hypot($0.position.x - p.x, $0.position.y - p.y) < $0.size / 2 + 60 }) {
                         return nil
                     }
@@ -94,17 +82,17 @@ enum Scenery {
     private static func tireWalls(_ track: Track, _ clearance: Clearance) -> [Item] {
         var items: [Item] = []
         let half = track.width / 2
-        let step = tireRadius * 2.1
-        let offset = half + 3 + tireRadius + 3
+        let step = RaceTuning.tireRadius * 2.1
+        let offset = half + 3 + RaceTuning.tireRadius + 3
         var s = 0.0, count = 0
         while s < track.length {
             let k = track.curvature(at: s)
-            if abs(k) > 1 / tireWallRadius {
+            if abs(k) > 1 / RaceTuning.tireWallRadius {
                 let side: Double = k > 0 ? -1 : 1
                 let p = track.point(s: s, n: side * offset)
                 if clearance.isClear(p, by: offset - 1) {
                     items.append(Item(kind: .tires(red: count % 2 == 0), position: p, rotation: track.heading(at: s),
-                                      size: tireRadius))
+                                      size: RaceTuning.tireRadius))
                     count += 1
                 }
             }
@@ -118,18 +106,19 @@ enum Scenery {
                               random: inout SplitMix64) -> [Item] {
         let half = track.width / 2
         var trees: [Item] = []
-        var taken = SpatialHash(cell: treeSpacing * 1.5)
+        var taken = SpatialHash(cell: RaceTuning.treeSpacing * 1.5)
         let seed = Double(random.next() % 10_000)
-        for s in stride(from: 0.0, to: track.length, by: treeSpacing) {
+        for s in stride(from: 0.0, to: track.length, by: RaceTuning.treeSpacing) {
             for side in [1.0, -1.0] {
-                for n in stride(from: half + 3 + treeClearance, through: half + treeReach, by: treeSpacing) {
-                    let jitter = CGVector(dx: (random.unit() - 0.5) * treeSpacing * 0.8,
-                                          dy: (random.unit() - 0.5) * treeSpacing * 0.8)
+                for n in stride(from: half + 3 + RaceTuning.treeClearance, through: half + RaceTuning.treeReach, by: RaceTuning.treeSpacing) {
+                    let jitter = CGVector(dx: (random.unit() - 0.5) * RaceTuning.treeSpacing * 0.8,
+                                          dy: (random.unit() - 0.5) * RaceTuning.treeSpacing * 0.8)
                     let base = track.point(s: s, n: side * n)
                     let p = CGPoint(x: base.x + jitter.dx, y: base.y + jitter.dy)
                     // Groves: thick where the noise is high, open grass where it's low.
-                    guard groveNoise(p, seed: seed) > 0.44 else { continue }
-                    let radius = 20 + random.unit() * 18
+                    guard groveNoise(p, seed: seed) > RaceTuning.groveThreshold else { continue }
+                    let radius = RaceTuning.treeRadius.lowerBound
+                        + random.unit() * (RaceTuning.treeRadius.upperBound - RaceTuning.treeRadius.lowerBound)
                     guard clearance.isClear(p, by: half + 3 + 14 + radius) else { continue }
                     guard !taken.any(near: p, within: radius + 26) else { continue }
                     guard !placed.contains(where: { overlaps($0, p, radius: radius) }) else { continue }
@@ -152,7 +141,7 @@ enum Scenery {
 
     /// Smooth value noise, about 0...1, varying over a few hundred units.
     static func groveNoise(_ p: CGPoint, seed: Double) -> Double {
-        let scale = 340.0
+        let scale = RaceTuning.groveScale
         let x = p.x / scale + seed, y = p.y / scale - seed
         let x0 = floor(x), y0 = floor(y)
         func lattice(_ i: Double, _ j: Double) -> Double {
@@ -194,7 +183,7 @@ enum Scenery {
             case .grandstand:
                 let image = grandstandImage(length: item.size, seed: UInt64(abs(item.position.x * 7 + item.position.y)))
                 sprite = SKSpriteNode(texture: SKTexture(image: image))
-                sprite.size = CGSize(width: item.size + 24, height: grandstandDepth + 24)
+                sprite.size = CGSize(width: item.size + 24, height: RaceTuning.grandstandDepth + 24)
                 sprite.zPosition = TrackArt.Depth.scenery
             }
             sprite.position = item.position
@@ -272,8 +261,8 @@ enum Scenery {
     private static func grandstandImage(length: Double, seed: UInt64) -> UIImage {
         var random = SplitMix64(seed: seed)
         let k = 2.0
-        let size = CGSize(width: (length + 24) * k, height: (grandstandDepth + 24) * k)
-        let body = CGRect(x: 12 * k, y: 12 * k, width: length * k, height: grandstandDepth * k)
+        let size = CGSize(width: (length + 24) * k, height: (RaceTuning.grandstandDepth + 24) * k)
+        let body = CGRect(x: 12 * k, y: 12 * k, width: length * k, height: RaceTuning.grandstandDepth * k)
         let fans: [UIColor] = [
             UIColor(red: 0.95, green: 0.30, blue: 0.28, alpha: 1), UIColor(red: 1, green: 0.80, blue: 0.20, alpha: 1),
             UIColor(red: 0.35, green: 0.65, blue: 0.95, alpha: 1), UIColor(white: 0.96, alpha: 1),

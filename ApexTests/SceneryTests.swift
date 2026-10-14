@@ -45,7 +45,7 @@ struct SceneryTests {
             case .tires:
                 #expect(d >= half + 3 + item.size - 2, "\(id): a tire stack at \(item.position) is \(d) from the centerline")
             case .grandstand:
-                #expect(d >= half + 3 + Scenery.grandstandGap + Scenery.grandstandDepth / 2 - 4,
+                #expect(d >= half + 3 + RaceTuning.grandstandGap + RaceTuning.grandstandDepth / 2 - 4,
                         "\(id): a grandstand at \(item.position) is \(d) from the centerline")
             }
         }

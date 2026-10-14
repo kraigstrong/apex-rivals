@@ -107,6 +107,25 @@ enum RaceTuning {
     /// Shown speed (km/h) for each unit a second: top speed reads 330.
     static let displaySpeedFactor: Double = 330 / topSpeed
 
+    // MARK: Scenery
+
+    // Only how the race looks: none of these are in `lapSignature`.
+    /// Trees start this far beyond the wall...
+    static let treeClearance = 40.0
+    /// ...and grow up to this far from it, about as far as the camera sees.
+    static let treeReach = 470.0
+    static let treeSpacing = 62.0
+    static let grandstandDepth = 76.0
+    /// A gap between the wall and a grandstand's front.
+    static let grandstandGap = 26.0
+    /// Corners tighter than this radius get a tire wall on the outside.
+    static let tireWallRadius = 330.0
+    static let tireRadius = 7.5
+    /// Groves: trees grow where a smooth noise over this many units is above the threshold, leaving clearings.
+    static let groveScale = 340.0
+    static let groveThreshold = 0.44
+    static let treeRadius: ClosedRange<Double> = 20...38
+
     // MARK: Rivals
 
     /// A rival is picked to beat your best lap by about this much: close enough to catch.
