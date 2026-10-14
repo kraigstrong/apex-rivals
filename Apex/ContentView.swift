@@ -679,11 +679,16 @@ struct SessionSummaryCard: View {
         case .ready(let standing, _):
             VStack(alignment: .leading, spacing: 2) {
                 Text("VS OTHER PLAYERS").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
+                // Beside a wide session best and medals, the headline shrinks to fit rather than cutting off.
                 if standing.players == 0 {
                     Text("You're the first!").font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                 } else {
                     Text("Faster than \(Int((standing.beatenShare * 100).rounded(.down)))%")
                         .font(.system(size: 28, weight: .heavy, design: .rounded).monospacedDigit())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                     Text("#\(standing.place) of \(standing.players + 1) players")
                         .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
                         .opacity(0.8)
@@ -722,7 +727,8 @@ struct StandingChart: View {
             let plotHeight = size.height - markerRoom - axisRoom
             let barWidth = (size.width - gap * CGFloat(counts.count - 1)) / CGFloat(counts.count)
             let span = CGFloat(histogram.widthMs * counts.count)
-            let yours = min(max((lapMs - histogram.fromMs) / histogram.widthMs, 0), counts.count - 1)
+            // Your bar, if your lap falls among the others: a lap ahead of everyone colors no one else's bar.
+            let yours = histogram.bucket(of: lapMs)
             for (i, count) in counts.enumerated() where count > 0 {
                 let height = max(2, plotHeight * CGFloat(count) / CGFloat(tallest))
                 let rect = CGRect(x: CGFloat(i) * (barWidth + gap), y: markerRoom + plotHeight - height,
