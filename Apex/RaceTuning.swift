@@ -129,10 +129,12 @@ enum RaceTuning {
 
     // Tuned in the Apex Sound Lab. Only how the race sounds: none of these are in `lapSignature`.
     static let soundMaster = 0.7
-    static let engineLevel = 0.55
-    /// The engine's pitch (Hz), from idle to the limiter.
-    static let enginePitch: ClosedRange<Double> = 90...620
-    static let engineBrightness = 0.45
+    static let engineLevel = 0.3
+    /// The engine's pitch (Hz) across its revs, 0 to 1. Revs idle at 0.25 (`SoundSettings.revs`), as in the Sound Lab,
+    /// so the engine buzzes at about 96 Hz on the grid and rises to 220 Hz at top speed.
+    static let enginePitch: ClosedRange<Double> = 55...220
+    /// Opens the engine's low-pass filter: 0 is dull (300 Hz), 1 the raw chip (8.3 kHz).
+    static let engineBrightness = 0.7
     static let tireLevel = 0.5
     static let tireHissPitch = 1800.0
     static let tireSqueal = 0.25
@@ -141,8 +143,6 @@ enum RaceTuning {
     static let cueLevel = 0.5
     static let musicLevel = 0.35
     static let musicTempo = 112.0
-    /// The top speed (km/h) in each of the engine's eight gears.
-    static let gearTopSpeeds: [Double] = [95, 135, 170, 205, 240, 272, 302, 335]
 
     // MARK: Rivals
 

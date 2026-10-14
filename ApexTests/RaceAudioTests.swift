@@ -14,12 +14,29 @@ struct RaceAudioTests {
         return out
     }
 
-    @Test func revsClimbThroughEachGearAndDropAtTheShift() {
+    /// No gear changes: revs climb steadily from idle to the top at top speed, never jumping.
+    @Test func revsRiseSmoothlyWithSpeed() {
         #expect(SoundSettings.revs(at: 0) == 0.25)
-        #expect(SoundSettings.revs(at: 120) > SoundSettings.revs(at: 100))
-        #expect(SoundSettings.revs(at: 96) < SoundSettings.revs(at: 94))
-        #expect(SoundSettings.gear(at: 330) == 7)
-        #expect((0...340).allSatisfy { (0...1).contains(SoundSettings.revs(at: Double($0))) })
+        #expect(abs(SoundSettings.revs(at: 330) - 1) < 1e-9)
+        let revs = (0...340).map { SoundSettings.revs(at: Double($0)) }
+        #expect(revs.allSatisfy { (0...1).contains($0) })
+        #expect(zip(revs, revs.dropFirst()).allSatisfy { $1 >= $0 && $1 - $0 < 0.01 })
+    }
+
+    /// The engine alone buzzes at the pitch its revs call for: the bottom of `enginePitch` plus the revs' share of it.
+    @Test(arguments: [0.0, 165, 330])
+    func theEngineBuzzesAtItsPitch(kmh: Double) {
+        let synth = Synth(sampleRate: 48_000)
+        var controls = SoundControls()
+        controls.musicOn = false
+        controls.racing = true
+        controls.speed = kmh
+        controls.throttle = 1
+        let samples = Array(render(synth, controls, seconds: 1.2).suffix(48_000))
+        let rises = zip(samples, samples.dropFirst()).filter { $0 < 0 && $1 >= 0 }.count
+        let pitch = RaceTuning.enginePitch
+        let expected = pitch.lowerBound + (pitch.upperBound - pitch.lowerBound) * SoundSettings.revs(at: kmh)
+        #expect(abs(Double(rises) - expected) <= 2, "\(rises) Hz, expected \(expected)")
     }
 
     /// Everything at once (flat out, scrubbing, on a curb, a wall hit, every cue, the music) stays in range.
