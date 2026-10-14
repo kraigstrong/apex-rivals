@@ -17,6 +17,8 @@ final class RaceHUD {
     }
 
     var racing = false
+    /// A lap has been finished this session, so the flag has a summary to end on. Until then it's dimmed.
+    var canEndSession = false
     /// 0 on the out lap.
     var lapNumber = 0
     /// Nil on the out lap.

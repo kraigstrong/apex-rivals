@@ -107,8 +107,8 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
   one shows it under the lap banner (SILVER MEDAL), the medal sits beside BEST in the timing panel, and the summary
   says NEW SILVER MEDAL with the next one to chase.
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.
-- The flag ends a session: the summary shows your best lap and, with no one else on the board yet, "You're the
-  first!" The trophy opens the circuit's leaderboard with your time on it.
+- The flag is dimmed until you finish a lap. Then it ends a session: the summary shows your best lap and, with no one
+  else on the board yet, "You're the first!" The trophy opens the circuit's leaderboard with your time on it.
 - SHARE on the summary opens the share sheet: a picture of the circuit with your line in your car's color, the time,
   medal and standing, and text ending with the public TestFlight link. Send it to yourself in Messages: the link
   opens TestFlight.

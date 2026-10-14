@@ -27,7 +27,7 @@ final class RaceScene: SKScene {
     /// The Game Center friend picked to race here, who stays the rival until Auto is picked. Nil: the scout picks.
     private var friend: FriendPick.Pick?
     /// Laps finished this session, and the fastest of them.
-    private var sessionLaps = 0
+    private var sessionLaps = 0 { didSet { hud.canEndSession = sessionLaps > 0 } }
     private var sessionBest: LapRecord?
     /// The best lap before this session, to tell whether the session set a new one.
     private var bestBeforeSession: Double?

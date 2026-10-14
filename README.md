@@ -66,7 +66,8 @@ What the game shows you:
   corner (how wide of the apex, and your slowest speed against the ideal line's), and your own line traced behind the
   car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
 - **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
-- **Session summary**: the checkered flag ends a session (so does leaving the app). The summary shows the session's
+- **Session summary**: the checkered flag ends a session (so does leaving the app); it's dimmed until you finish a
+  lap, since there's nothing to sum up before that. The summary shows the session's
   best lap, its medal (NEW the first time) and the next one to chase, and where it falls among other players' bests:
   the share it beats, its place, and a histogram of everyone's times with yours marked. Xcode builds show labeled sample players while the lap service is off.
 - **Share**: the summary's SHARE button opens the share sheet with a picture of the session's best lap (the circuit
