@@ -46,6 +46,11 @@ What the game shows you:
 - **Rival**: a gold ghost a little faster than your best (`RaceTuning.rivalGap`, 0.4 s) to chase. It's another
   player's best lap when the lap service has one close enough, otherwise a bot driving the ideal line at whatever
   reaction speed beats you by that much, so it also shows you the line. Beat it and a new one takes its place.
+- **Race a friend**: the ••• menu lists your Game Center friends with a time on the circuit (fastest first, with how
+  far ahead or behind you they are). Pick one and their best lap is your gold rival, on this circuit, until you pick
+  Auto again; beating them doesn't swap them out. The pick belongs to your Game Center account, so another account on
+  the same device starts on Auto, and a friend who's no longer one is dropped the next time the list loads. The first time, Game Center asks whether to share your friends
+  list. Offline, or if their lap can't be found, the rival is the usual pick until it can.
 - **Medals**: bronze, silver, gold and platinum on each circuit, for beating a bot's lap there (see Tuning): a sloppy
   weaver's, the middle of the road's, and the ideal line's at human reaction speed (90 ms) and at a quick 50 ms. The
   track list shows each circuit's best medal and the next to chase (an outline and its time), as does the start card.
@@ -76,8 +81,8 @@ Rankings live in Game Center; everything Game Center can't hold lives in the Ape
 (`apps/marketing`, `/api/apex/*`; its README describes the routes and what they store):
 
 - every finished lap, counted anonymously into lap-time histograms per board;
-- each player's best lap and ghost, uploaded with Game Center's identity signature, which rivals and session
-  standings come from.
+- each player's best lap and ghost, uploaded with Game Center's identity signature, which rivals, friends' laps and
+  session standings come from.
 
 Both are per **board** (`RaceBoard`): a circuit at one revision, driven with one physics version. Lap times only
 compare within a board, so **once a board is live, freeze it**: a change that moves lap times needs a new
@@ -87,6 +92,9 @@ compare within a board, so **once a board is live, freeze it**: a change that mo
 The service is on (`ApexOnline.isEnabled`). When it can't be reached, laps queue on the device (`LapLog`) and send
 later, rivals are bots, and the session summary says standings will show once you're online. On a board with only a
 few players, the rival is the nearest player who beats you at all, up to 3 s ahead, before falling back to a bot.
+Race a friend asks the service which friends have a best on the board, naming them by the same token the app names
+the player by (`ApexOnline.playerToken`, a hash of the team player ID, sent in a body or header, never a URL); the
+service stores nothing for it.
 `docs/apex-testflight.md` covers what has to be live before a build ships (the BrightBench routes and their
 secrets, and the Game Center leaderboards) and the smoke check, including racing a second account's ghost.
 
@@ -167,7 +175,9 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
 - `Apex/ShareCard.swift`: sharing a lap: the picture (`ShareCard`, with `LapLineMap` drawing its line), its text, and
   `ApexLinks.join`, where a shared lap sends people.
 - `Apex/RaceBoard.swift`, `Apex/GameCenter.swift`, `Apex/ApexOnline.swift`: boards, Game Center, and the lap service
-  (the lap log queue, ghost sharing and rival lookup).
+  (the lap log queue, ghost sharing, rival lookup and friends' laps).
+- `Apex/Friends.swift`: Race a friend: Game Center's friends list, the friend each player picked on each board
+  (`FriendPick`), and the picker.
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.
 - `Apex/TrackArt.swift`: procedural art: track pieces, curbs, start line, the car, and the grass shader.
 - `Apex/Scenery.swift`: trees, grandstands and tire walls, placed from each circuit's shape and kept clear of the

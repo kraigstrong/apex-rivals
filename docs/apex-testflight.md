@@ -10,10 +10,13 @@ How to get an Apex Rivals beta to friends, so you can race each other's times an
 - `ITSAppUsesNonExemptEncryption = NO`: the only encryption is the system's HTTPS.
 - Category: Racing games.
 - Game Center (`Apex/Apex.entitlements`): sign-in at launch, each personal best submitted to the circuit's
-  leaderboard, and the trophy button opening the friends board.
+  leaderboard, the trophy button opening the friends board, and Race a friend, which asks to see the friends list
+  (`NSGKFriendListUsageDescription` in `Apex-Info.plist`).
 - The lap service is on (`ApexOnline.isEnabled`): every lap counted anonymously at `brightbench.app/api/apex/laps`,
   each personal best's ghost shared under the player's Game Center alias, rivals from other players' ghosts, and real
-  standings at the end of a session. Lap batches are tagged `testflight` for beta installs.
+  standings at the end of a session. Lap batches are tagged `testflight` for beta installs. Race a friend needs
+  BrightBench's friend routes (`POST /api/apex/friends`, `GET /api/apex/ghosts`, kraigstrong/BrightBench#70) deployed
+  first; without them the picker says friends' times aren't available.
 - Privacy manifest (`Apex/PrivacyInfo.xcprivacy`): UserDefaults for best laps and the lap queue; anonymous lap
   counts; gameplay content (ghosts) and a user ID (the Game Center player ID, salted and hashed on the server), linked
   to the player for the leaderboard, not used for tracking.
@@ -119,6 +122,9 @@ With a second phone on a different Game Center account (a friend's, or a test ac
 - The flag on either phone shows a real standing: "#1 of 2" or "#2 of 2", and the histogram.
 - Both times show on the circuit's leaderboard (friends board if you're Game Center friends, global board either
   way).
+- If the two accounts are Game Center friends: ••• → Race a friend on the slower phone asks to share the friends list,
+  then lists the other player with their time and how far ahead they are. Pick them: the gold rival is their ghost,
+  named as Game Center names them, and it stays after you beat it, and after relaunching. Pick Auto to go back.
 - In Airplane Mode, laps still save on the device; back online, the next lap sends the queued ones.
 
 ## Build log

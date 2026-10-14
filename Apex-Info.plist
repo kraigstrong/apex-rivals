@@ -5,5 +5,8 @@
 	<!-- Lets the race run at up to 120 frames a second on ProMotion iPhones, as its SpriteView asks. -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Race a friend: Game Center asks before sharing the player's friends list. -->
+	<key>NSGKFriendListUsageDescription</key>
+	<string>Shows which of your Game Center friends have raced each circuit, so you can race their best laps.</string>
 </dict>
 </plist>

@@ -117,6 +117,25 @@ struct RivalGhost: Codable {
     }
 }
 
+/// Which of these Game Center friends (by `ApexOnline.playerToken`) have a best on a board.
+struct FriendsQuery: Codable, Equatable {
+    var schema = 1
+    var track: String
+    var revision: Int
+    var physics: Int
+    var players: [String]
+}
+
+/// The service's answer: the friends who have a best, fastest first.
+struct FriendsAnswer: Codable, Equatable {
+    struct Friend: Codable, Equatable {
+        var player: String
+        var ms: Int
+    }
+
+    var friends: [Friend]
+}
+
 /// Where a lap falls among other players' bests on its board.
 struct Standing: Codable, Equatable {
     struct Histogram: Codable, Equatable {
@@ -302,6 +321,48 @@ enum ApexService {
                   let ghost = try? JSONDecoder().decode(RivalGhost.self, from: data),
                   ghost.ghost.s.count > 1 else { return completion(nil) }
             completion(ghost.rival)
+        }.resume()
+    }
+
+    /// The most friends one query names; the service refuses more.
+    static let friendsPerQuery = 100
+
+    /// The query for these friends' tokens: each once, at most `friendsPerQuery`, or nil for no friends.
+    static func friendsQuery(_ tokens: [String], on board: RaceBoard) -> FriendsQuery? {
+        let players = Array(Set(tokens)).sorted().prefix(friendsPerQuery)
+        guard !players.isEmpty else { return nil }
+        return FriendsQuery(track: board.trackID, revision: board.trackRevision, physics: board.physicsVersion,
+                            players: Array(players))
+    }
+
+    /// Which of these friends (by token) have a best on the board, fastest first, or nil if the service can't say.
+    static func friendTimes(_ tokens: [String], on board: RaceBoard, completion: @escaping ([FriendsAnswer.Friend]?) -> Void) {
+        guard let query = friendsQuery(tokens, on: board) else { return completion([]) }
+        guard ApexOnline.isEnabled, let body = try? JSONEncoder().encode(query) else { return completion(nil) }
+        URLSession.shared.dataTask(with: request("friends", body: body)) { data, response, _ in
+            guard (response as? HTTPURLResponse)?.statusCode == 200, let data,
+                  let answer = try? JSONDecoder().decode(FriendsAnswer.self, from: data) else { return completion(nil) }
+            completion(answer.friends)
+        }.resume()
+    }
+
+    /// A friend's best lap and ghost on the board, named by their token in a header (never in the URL), or nil.
+    static func friendGhost(_ token: String, on board: RaceBoard, completion: @escaping (RivalGhost?) -> Void) {
+        var components = URLComponents(url: ApexOnline.base.appendingPathComponent("ghosts"), resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "track", value: board.trackID),
+            URLQueryItem(name: "revision", value: String(board.trackRevision)),
+            URLQueryItem(name: "physics", value: String(board.physicsVersion)),
+        ]
+        guard ApexOnline.isEnabled, let url = components?.url else { return completion(nil) }
+        var request = request("ghosts", method: "GET")
+        request.url = url
+        request.setValue(token, forHTTPHeaderField: "X-Apex-Friend")
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            guard (response as? HTTPURLResponse)?.statusCode == 200, let data,
+                  let ghost = try? JSONDecoder().decode(RivalGhost.self, from: data),
+                  ghost.ghost.s.count > 1 else { return completion(nil) }
+            completion(ghost)
         }.resume()
     }
 }
