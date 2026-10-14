@@ -108,7 +108,7 @@ final class RaceScene: SKScene {
         addChild(world)
         addChild(cameraNode)
         camera = cameraNode
-        pieces = TrackArt.circuit(track)
+        pieces = TrackArt.circuit(track) + Scenery.pieces(for: track)
         pieces.forEach { world.addChild($0.node) }
 
         let grass = TrackArt.grass(size: size)
