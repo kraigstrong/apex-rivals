@@ -91,6 +91,10 @@ Open `Apex.xcodeproj`, pick an iPhone, iPad or simulator, and Run. The app icon 
 xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
+GitHub Actions runs the same tests on every pull request and push to `main` (`.github/workflows/tests.yml`), and
+builds Release too. Any build warning fails it. It uses Xcode 26.4, the version the project is built with; to move
+Xcode, change `DEVELOPER_DIR` there.
+
 Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun simctl launch ... <args>`:
 
 - `-ApexAutopilot perfect` drives the ideal line perfectly; `-ApexAutopilot human` drives it at human reaction
