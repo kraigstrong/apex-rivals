@@ -28,7 +28,7 @@ struct TrackMenu: View {
                 HStack(alignment: .top, spacing: 12) {
                     SchoolButton(done: schoolDone) { onSelect(TrackCatalog.school.layout.id) }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    NeedleLogo()
+                    GhostThreadLogo()
                     Button {
                         showsColors = true
                     } label: {

@@ -1,8 +1,9 @@
-# Needle
+# Ghost Thread
 
-A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+): thread the needle through
-every corner. It was Apex Rivals; Apex is still its code name, kept by the project, the bundle ID
-(`com.kraigstrong.apex`), the Game Center IDs, the lap service and saved data, so nothing already stored moves.
+A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+): race your ghost and thread
+the line through every corner. It was Apex Rivals, then briefly Needle (taken on the App Store); Apex is still its code
+name, kept by the project, the bundle ID (`com.kraigstrong.apex`), the Game Center IDs, the lap service and saved
+data, so nothing already stored moves.
 
 **Hold to steer up. Let go to steer down.** Pick a circuit from the track list and set the fastest lap you can. A
 good lap is about 30 seconds on each. The six circuits are original, each with the feel of a famous F1 track:
@@ -80,8 +81,9 @@ What the game shows you:
   everyone's times, the players you beat lit. The share card words it the same way. Xcode builds show labeled sample
   players while the lap service is off.
 - **Share**: the summary's SHARE button opens the share sheet with a picture of the session's best lap (the circuit
-  drawn to scale with your line on it in your car's color, the NEEDLE logo, the time, its medal and, if it beats
-  anyone, its standing) and a line of text: "27.843 at Ardennes in Needle, a gold medal lap. Beat it:" and the link
+  drawn to scale with your line on it in your car's color, the GHOST THREAD logo, the time, its medal and, if it
+  beats anyone, its standing) and a line of text: "27.843 at Ardennes in Ghost Thread, a gold medal lap. Beat it:" and
+  the link
   to the game (`ApexLinks.join`, the public TestFlight link for now).
 - **Ideal line**: the ⚙︎ menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 - **Holding still**: the race holds while anything is over it (the ⚙︎ menu or a panel from it, Game Center's
@@ -176,8 +178,8 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   (`closingStraights`) are solved so the loop closes exactly, so corners can be tuned freely. `TrackLayout.all` is
   the track list.
 - `Apex/TrackMenu.swift`: the track list, and `TrackCatalog`, which builds each circuit's geometry once.
-- `Apex/Logo.swift`: the NEEDLE logo at the top of the track list: your car, in its paint, towing its racing line
-  through the letters, in front of one and behind the next.
+- `Apex/Logo.swift`: the GHOST THREAD logo, on the track list and the share card: GHOST see-through, and a racing
+  line woven through THREAD, in front of one letter and behind the next, towed by a ghost car in your ghost's paint.
 - `Apex/ApexSchool.swift`: the practice circuit, `ApexGuide` (each corner's turn-in, apex and exit on the ideal line,
   and the coach's cues) and `CornerJudge` (the verdict after each corner).
 - `Apex/Track.swift`: turns a layout into geometry sampled every unit: centerline, heading, curvature (box-filtered
