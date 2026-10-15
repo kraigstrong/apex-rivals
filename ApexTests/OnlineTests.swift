@@ -109,7 +109,9 @@ struct OnlineTests {
         #expect(LapLog(defaults: defaults) { _, _ in }.pending.map(\.ms) == [28_598, 29_100])
     }
 
-    @Test func lapsGoInBatchesAndLeaveTheQueueOnceSent() async throws {
+    // On the main actor, since each batch's removal lands on the main queue: the test can't start, and its wait can't
+    // run out, while something else holds the main thread (on CI, as long as 40 s early in a run).
+    @MainActor @Test func lapsGoInBatchesAndLeaveTheQueueOnceSent() async throws {
         let defaults = try freshDefaults("OnlineTests.batches")
         let offline = LapLog(defaults: defaults) { _, done in done(false) }
         for i in 0..<30 { offline.record(entry(28_000 + i), enabled: false) }
@@ -120,8 +122,9 @@ struct OnlineTests {
             done(true)
         }
         log.flush(enabled: true)
-        // Each batch's removal lands on the main queue; wait for both.
-        for _ in 0..<100 where !log.pending.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
+        // Both removals run on the main queue while this waits.
+        let deadline = ContinuousClock.now + .seconds(10)
+        while !log.pending.isEmpty, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
         #expect(batches == [25, 5])
         #expect(log.pending.isEmpty)
     }
