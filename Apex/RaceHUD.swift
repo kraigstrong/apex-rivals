@@ -63,13 +63,24 @@ final class RaceHUD {
     var stockBotLaps: BotLaps?
     @ObservationIgnored var onTune: () -> Void = {}
     #endif
-    /// A panel is open over the race. The race holds still until it closes.
+    /// A panel is open over the race: it dims the race and hides the timing until it closes.
     var showsPanel: Bool {
         #if DEBUG
         return showsColors || showsFriends || showsTuner || showsGraduation
         #else
         return showsColors || showsFriends || showsGraduation
         #endif
+    }
+    /// The ⚙︎ menu is open. Unlike a panel it leaves the race in view, and its button where it was.
+    var showsMenu = false
+    /// The app is in front: not under Control Center, a call or Siri. A race opens from the track list, so in front.
+    var isAppActive = true
+    /// Game Center's leaderboard is over the race. Asked each frame, since Game Center closes it on its own.
+    @ObservationIgnored var showsLeaderboard: () -> Bool = { GameCenter.shared.isShowingLeaderboard }
+    /// The race holds still while anything is over it: a panel, the ⚙︎ menu, Game Center's leaderboard, or whatever
+    /// took the app out of the front. The lap picks up where it was once it's gone.
+    var holdsRace: Bool {
+        showsPanel || showsMenu || !isAppActive || showsLeaderboard()
     }
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?

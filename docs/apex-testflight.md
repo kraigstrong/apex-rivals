@@ -112,6 +112,8 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
 - SHARE on the summary opens the share sheet: a picture of the circuit with your line in your car's color, the time,
   medal and standing, and text ending with the public TestFlight link. Send it to yourself in Messages: the link
   opens TestFlight.
+- Open ⚙︎ mid-lap: the lap clock, the car and the engine stop until the menu closes, then carry on from the same
+  time. The trophy's leaderboard holds the race the same way until it's closed, as does pulling down Control Center.
 - Best laps survive force-quitting and reopening. Background the app mid-lap: the session ends and its summary is
   waiting on return.
 

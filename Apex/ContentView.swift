@@ -62,7 +62,8 @@ struct RaceView: View {
         // Leaving the app ends the session; its summary is waiting on return.
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { scene.endSession() }
-            // Quiet whenever the app isn't in front (Control Center, a call), and back on return.
+            // Held still and quiet whenever the app isn't in front (Control Center, a call), and back on return.
+            hud.isAppActive = phase == .active
             if phase == .active { RaceAudio.shared.start() } else { RaceAudio.shared.stop() }
         }
         .onAppear { RaceAudio.shared.start() }
@@ -515,54 +516,94 @@ extension View {
     }
 }
 
-/// The race's settings: the ideal line, race a friend, car colors, sound and music, and clearing the best lap. A view
-/// of its own that reads only what it shows: the timing updates 20 times a second while racing, and rebuilding the
-/// open menu that often drops a finger's tap on it.
-struct RaceMenu: View {
+/// The race's settings: the ideal line, race a friend, car colors, sound and music, and clearing the best lap. A UIKit
+/// button rather than SwiftUI's `Menu`, which can't say when it's open: the race holds still while the menu is up
+/// (`RaceHUD.showsMenu`). The menu is built as it opens, from the race as it is then, so the timing's 20 Hz updates
+/// never rebuild it under a finger.
+struct RaceMenu: UIViewRepresentable {
     let hud: RaceHUD
-    @State private var soundOn = RaceAudio.shared.soundOn
-    @State private var musicOn = RaceAudio.shared.musicOn
 
-    var body: some View {
-        Menu {
-            Button {
-                hud.onToggleRacingLine()
-            } label: {
-                Label(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
-                      systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+    func makeUIView(context: Context) -> MenuButton {
+        Self.button(for: hud)
+    }
+
+    func updateUIView(_ button: MenuButton, context: Context) {}
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: MenuButton, context: Context) -> CGSize? {
+        uiView.intrinsicContentSize
+    }
+
+    static func button(for hud: RaceHUD) -> MenuButton {
+        let button = MenuButton(symbol: "gearshape.fill")
+        button.accessibilityLabel = "Settings"
+        button.menu = UIMenu(children: [UIDeferredMenuElement.uncached { [hud] completion in
+            completion(Self.items(for: hud))
+        }])
+        button.onOpen = { [hud] open in hud.showsMenu = open }
+        return button
+    }
+
+    /// The menu as the race stands: which way the ideal line toggles, whether sound and music are on.
+    static func items(for hud: RaceHUD) -> [UIMenuElement] {
+        func item(_ title: String, _ symbol: String, attributes: UIMenuElement.Attributes = [],
+                  state: UIMenuElement.State = .off, action: @escaping () -> Void) -> UIAction {
+            UIAction(title: title, image: UIImage(systemName: symbol), attributes: attributes, state: state) { _ in
+                action()
             }
-            if !hud.isPractice {
-                Button {
-                    hud.onShowFriends()
-                } label: {
-                    Label("Race a friend", systemImage: "person.2")
-                }
-            }
-            Button {
-                hud.showsColors = true
-            } label: {
-                Label("Car colors", systemImage: "paintpalette")
-            }
-            Toggle(isOn: $soundOn) { Label("Sound", systemImage: "speaker.wave.2") }
-            Toggle(isOn: $musicOn) { Label("Music", systemImage: "music.note") }
-            #if DEBUG
-            Button {
-                hud.onTune()
-            } label: {
-                Label("Tune controls", systemImage: "slider.horizontal.3")
-            }
-            #endif
-            Button(role: .destructive) {
-                hud.onForgetBest()
-            } label: {
-                Label("Clear best lap", systemImage: "trash")
-            }
-        } label: {
-            RoundIcon(symbol: "gearshape.fill")
         }
-        .accessibilityLabel("Settings")
-        .onChange(of: soundOn) { _, on in RaceAudio.shared.soundOn = on }
-        .onChange(of: musicOn) { _, on in RaceAudio.shared.musicOn = on }
+        let audio = RaceAudio.shared
+        var items = [item(hud.showsRacingLine ? "Hide ideal line" : "Show ideal line",
+                          "point.topleft.down.to.point.bottomright.curvepath") { hud.onToggleRacingLine() }]
+        if !hud.isPractice {
+            items.append(item("Race a friend", "person.2") { hud.onShowFriends() })
+        }
+        items.append(item("Car colors", "paintpalette") { hud.showsColors = true })
+        items.append(item("Sound", "speaker.wave.2", state: audio.soundOn ? .on : .off) { audio.soundOn.toggle() })
+        items.append(item("Music", "music.note", state: audio.musicOn ? .on : .off) { audio.musicOn.toggle() })
+        #if DEBUG
+        items.append(item("Tune controls", "slider.horizontal.3") { hud.onTune() })
+        #endif
+        items.append(item("Clear best lap", "trash", attributes: .destructive) { hud.onForgetBest() })
+        return items
+    }
+}
+
+/// A `RoundIcon` as a UIKit button whose menu opens on a tap, and which says when the menu opens and closes.
+final class MenuButton: UIButton {
+    /// Called with true as the menu opens, and false as it starts to close (on a pick, or a tap anywhere else).
+    var onOpen: (Bool) -> Void = { _ in }
+
+    init(symbol: String) {
+        super.init(frame: .zero)
+        var look = UIButton.Configuration.plain()
+        look.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 17,
+                                                                                               weight: .bold))
+        look.baseForegroundColor = .white
+        look.background.backgroundColor = .black.withAlphaComponent(0.45)
+        look.cornerStyle = .capsule
+        look.contentInsets = .zero
+        configuration = look
+        showsMenuAsPrimaryAction = true
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    override var intrinsicContentSize: CGSize { CGSize(width: 40, height: 40) }
+
+    override func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                         willDisplayMenuFor configuration: UIContextMenuConfiguration,
+                                         animator: (any UIContextMenuInteractionAnimating)?) {
+        super.contextMenuInteraction(interaction, willDisplayMenuFor: configuration, animator: animator)
+        onOpen(true)
+    }
+
+    override func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                         willEndFor configuration: UIContextMenuConfiguration,
+                                         animator: (any UIContextMenuInteractionAnimating)?) {
+        super.contextMenuInteraction(interaction, willEndFor: configuration, animator: animator)
+        onOpen(false)
     }
 }
 
