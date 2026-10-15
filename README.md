@@ -174,6 +174,8 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   (`closingStraights`) are solved so the loop closes exactly, so corners can be tuned freely. `TrackLayout.all` is
   the track list.
 - `Apex/TrackMenu.swift`: the track list, and `TrackCatalog`, which builds each circuit's geometry once.
+- `Apex/Logo.swift`: the NEEDLE logo at the top of the track list: your car, in its paint, towing its racing line
+  through the letters, in front of one and behind the next.
 - `Apex/ApexSchool.swift`: the practice circuit, `ApexGuide` (each corner's turn-in, apex and exit on the ideal line,
   and the coach's cues) and `CornerJudge` (the verdict after each corner).
 - `Apex/Track.swift`: turns a layout into geometry sampled every unit: centerline, heading, curvature (box-filtered
