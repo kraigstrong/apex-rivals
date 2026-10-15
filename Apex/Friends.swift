@@ -144,7 +144,7 @@ struct FriendPicker: View {
         case .signedOut:
             note("Sign in to Game Center to race your friends' best laps.")
         case .denied:
-            note("Apex Rivals can't see your Game Center friends. You can allow it in Settings, under Game Center.")
+            note("Needle can't see your Game Center friends. You can allow it in Settings, under Game Center.")
         case .unavailable:
             note("Friends' times aren't available right now. Try again when you're online.")
         case .ready(let friends) where friends.isEmpty:
