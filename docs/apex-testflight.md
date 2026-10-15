@@ -87,9 +87,11 @@ Friends group's link changes, or once the game is on the App Store, change it th
 
 **Renaming to Needle in App Store Connect.** The build carries the name under the icon; App Store Connect carries
 the rest, and Game Center and TestFlight show its name. The Test Information below has been in TestFlight since
-2026-10-15. The app's name under App Information is still Apex Rivals: "Needle" alone is taken by another
-developer's app (App Store Connect refuses it as a duplicate), so it needs a longer name, such as "Needle: Thread the
-Line". The bundle ID and SKU can't change and don't need to.
+2026-10-15. "Needle" alone is taken by another developer's app (App Store Connect refuses it as a duplicate, though no
+live app has it, so a store search can't settle a name), so since 2026-10-15 the name under App Information is
+**Ghost Thread**, which holds it for this app while Kraig decides the game's name. Until the build is renamed to
+match, the name under the icon (Needle) differs from TestFlight's. The bundle ID and SKU can't change and don't need
+to.
 
 Only one build of a version can wait for beta review at a time. To replace one that's still waiting (say, with a fix),
 expire it first: that takes it out of the queue (TestFlight has no other way to withdraw it), and the new build can be
