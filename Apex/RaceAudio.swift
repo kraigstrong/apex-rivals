@@ -158,8 +158,10 @@ final class Synth {
     // Engine
     private var pitch = 0.0, enginePhase = 0.0, engineGain = 0.0, low1 = 0.0, low2 = 0.0
     private var firingStretch = 1.0, firingStrength = 1.0, bodyLow = 0.0, bodyBand = 0.0
+    #if DEBUG
     /// Cylinder firings so far, for the tests.
     private(set) var firings = 0
+    #endif
     // Tires
     private var tireGain = 0.0, squealGain = 0.0, svfLow = 0.0, svfBand = 0.0, squealPhase = 0.0, vibrato = 0.0
     // Curbs
@@ -239,7 +241,9 @@ final class Synth {
                 firingStretch = 1 + rough * 0.05 * white()
                 firingStrength = 1 + rough * 0.6 * white()
                 kick = 6 * firingStrength
+                #if DEBUG
                 firings &+= 1
+                #endif
             }
             // A breath of noise between firings.
             kick += rough * 0.15 * white()
