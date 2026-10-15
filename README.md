@@ -71,9 +71,12 @@ What the game shows you:
   car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
 - **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
 - **Session summary**: the checkered flag ends a session (so does leaving the app); it's dimmed until you finish a
-  lap, since there's nothing to sum up before that. The summary shows the session's
-  best lap, its medal (NEW the first time) and the next one to chase, and where it falls among other players' bests:
-  the share it beats, its place, and a histogram of everyone's times with yours marked. Xcode builds show labeled sample players while the lap service is off.
+  lap, since there's nothing to sum up before that. The summary shows the session's best lap, its medal (NEW the
+  first time) and the next one to chase, and its standing among other players' bests. First place says "Fastest". A
+  board of fewer than 10 players shows your place ("3rd of 5") and a dot for each player, yours in your car's color;
+  a bigger one shows the top share you're in ("Top 12%", or your place in the slower half) over a histogram of
+  everyone's times, the players you beat lit. The share card words it the same way. Xcode builds show labeled sample
+  players while the lap service is off.
 - **Share**: the summary's SHARE button opens the share sheet with a picture of the session's best lap (the circuit
   drawn to scale with your line on it in your car's color, the time, its medal and, if it beats anyone, its standing) and a line of text:
   "27.843 at Ardennes in Apex Rivals, a gold medal lap. Beat it:" and the link to the game (`ApexLinks.join`, the

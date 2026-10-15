@@ -161,6 +161,63 @@ struct StandingTests {
         #expect(standing.beatenShare == 1)
     }
 
+    /// `faster` other players ahead of you, of `others`.
+    func standing(_ faster: Int, of others: Int) -> Standing {
+        Standing(faster: faster, players: others, histogram: .init(fromMs: 28_000, widthMs: 250, counts: [others]))
+    }
+
+    @Test func theFirstOnABoardSaysSo() {
+        let alone = standing(0, of: 0)
+        #expect(alone.headline == "You're the first!")
+        #expect(alone.detail == nil)
+        #expect(alone.line == "You're the first!")
+    }
+
+    @Test func firstPlaceIsFastestOnAnyBoard() {
+        for others in [1, 8, 289] {
+            let first = standing(0, of: others)
+            #expect(first.headline == "Fastest")
+            #expect(first.detail == "of \(others + 1) players")
+            #expect(first.line == "Fastest of \(others + 1) players")
+        }
+    }
+
+    @Test func aSmallBoardShowsYourPlaceAndEachPlayer() {
+        // Nine players counting you is still small; ten isn't.
+        #expect(standing(1, of: 8).isSmallBoard)
+        #expect(!standing(1, of: 9).isSmallBoard)
+        let second = standing(1, of: 1)
+        #expect(second.headline == "2nd of 2")
+        #expect(second.detail == nil)
+        #expect(second.line == "2nd of 2 players")
+        #expect(standing(4, of: 8).headline == "5th of 9")
+    }
+
+    @Test func aBigBoardShowsTheTopShareYoureIn() {
+        let mid = standing(33, of: 289)
+        #expect(mid.headline == "Top 12%")
+        #expect(mid.detail == "34th of 290")
+        #expect(mid.line == "Top 12% · 34th of 290")
+        // Rounded up, so it never claims a better share than your place.
+        #expect(standing(1, of: 99).headline == "Top 2%")
+        #expect(standing(2, of: 9).headline == "Top 30%")
+        #expect(standing(4, of: 9).headline == "Top 50%")
+    }
+
+    @Test func theSlowerHalfOfABigBoardShowsYourPlace() {
+        let slow = standing(211, of: 289)
+        #expect(slow.headline == "212th of 290")
+        #expect(slow.detail == nil)
+        #expect(slow.line == "212th of 290 players")
+        #expect(standing(5, of: 9).headline == "6th of 10")
+    }
+
+    @Test func ordinalsReadAsWords() {
+        let ordinals = [1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 11: "11th", 12: "12th", 13: "13th", 21: "21st",
+                        22: "22nd", 101: "101st", 111: "111th", 112: "112th", 213: "213th"]
+        for (n, word) in ordinals { #expect(Standing.ordinal(n) == word) }
+    }
+
     /// The chart colors your bucket: none when you're ahead of everyone, the last one (it holds the slow tail) when
     /// you're behind the range.
     @Test func aLapFallsInItsBucket() {

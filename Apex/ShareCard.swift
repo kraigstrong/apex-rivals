@@ -119,7 +119,7 @@ struct ShareCard: View {
                     }
                 }
                 if let standing = share.boast {
-                    Text("Faster than \(Int((standing.beatenShare * 100).rounded(.down)))% of players · #\(standing.place) of \(standing.players + 1)")
+                    Text(standing.line)
                         .font(.system(size: 24, weight: .semibold, design: .rounded).monospacedDigit())
                         .opacity(0.9)
                 }
