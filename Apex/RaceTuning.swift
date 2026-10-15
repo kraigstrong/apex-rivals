@@ -130,6 +130,9 @@ enum RaceTuning {
     // Tuned in the Apex Sound Lab. Only how the race sounds: none of these are in `lapSignature`.
     static let soundMaster = 0.7
     static let engineLevel = 0.44
+    /// The growl's loudness against the Sound Lab's other engine voices, measured there so the level meant the same
+    /// for each. The lab shows it in its settings ("loudness"); bring it along with the level when retuning.
+    static let engineLoudness = 6.7388
     /// The engine's firing rate (Hz) across its revs, 0 to 1. Revs start at 0.25 (`SoundSettings.revs`), as in the
     /// Sound Lab, so the engine pulls away from the grid at about 61 firings a second and reaches 140 at top speed.
     static let enginePitch: ClosedRange<Double> = 35...140

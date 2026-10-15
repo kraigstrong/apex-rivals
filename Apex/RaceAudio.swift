@@ -171,10 +171,6 @@ final class Synth {
     private var musicGain = 0.0, step = 0, untilStep = 0.0
     private var noise: UInt32 = 0x9E37_79B9
 
-    /// The engine's gain at full level, as in the Sound Lab: its 0.22 base times the growl's loudness there (6.7388),
-    /// which evened the growl out against the lab's other engine voices.
-    private static let engineGainScale = 0.22 * 6.7388
-
     init(sampleRate: Double) {
         rate = sampleRate
         // Static tables are built on first use; touch them now, so it isn't the audio thread that builds them.
@@ -213,7 +209,7 @@ final class Synth {
         let pitchTarget = c.racing
             ? t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * s.revs(at: kmh) : pitch
         let swing = t.engineThrottleSwing
-        let engineTarget = on && c.racing ? t.engineLevel * Self.engineGainScale * (1 - swing + swing * c.throttle) : 0
+        let engineTarget = on && c.racing ? t.engineLevel * 0.22 * t.engineLoudness * (1 - swing + swing * c.throttle) : 0
         let engineCut = 1 - exp(-2 * .pi * (300 + 8000 * t.engineBrightness) / rate)
         let glide = smooth(0.03)
         let bodyF = 2 * sin(.pi * min(t.engineBody, rate / 6) / rate), bodyDamp = 1.0 / 3
