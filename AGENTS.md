@@ -37,6 +37,8 @@ CI (`.github/workflows/tests.yml`) runs the tests and a Release build on every P
 - **The lap service's wire format is shared** with BrightBench (`apps/marketing/src/lib/apex-laps.ts`). Change both
   together, and keep the service's privacy rules: laps are anonymous counters; only a salted hash of a Game Center
   player ID is stored, with the player's public alias, best time and ghost.
+- **Anything over the race holds it** (`RaceHUD.holdsRace`): panels, the ⚙︎ menu, Game Center and an inactive app.
+  Something new that covers the race (a panel, a sheet) adds itself there, or the lap clock runs on under it.
 - **Draw order:** the SpriteView ignores sibling order, so anything that overlaps needs its own depth
   (`TrackArt.Depth`).
 - **Debug-only tools go behind `#if DEBUG`**, like the autopilot and FPS launch arguments and the tuning panel

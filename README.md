@@ -75,6 +75,9 @@ What the game shows you:
   "27.843 at Ardennes in Apex Rivals, a gold medal lap. Beat it:" and the link to the game (`ApexLinks.join`, the
   public TestFlight link for now).
 - **Ideal line**: the ⚙︎ menu draws the minimum-curvature line on the track. The menu also clears your best lap.
+- **Holding still**: the race holds while anything is over it (the ⚙︎ menu or a panel from it, Game Center's
+  leaderboard, Control Center or a call) and picks up where it was once it's gone: the lap clock, the car and the
+  ghosts all wait. Only leaving the app ends the session.
 
 ## Online
 

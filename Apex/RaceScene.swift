@@ -175,8 +175,9 @@ final class RaceScene: SKScene {
         #if DEBUG
         retuneIfNeeded(at: currentTime)
         #endif
-        // Paused behind a panel: the lap picks up where it was once the panel closes.
-        if hud.showsPanel {
+        // Held still under a panel, the ⚙︎ menu or Game Center, or while the app isn't in front: the lap picks up
+        // where it was once nothing's over it.
+        if hud.holdsRace {
             lastTime = nil
             holdTouches.removeAll()
             RaceAudio.shared.drive(speedKmh: 0, throttle: 0, scrub: 0, onCurb: false, racing: false)

@@ -8,6 +8,13 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
 
     var isSignedIn: Bool { GKLocalPlayer.local.isAuthenticated }
 
+    /// Game Center's leaderboard is up: its overlay on iOS 26, or its view controller before that. The race holds
+    /// still under it.
+    var isShowingLeaderboard: Bool {
+        GKAccessPoint.shared.isPresentingGameCenter || leaderboard?.presentingViewController != nil
+    }
+    private weak var leaderboard: GKGameCenterViewController?
+
     /// Starts sign-in. Game Center shows its own sheet if the player needs to sign in. Once signed in, any best laps
     /// set while signed out go up.
     func signIn() {
@@ -40,6 +47,7 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
         let controller = GKGameCenterViewController(leaderboardID: board.leaderboardID, playerScope: .friendsOnly,
                                                     timeScope: .allTime)
         controller.gameCenterDelegate = self
+        leaderboard = controller
         Self.present(controller)
     }
 
