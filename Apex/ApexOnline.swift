@@ -162,6 +162,53 @@ struct Standing: Codable, Equatable {
     var beatenShare: Double { players > 0 ? Double(players - faster) / Double(players) : 1 }
     /// The lap's place counting you: 1 is fastest.
     var place: Int { faster + 1 }
+    /// Everyone on the board, counting you.
+    var field: Int { players + 1 }
+
+    /// A board this small (counting you) shows each player as a dot and your place, rather than a histogram and a
+    /// share: a share of a handful of players says little, and their laps bunch into one or two bars.
+    static let smallBoard = 10
+    var isSmallBoard: Bool { field < Self.smallBoard }
+
+    /// The session summary's headline: "You're the first!", "Fastest", "3rd of 5", "Top 12%", or on the slower half
+    /// of a big board, "212th of 290".
+    var headline: String {
+        if players == 0 { return "You're the first!" }
+        if place == 1 { return "Fastest" }
+        if isSmallBoard || !isTopHalf { return "\(Self.ordinal(place)) of \(field)" }
+        return "Top \(topPercent)%"
+    }
+
+    /// The line under the headline, if it needs one: "of 290 players" under "Fastest", "34th of 290" under "Top 12%".
+    var detail: String? {
+        if players == 0 { return nil }
+        if place == 1 { return "of \(field) players" }
+        if isSmallBoard || !isTopHalf { return nil }
+        return "\(Self.ordinal(place)) of \(field)"
+    }
+
+    /// Headline and detail as one line, for the share card: "Fastest of 290 players", "Top 12% · 34th of 290".
+    var line: String {
+        if players == 0 { return headline }
+        if place == 1 { return "Fastest of \(field) players" }
+        if isSmallBoard || !isTopHalf { return "\(Self.ordinal(place)) of \(field) players" }
+        return "Top \(topPercent)% · \(Self.ordinal(place)) of \(field)"
+    }
+
+    private var isTopHalf: Bool { place * 2 <= field }
+    /// The smallest whole percent of the field your place is within: 34th of 290 is the top 12%.
+    private var topPercent: Int { (100 * place + field - 1) / field }
+
+    /// 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st, 112th.
+    static func ordinal(_ n: Int) -> String {
+        if (11...13).contains(n % 100) { return "\(n)th" }
+        switch n % 10 {
+        case 1: return "\(n)st"
+        case 2: return "\(n)nd"
+        case 3: return "\(n)rd"
+        default: return "\(n)th"
+        }
+    }
 
     /// Made-up players for Xcode builds while the lap service is off, so the session summary can be seen: 240 bests
     /// spread like the bots' laps, from near-perfect to sloppy.

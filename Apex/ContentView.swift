@@ -707,44 +707,51 @@ struct SessionSummaryCard: View {
     }
 
     @ViewBuilder private var standingHeadline: some View {
+        let label = Text("STANDING").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
         switch standing {
         case .loading:
             VStack(alignment: .leading, spacing: 6) {
-                Text("VS OTHER PLAYERS").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
+                label
                 ProgressView().tint(.white)
             }
         case .unavailable:
             VStack(alignment: .leading, spacing: 2) {
-                Text("VS OTHER PLAYERS").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
+                label
                 Text("Standings will show here once you're online.")
                     .font(.system(size: 13, weight: .semibold, design: .rounded)).opacity(0.85)
             }
         case .ready(let standing, _):
             VStack(alignment: .leading, spacing: 2) {
-                Text("VS OTHER PLAYERS").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
-                // Beside a wide session best and medals, the headline shrinks to fit rather than cutting off.
-                if standing.players == 0 {
-                    Text("You're the first!").font(.system(size: 24, weight: .heavy, design: .rounded))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                } else {
-                    Text("Faster than \(Int((standing.beatenShare * 100).rounded(.down)))%")
-                        .font(.system(size: 28, weight: .heavy, design: .rounded).monospacedDigit())
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text("#\(standing.place) of \(standing.players + 1) players")
+                label
+                // Beside a wide session best and medals, the headline shrinks to fit rather than cutting off. Over a small
+                // board's dots it's short ("9th of 9" at most) and always fits, but SwiftUI shrinks it anyway when the
+                // dots are the column's widest line, so there it keeps its size.
+                let dots = standing.players > 0 && standing.isSmallBoard
+                Text(standing.headline)
+                    .font(.system(size: standing.players == 0 ? 24 : 28, weight: .heavy, design: .rounded)
+                        .monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(dots ? 1 : 0.6)
+                if let detail = standing.detail {
+                    Text(detail)
                         .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
                         .opacity(0.8)
+                }
+                if dots {
+                    RankDots(standing: standing).padding(.top, 8)
                 }
             }
         }
     }
 
+    /// A big board's histogram, under both columns. A small board's players are dots under the headline instead.
     @ViewBuilder private var standingDetail: some View {
-        if case .ready(let standing, let sample) = standing, standing.players > 0 {
+        if case .ready(let standing, let sample) = standing, standing.players > 0, sample || !standing.isSmallBoard {
             VStack(spacing: 4) {
-                StandingChart(standing: standing, lapMs: Int((summary.best * 1000).rounded()))
-                    .frame(height: 74)
+                if !standing.isSmallBoard {
+                    StandingChart(standing: standing, lapMs: Int((summary.best * 1000).rounded()))
+                        .frame(height: 74)
+                }
                 if sample {
                     Text("Sample players: the lap service isn't live yet")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
@@ -755,7 +762,47 @@ struct SessionSummaryCard: View {
     }
 }
 
-/// Other players' best laps as a histogram, with your lap marked: its bar in your car's red, and a line at its time.
+/// A small board's players as dots in finishing order, fastest first: yours in your car's color under YOU, the others
+/// outlined.
+struct RankDots: View {
+    let standing: Standing
+
+    var body: some View {
+        let yourColor = Livery.shared.paint(for: .car).markColor
+        // Nine dots fit the standing's 180-point column, so a small board never squeezes the session best beside it.
+        HStack(spacing: 6) {
+            ForEach(1...standing.field, id: \.self) { place in
+                VStack(spacing: 3) {
+                    Group {
+                        if place == standing.place {
+                            Circle().fill(yourColor)
+                        } else {
+                            Circle().strokeBorder(.white.opacity(0.45), lineWidth: 2)
+                        }
+                    }
+                    .frame(width: 14, height: 14)
+                    // Above your dot without widening the row.
+                    .overlay(alignment: .top) {
+                        if place == standing.place {
+                            Text("YOU").font(.system(size: 9, weight: .heavy, design: .rounded))
+                                .fixedSize()
+                                .offset(y: -13)
+                        }
+                    }
+                    Text("\(place)")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded).monospacedDigit())
+                        .opacity(0.55)
+                }
+            }
+        }
+        .padding(.top, 12)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Standing.ordinal(standing.place)) of \(standing.field) players")
+    }
+}
+
+/// Other players' best laps as a histogram, with your lap marked: the players it beats lit, those ahead of it dimmed,
+/// its own bar in your car's color, and a line at its time.
 struct StandingChart: View {
     let standing: Standing
     let lapMs: Int
@@ -763,22 +810,23 @@ struct StandingChart: View {
     var body: some View {
         let histogram = standing.histogram
         let counts = histogram.counts
-        let yourColor = Livery.shared.paint(for: .car).labelColor
+        let yourColor = Livery.shared.paint(for: .car).markColor
         Canvas { context, size in
             guard let tallest = counts.max(), tallest > 0 else { return }
             let markerRoom: CGFloat = 14, axisRoom: CGFloat = 16, gap: CGFloat = 2
             let plotHeight = size.height - markerRoom - axisRoom
             let barWidth = (size.width - gap * CGFloat(counts.count - 1)) / CGFloat(counts.count)
             let span = CGFloat(histogram.widthMs * counts.count)
-            // Your bar, if your lap falls among the others: a lap ahead of everyone colors no one else's bar.
+            // Your bar, if your lap falls among the others. Slower bars are players it beats; a lap ahead of everyone
+            // is in no bar and beats them all.
             let yours = histogram.bucket(of: lapMs)
             for (i, count) in counts.enumerated() where count > 0 {
                 let height = max(2, plotHeight * CGFloat(count) / CGFloat(tallest))
                 let rect = CGRect(x: CGFloat(i) * (barWidth + gap), y: markerRoom + plotHeight - height,
                                   width: barWidth, height: height)
                 let bar = UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2).path(in: rect)
-                context.fill(bar, with: .color(i == yours ? yourColor
-                                                           : .white.opacity(0.32)))
+                let beaten = yours.map { i > $0 } ?? true
+                context.fill(bar, with: .color(i == yours ? yourColor : .white.opacity(beaten ? 0.75 : 0.2)))
             }
             // Baseline.
             context.fill(Path(CGRect(x: 0, y: markerRoom + plotHeight, width: size.width, height: 1)),

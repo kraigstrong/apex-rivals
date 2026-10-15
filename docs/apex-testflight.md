@@ -139,7 +139,8 @@ With a second phone on a different Game Center account (a friend's, or a test ac
 
 - Set a lap on the same circuit on both, the second phone a little faster (0.2–3 s). Relaunch the slower phone and
   open that circuit: its rival is the faster player's ghost, named with their Game Center alias.
-- The flag on either phone shows a real standing: "#1 of 2" or "#2 of 2", and the histogram.
+- The flag on either phone shows a real standing: "Fastest of 2 players" or "2nd of 2", with a dot for each player
+  and yours in your car's color.
 - Both times show on the circuit's leaderboard (friends board if you're Game Center friends, global board either
   way).
 - If the two accounts are Game Center friends: ⚙︎ → Race a friend on the slower phone asks to share the friends list,

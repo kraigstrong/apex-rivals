@@ -204,6 +204,12 @@ extension Paint {
         if luminance(stripe) >= 0.3 { return Color(rgb: stripe) }
         return Color(rgb: (body.r * 0.5 + 0.5, body.g * 0.5 + 0.5, body.b * 0.5 + 0.5))
     }
+
+    /// The paint as a shape on a dark panel, like your bar in the session summary's chart: the body, unless it's too
+    /// dark to see there. A shape needs less contrast than text, so racing red stays red where its label is white.
+    var markColor: Color {
+        0.2126 * body.r + 0.7152 * body.g + 0.0722 * body.b >= 0.2 ? color : labelColor
+    }
 }
 
 /// The car in a paint, on a patch of asphalt; a ghost is see-through, as on track.
