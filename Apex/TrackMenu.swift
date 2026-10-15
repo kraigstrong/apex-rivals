@@ -28,12 +28,7 @@ struct TrackMenu: View {
                 HStack(alignment: .top, spacing: 12) {
                     SchoolButton(done: schoolDone) { onSelect(TrackCatalog.school.layout.id) }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    VStack(spacing: 6) {
-                        Text("APEX RIVALS")
-                            .font(.system(size: 34, weight: .black, design: .rounded).italic())
-                        CurbStripe().frame(width: 200, height: 6)
-                    }
-                    .fixedSize()
+                    NeedleLogo()
                     Button {
                         showsColors = true
                     } label: {
