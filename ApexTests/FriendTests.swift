@@ -54,4 +54,15 @@ struct FriendTests {
         FriendPick.save(.init(token: "x", name: "X"), on: board, player: nil, defaults: defaults)
         #expect(defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix("apex.raceFriend") }.count == 1)
     }
+
+    /// A friend only shows once they've let the game see their friends, so the picker's notes say so.
+    @Test func thePickerSaysWhyNoFriendsShow() throws {
+        let none = try #require(FriendList.noneShared.note(on: "Ardennes"))
+        #expect(none.contains("let Ghost Thread see their friends"))
+        let noTimes = try #require(FriendList.ready([]).note(on: "Ardennes"))
+        #expect(noTimes.hasPrefix("None of your Game Center friends have a time on Ardennes yet."))
+        #expect(noTimes.contains("haven't let Ghost Thread see their friends"))
+        #expect(FriendList.ready([FriendTime(token: "t", name: "Alice", time: 27.5)]).note(on: "Ardennes") == nil)
+        #expect(FriendList.loading.note(on: "Ardennes") == nil)
+    }
 }

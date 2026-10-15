@@ -11,8 +11,9 @@ Rivals, then briefly Needle; the bundle ID and Game Center IDs keep the first na
 - `ITSAppUsesNonExemptEncryption = NO`: the only encryption is the system's HTTPS.
 - Category: Racing games.
 - Game Center (`Apex/Apex.entitlements`): sign-in at launch, each personal best submitted to the circuit's
-  leaderboard, each medal reported as an achievement, the trophy button opening the friends board, and Race a friend,
-  which asks to see the friends list (`NSGKFriendListUsageDescription` in `Apex-Info.plist`).
+  leaderboard, each medal reported as an achievement, the trophy button opening the friends board, and Race a friend.
+  The track list asks to see the friends list once the player's signed in (`NSGKFriendListUsageDescription` in
+  `Apex-Info.plist`): Game Center only lists friends who've both allowed it.
 - The lap service is on (`ApexOnline.isEnabled`): every lap counted anonymously at `brightbench.app/api/apex/laps`,
   each personal best's ghost shared under the player's Game Center alias, rivals from other players' ghosts, and real
   standings at the end of a session. Lap batches are tagged `testflight` for beta installs. Race a friend needs
@@ -152,8 +153,10 @@ With a second phone on a different Game Center account (a friend's, or a test ac
   and yours in your car's color.
 - Both times show on the circuit's leaderboard (friends board if you're Game Center friends, global board either
   way).
-- If the two accounts are Game Center friends: ⚙︎ → Race a friend on the slower phone asks to share the friends list,
-  then lists the other player with their time and how far ahead they are. Pick them: the gold rival is their ghost,
+- If the two accounts are Game Center friends: on each phone, the track list asks to share the friends list after
+  sign-in; allow it on both (Game Center lists only friends who've both allowed it). Then ⚙︎ → Race a friend on the
+  slower phone lists the other player with their time and how far ahead they are. Before the other phone has allowed
+  it, the picker says no friends show yet and why. Pick them: the gold rival is their ghost,
   named as Game Center names them, and it stays after you beat it, and after relaunching. Pick Auto to go back.
 - In Airplane Mode, laps still save on the device; back online, the next lap sends the queued ones.
 

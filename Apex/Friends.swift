@@ -29,8 +29,33 @@ enum FriendList: Equatable {
     case denied
     /// The lap service didn't answer.
     case unavailable
+    /// Game Center listed no friends: it only lists those who've let the game see their own friends.
+    case noneShared
     /// Friends with a best on this board, fastest first; none yet if empty.
     case ready([FriendTime])
+
+    /// What the picker says in place of friends, on the circuit named `track`: nil while loading, or when there are
+    /// friends to list.
+    func note(on track: String) -> String? {
+        switch self {
+        case .loading:
+            return nil
+        case .signedOut:
+            return "Sign in to Game Center to race your friends' best laps."
+        case .denied:
+            return "Ghost Thread can't see your Game Center friends. You can allow it in Settings, under Game Center."
+        case .unavailable:
+            return "Friends' times aren't available right now. Try again when you're online."
+        case .noneShared:
+            return "No friends to show yet. Game Center only lists a friend once they've let Ghost Thread see their "
+                + "friends, which it asks them on the track list. Share a lap to invite them."
+        case .ready(let friends) where friends.isEmpty:
+            return "None of your Game Center friends have a time on \(track) yet. Share a lap to invite them. Friends "
+                + "who haven't let Ghost Thread see their friends don't show up here."
+        case .ready:
+            return nil
+        }
+    }
 }
 
 /// The friend picked to race on each board, kept on the device until Auto is picked again. A pick belongs to the Game
@@ -75,7 +100,35 @@ extension GameCenter {
         isSignedIn ? ApexOnline.playerToken(GKLocalPlayer.local.teamPlayerID) : nil
     }
 
-    /// The signed-in player's Game Center friends. The first time, Game Center asks the player whether to share them.
+    /// GameKit's notice that the player signed in or out.
+    static var authenticationChanged: Notification.Name { .GKPlayerAuthenticationDidChangeNotificationName }
+
+    /// The player (`teamPlayerID`) asked this launch, so the track list's two triggers (appearing, and sign-in
+    /// finishing) don't ask them twice. Friends access is each player's own, so another account signing in is asked.
+    private static var askedForFriends: String?
+
+    /// Asks the signed-in player whether to share their friends list, if they haven't answered. Game Center only lists
+    /// a player in their friends' Race a friend once they've allowed it, so asking only from the picker would leave
+    /// anyone who never opens it invisible. The track list asks after sign-in; `stillOnMenu` keeps Game Center's
+    /// prompt from opening over a race that started meanwhile.
+    func askForFriends(stillOnMenu: @escaping () -> Bool) {
+        let local = GKLocalPlayer.local
+        let player = local.teamPlayerID
+        guard local.isAuthenticated, Self.askedForFriends != player else { return }
+        local.loadFriendsAuthorizationStatus { status, error in
+            DispatchQueue.main.async {
+                // Still the same player, still on the list, and not asked meanwhile by the other trigger.
+                guard status == .notDetermined, error == nil, stillOnMenu(), local.isAuthenticated,
+                      local.teamPlayerID == player, Self.askedForFriends != player else { return }
+                Self.askedForFriends = player
+                // Loading the friends list is what asks.
+                local.loadFriends { _, _ in }
+            }
+        }
+    }
+
+    /// The signed-in player's Game Center friends who've let the game see their friends too (Game Center lists no
+    /// others). If the player hasn't answered yet, Game Center asks them whether to share them.
     func loadFriends(completion: @escaping (Friends) -> Void) {
         let local = GKLocalPlayer.local
         guard local.isAuthenticated else { return completion(.signedOut) }
@@ -141,20 +194,14 @@ struct FriendPicker: View {
         switch list {
         case .loading:
             ProgressView().tint(.white).padding(.vertical, 12)
-        case .signedOut:
-            note("Sign in to Game Center to race your friends' best laps.")
-        case .denied:
-            note("Ghost Thread can't see your Game Center friends. You can allow it in Settings, under Game Center.")
-        case .unavailable:
-            note("Friends' times aren't available right now. Try again when you're online.")
-        case .ready(let friends) where friends.isEmpty:
-            note("None of your Game Center friends have a time on \(trackName) yet. Share a lap to invite them.")
-        case .ready(let friends):
+        case .ready(let friends) where !friends.isEmpty:
             ForEach(friends) { friend in
                 row(title: friend.name, detail: gap(friend.time), time: friend.time, picked: racing == friend.token) {
                     onPick(friend)
                 }
             }
+        default:
+            if let text = list.note(on: trackName) { note(text) }
         }
     }
 

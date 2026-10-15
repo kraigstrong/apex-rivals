@@ -52,8 +52,11 @@ What the game shows you:
 - **Race a friend**: the ⚙︎ menu lists your Game Center friends with a time on the circuit (fastest first, with how
   far ahead or behind you they are). Pick one and their best lap is your gold rival, on this circuit, until you pick
   Auto again; beating them doesn't swap them out. The pick belongs to your Game Center account, so another account on
-  the same device starts on Auto, and a friend who's no longer one is dropped the next time the list loads. The first time, Game Center asks whether to share your friends
-  list. Offline, or if their lap can't be found, the rival is the usual pick until it can.
+  the same device starts on Auto, and a friend who's no longer one is dropped the next time the list loads. Game
+  Center only lists friends who've let the game see their friends too, so the track list asks for yours once you're
+  signed in (Game Center's own prompt, never over a race); without that, your friends couldn't race you even if you
+  never open Race a friend. A friend who hasn't allowed it doesn't show, and the picker says so. Offline, or if their
+  lap can't be found, the rival is the usual pick until it can.
 - **Medals**: bronze, silver, gold and platinum on each circuit, for beating a bot's lap there (see Tuning): a sloppy
   weaver's, the middle of the road's, and the ideal line's at human reaction speed (90 ms) and at a quick 50 ms. The
   track list shows each circuit's best medal and the next to chase (an outline and its time), as does the start card.
