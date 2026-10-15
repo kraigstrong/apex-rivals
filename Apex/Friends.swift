@@ -103,8 +103,9 @@ extension GameCenter {
     /// GameKit's notice that the player signed in or out.
     static var authenticationChanged: Notification.Name { .GKPlayerAuthenticationDidChangeNotificationName }
 
-    /// Asked once this launch, so the track list's two triggers (appearing, and sign-in finishing) don't ask twice.
-    private static var askingForFriends = false
+    /// The player (`teamPlayerID`) asked this launch, so the track list's two triggers (appearing, and sign-in
+    /// finishing) don't ask them twice. Friends access is each player's own, so another account signing in is asked.
+    private static var askedForFriends: String?
 
     /// Asks the signed-in player whether to share their friends list, if they haven't answered. Game Center only lists
     /// a player in their friends' Race a friend once they've allowed it, so asking only from the picker would leave
@@ -112,11 +113,14 @@ extension GameCenter {
     /// prompt from opening over a race that started meanwhile.
     func askForFriends(stillOnMenu: @escaping () -> Bool) {
         let local = GKLocalPlayer.local
-        guard local.isAuthenticated, !Self.askingForFriends else { return }
+        let player = local.teamPlayerID
+        guard local.isAuthenticated, Self.askedForFriends != player else { return }
         local.loadFriendsAuthorizationStatus { status, error in
             DispatchQueue.main.async {
-                guard status == .notDetermined, error == nil, stillOnMenu(), !Self.askingForFriends else { return }
-                Self.askingForFriends = true
+                // Still the same player, still on the list, and not asked meanwhile by the other trigger.
+                guard status == .notDetermined, error == nil, stillOnMenu(), local.isAuthenticated,
+                      local.teamPlayerID == player, Self.askedForFriends != player else { return }
+                Self.askedForFriends = player
                 // Loading the friends list is what asks.
                 local.loadFriends { _, _ in }
             }
