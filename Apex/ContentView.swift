@@ -570,7 +570,9 @@ struct RaceMenu: UIViewRepresentable {
 
 /// A `RoundIcon` as a UIKit button whose menu opens on a tap, and which says when the menu opens and closes.
 final class MenuButton: UIButton {
-    /// Called with true as the menu opens, and false as it starts to close (on a pick, or a tap anywhere else).
+    /// Called with true as the menu opens, and false as it starts to close (on a pick, or a tap anywhere else). Not
+    /// when the closing animation completes: UIKit finishes that over a second after the menu has faded from view, and
+    /// the race would sit frozen with nothing over it.
     var onOpen: (Bool) -> Void = { _ in }
 
     init(symbol: String) {
