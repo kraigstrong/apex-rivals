@@ -19,6 +19,8 @@ struct TrackMenu: View {
     @State private var showsColors = false
     /// Apex School has been graduated or skipped, so it no longer needs pointing out.
     @State private var schoolDone = SchoolProgress.isDone()
+    /// The list is up, not a race: Game Center's friends prompt only opens over the list.
+    @State private var onScreen = false
 
     var body: some View {
         ZStack {
@@ -76,7 +78,17 @@ struct TrackMenu: View {
                 LapStore.load(for: track).map { (track.layout.id, $0.time) }
             })
             schoolDone = SchoolProgress.isDone()
+            onScreen = true
+            askForFriends()
         }
+        .onDisappear { onScreen = false }
+        // Sign-in usually finishes after the list is up.
+        .onReceive(NotificationCenter.default.publisher(for: GameCenter.authenticationChanged)) { _ in askForFriends() }
+    }
+
+    /// Asks for the friends list if the player hasn't answered, so their friends can race their laps.
+    private func askForFriends() {
+        GameCenter.shared.askForFriends { onScreen }
     }
 }
 

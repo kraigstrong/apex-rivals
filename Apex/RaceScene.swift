@@ -495,6 +495,8 @@ final class RaceScene: SKScene {
                     guard let self, let friend = self.friend, names[friend.token] == nil else { return }
                     self.forgetFriend()
                 }
+                // Game Center lists only friends who've let the game see their friends too.
+                guard !players.isEmpty else { return finish(.noneShared) }
                 ApexService.friendTimes(Array(names.keys), on: board) { answer in
                     finish(answer.map { .ready(FriendTime.list($0, names: names)) } ?? .unavailable)
                 }
