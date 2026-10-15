@@ -220,19 +220,3 @@ struct MowedGrass: View {
     }
 }
 
-/// A run of red and white curb blocks.
-struct CurbStripe: View {
-    var body: some View {
-        Canvas { context, size in
-            let block: CGFloat = 12
-            var x: CGFloat = 0
-            var red = true
-            while x < size.width {
-                context.fill(Path(CGRect(x: x, y: 0, width: min(block, size.width - x), height: size.height)),
-                             with: .color(red ? Color(red: 0.86, green: 0.13, blue: 0.13) : .white))
-                x += block
-                red.toggle()
-            }
-        }
-    }
-}

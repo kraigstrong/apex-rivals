@@ -18,10 +18,10 @@ struct LapShare {
     /// The standing worth showing off: only when the lap beats someone.
     var boast: Standing? { standing.flatMap { $0.players > 0 && $0.faster < $0.players ? $0 : nil } }
 
-    /// "27.843 at Ardennes in Apex Rivals, a gold medal lap. Beat it: https://…"
+    /// "27.843 at Ardennes in Needle, a gold medal lap. Beat it: https://…"
     var message: String {
         let medalPart = medal.map { ", a \($0.name.lowercased()) medal lap" } ?? ""
-        return "\(LapFormat.time(lap.time)) at \(track.layout.name) in Apex Rivals\(medalPart). Beat it: \(ApexLinks.join.absoluteString)"
+        return "\(LapFormat.time(lap.time)) at \(track.layout.name) in Needle\(medalPart). Beat it: \(ApexLinks.join.absoluteString)"
     }
 
     @MainActor func image() -> UIImage? {
@@ -96,11 +96,8 @@ struct ShareCard: View {
                 .frame(width: 600, height: 595)
                 .background(.black.opacity(0.5), in: RoundedRectangle(cornerRadius: 28))
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("APEX RIVALS")
-                        .font(.system(size: 40, weight: .black, design: .rounded).italic())
-                    CurbStripe().frame(width: 236, height: 8)
-                }
+                // The track list's logo, with the sharer's car towing the line.
+                NeedleLogo(scale: 1.7)
                 Spacer(minLength: 0)
                 Text(share.track.layout.name.uppercased())
                     .font(.system(size: 34, weight: .heavy, design: .rounded).italic())

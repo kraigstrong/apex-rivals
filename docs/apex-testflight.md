@@ -1,6 +1,7 @@
-# Apex Rivals on TestFlight
+# Needle on TestFlight
 
-How to get an Apex Rivals beta to friends, so you can race each other's times and ghosts.
+How to get a Needle beta to friends, so you can race each other's times and ghosts. (Needle was Apex Rivals; the app
+record, bundle ID and Game Center IDs keep that name's `apex`.)
 
 ## What the build has
 
@@ -48,8 +49,9 @@ Everything between here and a public TestFlight link, in order. The code is in p
    curl -s -o /dev/null -w "%{http_code}\n" "https://brightbench.app/api/apex/rival?track=ardennes&revision=1&physics=1&ms=29500"
    ```
 
-6. **Create the app record** in App Store Connect: Apps, then + New App. iOS, name **Apex Rivals** (the home-screen
-   name stays Apex), bundle ID `com.kraigstrong.apex`, SKU `apex`, primary language English (U.S.).
+6. **Create the app record** in App Store Connect: Apps, then + New App. iOS, name **Needle**, bundle ID
+   `com.kraigstrong.apex`, SKU `apex`, primary language English (U.S.). (It was created as Apex Rivals; see Renaming
+   below.)
 7. **Game Center:** on the app's Services tab, add a Classic Leaderboard for each circuit: `apex.ardennes.r1.p1`,
    `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and `apex.harbor.r1.p1`. Score
    format: Elapsed Time, to the hundredth of a second. Sort: low to high. Reference and display name: the circuit's
@@ -83,6 +85,12 @@ Everything between here and a public TestFlight link, in order. The code is in p
 The app's shared laps link to the public TestFlight link (`ApexLinks.join` in `Apex/ShareCard.swift`). If the
 Friends group's link changes, or once the game is on the App Store, change it there.
 
+**Renaming to Needle in App Store Connect.** The build carries the name under the icon; App Store Connect carries
+the rest, and Game Center and TestFlight show its name. Once no build is waiting for beta review: under App
+Information, set the name to Needle (App Store names are unique, so if it's taken, try a longer one such as "Needle:
+Thread the Line"), then paste the Test Information below into TestFlight. The bundle ID and SKU can't change and
+don't need to.
+
 Only one build of a version can wait for beta review at a time. To replace one that's still waiting (say, with a fix),
 expire it first: that takes it out of the queue (TestFlight has no other way to withdraw it), and the new build can be
 submitted. Later builds of an approved version usually clear review quickly.
@@ -93,8 +101,9 @@ Ready to paste into App Store Connect.
 
 **Beta App Description**
 
-> Apex Rivals is a one-touch racing game. Hold to steer up, let go to steer down, and set the fastest lap you can on
-> six F1-style circuits. Straight is fast: every weave costs speed, so swing wide, clip the apex and run out wide.
+> Needle is a one-touch racing game: thread the needle through every corner. Hold to steer up, let go to steer
+> down, and set the fastest lap you can on six F1-style circuits. Straight is fast: every weave costs speed, so swing
+> wide, clip the apex and run out wide.
 > Race your best lap's ghost, chase a rival who's a little faster than you, and see where your lap falls among
 > everyone else's.
 
@@ -111,8 +120,9 @@ Feedback email: your choice. A privacy policy isn't needed for TestFlight.
 
 On a physical iPhone, signed in to Game Center, with a fresh install:
 
-- The Game Center welcome banner shows at launch, then the track list: the yellow Apex School button marked START
-  HERE top left, and the six circuits scrolling sideways.
+- The app is called Needle under its icon. The Game Center welcome banner shows at launch, then the track list: the
+  NEEDLE logo with your car towing its line through the letters, the yellow Apex School button marked START HERE top
+  left, and the six circuits scrolling sideways.
 - Apex School: the yellow line, TURN IN / APEX / EXIT, the coach's three cues with a tick at turn-in and the apex,
   a verdict after each corner, your trail, and no ghosts. The second real apex (turned in to from wide) brings
   "You're ready", whose button goes to the track list; afterwards the home button is quiet. Riding the inside wall
@@ -127,9 +137,9 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.
 - The flag is dimmed until you finish a lap. Then it ends a session: the summary shows your best lap and, with no one
   else on the board yet, "You're the first!" The trophy opens the circuit's leaderboard with your time on it.
-- SHARE on the summary opens the share sheet: a picture of the circuit with your line in your car's color, the time,
-  medal and standing, and text ending with the public TestFlight link. Send it to yourself in Messages: the link
-  opens TestFlight.
+- SHARE on the summary opens the share sheet: a picture of the circuit with your line in your car's color, the
+  NEEDLE logo, the time, medal and standing, and text ("… in Needle …") ending with the public TestFlight link.
+  Send it to yourself in Messages: the link opens TestFlight.
 - Open ⚙︎ mid-lap: the lap clock, the car and the engine stop until the menu closes, then carry on from the same
   time. The trophy's leaderboard holds the race the same way until it's closed, as does pulling down Control Center.
 - Best laps survive force-quitting and reopening. Background the app mid-lap: the session ends and its summary is

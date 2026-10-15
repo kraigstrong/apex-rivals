@@ -1,6 +1,8 @@
-# Apex
+# Needle
 
-A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+). Working title.
+A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+): thread the needle through
+every corner. It was Apex Rivals; Apex is still its code name, kept by the project, the bundle ID
+(`com.kraigstrong.apex`), the Game Center IDs, the lap service and saved data, so nothing already stored moves.
 
 **Hold to steer up. Let go to steer down.** Pick a circuit from the track list and set the fastest lap you can. A
 good lap is about 30 seconds on each. The six circuits are original, each with the feel of a famous F1 track:
@@ -78,9 +80,9 @@ What the game shows you:
   everyone's times, the players you beat lit. The share card words it the same way. Xcode builds show labeled sample
   players while the lap service is off.
 - **Share**: the summary's SHARE button opens the share sheet with a picture of the session's best lap (the circuit
-  drawn to scale with your line on it in your car's color, the time, its medal and, if it beats anyone, its standing) and a line of text:
-  "27.843 at Ardennes in Apex Rivals, a gold medal lap. Beat it:" and the link to the game (`ApexLinks.join`, the
-  public TestFlight link for now).
+  drawn to scale with your line on it in your car's color, the NEEDLE logo, the time, its medal and, if it beats
+  anyone, its standing) and a line of text: "27.843 at Ardennes in Needle, a gold medal lap. Beat it:" and the link
+  to the game (`ApexLinks.join`, the public TestFlight link for now).
 - **Ideal line**: the ⚙︎ menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 - **Holding still**: the race holds while anything is over it (the ⚙︎ menu or a panel from it, Game Center's
   leaderboard, Control Center or a call) and picks up where it was once it's gone: the lap clock, the car and the

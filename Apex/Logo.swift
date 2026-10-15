@@ -4,13 +4,16 @@ import SwiftUI
 /// front of one and behind the next, the way a needle threads them.
 struct NeedleLogo: View {
     static let size = CGSize(width: 250, height: 56)
+    /// Bigger than the track list's, as on the share card, still drawn sharp.
+    var scale: CGFloat = 1
 
     var body: some View {
         let paint = Livery.shared.paint(for: .car)
-        Canvas { context, size in
-            Self.draw(context, size: size, paint: paint)
+        Canvas { context, _ in
+            context.scaleBy(x: scale, y: scale)
+            Self.draw(context, size: Self.size, paint: paint)
         }
-        .frame(width: Self.size.width, height: Self.size.height)
+        .frame(width: Self.size.width * scale, height: Self.size.height * scale)
         .accessibilityElement()
         .accessibilityLabel("Needle")
         .accessibilityAddTraits(.isHeader)
