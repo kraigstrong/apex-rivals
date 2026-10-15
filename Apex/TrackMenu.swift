@@ -177,6 +177,8 @@ struct TrackCard: View {
 /// A circuit's shape, north up, with the start/finish line marked.
 struct TrackOutline: View {
     let track: Track
+    /// The line's width; its glow and the start/finish dot are three times it.
+    var lineWidth: CGFloat = 3
 
     var body: some View {
         Canvas { context, size in
@@ -190,11 +192,13 @@ struct TrackOutline: View {
             var path = Path()
             path.addLines(stride(from: 0, to: track.count, by: 20).map(map))
             path.closeSubpath()
-            context.stroke(path, with: .color(.white.opacity(0.25)), style: StrokeStyle(lineWidth: 9, lineJoin: .round))
-            context.stroke(path, with: .color(.white), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
+            let glow = lineWidth * 3
+            context.stroke(path, with: .color(.white.opacity(0.25)),
+                           style: StrokeStyle(lineWidth: glow, lineJoin: .round))
+            context.stroke(path, with: .color(.white), style: StrokeStyle(lineWidth: lineWidth, lineJoin: .round))
             let start = map(0)
-            context.fill(Path(ellipseIn: CGRect(x: start.x - 4.5, y: start.y - 4.5, width: 9, height: 9)),
-                         with: .color(Color(red: 0.95, green: 0.15, blue: 0.1)))
+            let dot = CGRect(x: start.x - glow / 2, y: start.y - glow / 2, width: glow, height: glow)
+            context.fill(Path(ellipseIn: dot), with: .color(Color(red: 0.95, green: 0.15, blue: 0.1)))
         }
         .accessibilityHidden(true)
     }

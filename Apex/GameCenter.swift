@@ -16,14 +16,16 @@ final class GameCenter: NSObject, GKGameCenterControllerDelegate {
     private weak var leaderboard: GKGameCenterViewController?
 
     /// Starts sign-in. Game Center shows its own sheet if the player needs to sign in. Once signed in, any best laps
-    /// set while signed out go up.
+    /// set while signed out go up, and so do the medals they won (`Achievements`).
     func signIn() {
         GKLocalPlayer.local.authenticateHandler = { controller, _ in
             if let controller {
                 Self.present(controller)
                 return
             }
-            if GKLocalPlayer.local.isAuthenticated { BestLapDelivery.sendSaved() }
+            guard GKLocalPlayer.local.isAuthenticated else { return }
+            BestLapDelivery.sendSaved()
+            Achievements.shared.signedIn()
         }
     }
 

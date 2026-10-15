@@ -344,7 +344,10 @@ final class RaceScene: SKScene {
                 hud.bestLap = lap.time
                 if let best = session.timer.best, !isAutopilot {
                     LapStore.save(best, for: track)
-                    if !practice { BestLapDelivery.send(best, on: board, key: LapStore.key(for: track)) }
+                    if !practice {
+                        BestLapDelivery.send(best, on: board, key: LapStore.key(for: track))
+                        Achievements.shared.report(Medal.achievements(earnedBy: best.time, on: track.layout))
+                    }
                 }
                 let detail = beatRival ? "BEAT \(rival?.name.uppercased() ?? "RIVAL")"
                     : lap.delta.map { "BEST " + LapFormat.delta($0) } ?? "BEST"
@@ -703,8 +706,12 @@ final class RaceScene: SKScene {
             hud.botLaps = nil
             stopwatch.cancel()
             retuneSettles = time + 0.4
-            // Back on the stock car: any stock best that missed Game Center or the lap service goes up now.
-            if RaceTuning.isStock { BestLapDelivery.sendSaved() }
+            // Back on the stock car: any stock best that missed Game Center or the lap service goes up now, with its
+            // medals.
+            if RaceTuning.isStock {
+                BestLapDelivery.sendSaved()
+                Achievements.shared.report(Medal.achievementsEarnedBySavedBests())
+            }
         }
         tunedVersion = Tuner.shared.version
         if let settles = retuneSettles, time >= settles {

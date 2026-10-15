@@ -10,8 +10,8 @@ How to get an Apex Rivals beta to friends, so you can race each other's times an
 - `ITSAppUsesNonExemptEncryption = NO`: the only encryption is the system's HTTPS.
 - Category: Racing games.
 - Game Center (`Apex/Apex.entitlements`): sign-in at launch, each personal best submitted to the circuit's
-  leaderboard, the trophy button opening the friends board, and Race a friend, which asks to see the friends list
-  (`NSGKFriendListUsageDescription` in `Apex-Info.plist`).
+  leaderboard, each medal reported as an achievement, the trophy button opening the friends board, and Race a friend,
+  which asks to see the friends list (`NSGKFriendListUsageDescription` in `Apex-Info.plist`).
 - The lap service is on (`ApexOnline.isEnabled`): every lap counted anonymously at `brightbench.app/api/apex/laps`,
   each personal best's ghost shared under the player's Game Center alias, rivals from other players' ghosts, and real
   standings at the end of a session. Lap batches are tagged `testflight` for beta installs. Race a friend needs
@@ -54,6 +54,22 @@ Everything between here and a public TestFlight link, in order. The code is in p
    `apex.swirl.r1.p1`, `apex.snake.r1.p1`, `apex.mirage.r1.p1`, `apex.island.r1.p1` and `apex.harbor.r1.p1`. Score
    format: Elapsed Time, to the hundredth of a second. Sort: low to high. Reference and display name: the circuit's
    name (Ardennes, Swirl, Snake, Mirage, Island, Harbor).
+
+   Then an achievement for each medal on each circuit, 24 in all, named for the circuit and medal:
+   `apex.ardennes.bronze`, `apex.ardennes.silver`, `apex.ardennes.gold`, `apex.ardennes.platinum`, and the same for
+   `swirl`, `snake`, `mirage`, `island` and `harbor`. Reference name and title: "Ardennes Gold". Points: bronze 5,
+   silver 10, gold 20, platinum 40 (75 a circuit; Game Center allows 1,000 in all). Not hidden, not repeatable.
+   Image: `Art/achievements/<id>.png`.
+   Descriptions before and after earning, on Ardennes (the other circuits follow the same pattern):
+
+   - Bronze: "Win bronze at Ardennes: beat a sloppy weaver's lap." / "Bronze at Ardennes: you beat a sloppy weaver's
+     lap."
+   - Silver: "Win silver at Ardennes: beat a lap down the middle of the road." / "Silver at Ardennes: you beat a lap
+     down the middle of the road."
+   - Gold: "Win gold at Ardennes: beat the ideal line at human reaction speed." / "Gold at Ardennes: you beat the
+     ideal line at human reaction speed."
+   - Platinum: "Win platinum at Ardennes: beat the ideal line at a 50 ms reaction." / "Platinum at Ardennes: you beat
+     the ideal line at a 50 ms reaction."
 8. **Upload a build:** from `main`, tag it (`git tag apex-v0.1-beta.1`), then run `scripts/testflight.sh --upload`.
    It archives with automatic signing and uploads with Xcode managing the build number, like the Organizer's
    Distribute App > App Store Connect > Upload. `scripts/testflight.sh` alone just archives, to check it signs.
@@ -105,7 +121,9 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
   best lap shows the purple banner; the blue ghost replays it on the next lap.
 - Medals: each track card shows the next medal to win (an outline and its time; bronze to start). A lap that wins
   one shows it under the lap banner (SILVER MEDAL), the medal sits beside BEST in the timing panel, and the summary
-  says NEW SILVER MEDAL with the next one to chase.
+  says NEW SILVER MEDAL with the next one to chase. Game Center (the Games app, or the leaderboard's overlay) shows
+  the circuit's Bronze and Silver achievements earned, with no Game Center banner during the race. A device with best
+  laps from before achievements existed reports their medals at the next launch.
 - The gold rival is a Pace bot at first (no one else has a time). Beating it brings a new one.
 - The flag is dimmed until you finish a lap. Then it ends a session: the summary shows your best lap and, with no one
   else on the board yet, "You're the first!" The trophy opens the circuit's leaderboard with your time on it.

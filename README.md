@@ -56,6 +56,10 @@ What the game shows you:
   track list shows each circuit's best medal and the next to chase (an outline and its time), as does the start card.
   The timing panel shows the best lap's medal, and a lap that wins a new one says so in its banner. Only the stock car
   wins medals; Apex School has none.
+- **Achievements**: each medal on each circuit is also a Game Center achievement (`apex.ardennes.gold`); winning
+  gold earns bronze and silver with it. A best lap reports its medals as it's set, and signing in reports any the saved
+  best laps won while signed out or offline. Game Center's own banner stays off, since the lap banner already names the
+  medal.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
 - **Apex School**: the button top left of the track list (yellow, marked START HERE, until you've graduated or
   skipped it). A short tutorial with a goal: hit 2 apexes, each turned in to from wide (riding the inside wall doesn't
@@ -105,8 +109,10 @@ secrets, and the Game Center leaderboards) and the smoke check, including racing
 ## Running
 
 Open `Apex.xcodeproj`, pick an iPhone, iPad or simulator, and Run. The app icon is drawn by `Art/make-icon.py`
-(`python3 Art/make-icon.py` rewrites it). Signing uses automatic signing with team
-`MKACSCQ588`.
+(`python3 Art/make-icon.py` rewrites it). The achievements' art in `Art/achievements` (each circuit inside a ring in the
+medal's color) is drawn by `AchievementArtTests`, which only runs when asked:
+`TEST_RUNNER_APEX_DRAW_ACHIEVEMENTS=1 xcodebuild test ... -only-testing:ApexTests/AchievementArtTests`. Signing uses
+automatic signing with team `MKACSCQ588`.
 
 ```bash
 xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
@@ -179,6 +185,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
 - `Apex/AutoDriver.swift`: a bot that drives with hold/let-go to follow a line.
 - `Apex/Rivals.swift`: rivals, bot rivals tuned to a target lap time, and `RivalScout`, which picks the next one.
 - `Apex/Medals.swift`: medals: which one a lap wins on a circuit, the next to chase, and how they're drawn.
+- `Apex/Achievements.swift`: medals as Game Center achievements, and `Achievements`, which reports them.
 - `Apex/ShareCard.swift`: sharing a lap: the picture (`ShareCard`, with `LapLineMap` drawing its line), its text, and
   `ApexLinks.join`, where a shared lap sends people.
 - `Apex/RaceBoard.swift`, `Apex/GameCenter.swift`, `Apex/ApexOnline.swift`: boards, Game Center, and the lap service

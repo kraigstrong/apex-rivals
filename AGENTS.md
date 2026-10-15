@@ -28,7 +28,8 @@ CI (`.github/workflows/tests.yml`) runs the tests and a Release build on every P
   directions; `TrackTests` checks every circuit closes, never overlaps itself, and fits its corners, and
   `LapTimeTests` holds each to the same bot lap times. To add one: add it to `TrackLayout.all`, record its
   signature in `FreezeTests`, add its board to BrightBench's `apexBoards` (deployed before the app ships), and
-  create its Game Center leaderboard.
+  create its Game Center leaderboard and four medal achievements (draw their art with `AchievementArtTests`, then add
+  them to `AchievementTests`).
 - **Saved best laps are keyed by circuit and tuning** (`LapStore.key`), so changing either starts a fresh best lap.
   Add any new constant that changes how fast a lap can be to `RaceTuning.lapSignature`.
 - **Freeze boards before they're live.** Leaderboards are per `RaceBoard` (circuit, revision, physics version).
