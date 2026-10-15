@@ -129,12 +129,19 @@ enum RaceTuning {
 
     // Tuned in the Apex Sound Lab. Only how the race sounds: none of these are in `lapSignature`.
     static let soundMaster = 0.7
-    static let engineLevel = 0.3
-    /// The engine's pitch (Hz) across its revs, 0 to 1. Revs start at 0.25 (`SoundSettings.revs`), as in the Sound Lab,
-    /// so the engine pulls away from the grid at about 96 Hz and rises to 220 Hz at top speed.
-    static let enginePitch: ClosedRange<Double> = 55...220
-    /// Opens the engine's low-pass filter: 0 is dull (300 Hz), 1 the raw chip (8.3 kHz).
-    static let engineBrightness = 0.7
+    static let engineLevel = 0.44
+    /// The engine's firing rate (Hz) across its revs, 0 to 1. Revs start at 0.25 (`SoundSettings.revs`), as in the
+    /// Sound Lab, so the engine pulls away from the grid at about 61 firings a second and reaches 140 at top speed.
+    static let enginePitch: ClosedRange<Double> = 35...140
+    /// Opens the engine's low-pass filter: 0 is dull (300 Hz), 1 wide open (8.3 kHz).
+    static let engineBrightness = 0.5
+    /// How much quieter the engine is off the throttle: 0 holds its level, 1 silences it while the line brakes the car.
+    static let engineThrottleSwing = 0.5
+    /// Uneven firing: each cycle runs up to 5% long or short and fires up to 60% harder or softer, with a breath of
+    /// noise between. 0 is a perfectly even engine.
+    static let engineRoughness = 0.35
+    /// The resonance each firing rings (Hz), like an exhaust's: it gives the growl its vowel.
+    static let engineBody = 480.0
     static let tireLevel = 0.5
     static let tireHissPitch = 1800.0
     static let tireSqueal = 0.25

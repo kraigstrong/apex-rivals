@@ -2,9 +2,9 @@ import AVFoundation
 import Foundation
 import os
 
-/// The race's sound, synthesized as it plays: no audio files, so nothing to license. The engine is an 8-bit chip's buzz
-/// whose pitch rises and falls with the car's speed (no gear changes), the tires hiss and squeal with the same scrub that leaves skid
-/// marks, curbs rumble, walls thump, splits and best laps chime, and a synthwave loop plays underneath. Tuned in the
+/// The race's sound, synthesized as it plays: no audio files, so nothing to license. The engine growls, its firings
+/// coming faster and slower with the car's speed (no gear changes), the tires hiss and squeal with the same scrub that
+/// leaves skid marks, curbs rumble, walls thump, splits and best laps chime, and a synthwave loop plays underneath. Tuned in the
 /// Apex Sound Lab; these are its settings. It mixes with the player's own music and plays with the silent switch on
 /// (it's switched off in the menu).
 final class RaceAudio {
@@ -156,7 +156,10 @@ final class Synth {
     private var heard = SoundControls()
 
     // Engine
-    private var pitch = 0.0, untilPitchStep = 0.0, enginePhase = 0.0, engineGain = 0.0, low1 = 0.0, low2 = 0.0
+    private var pitch = 0.0, enginePhase = 0.0, engineGain = 0.0, low1 = 0.0, low2 = 0.0
+    private var firingStretch = 1.0, firingStrength = 1.0, bodyLow = 0.0, bodyBand = 0.0
+    /// Cylinder firings so far, for the tests.
+    private(set) var firings = 0
     // Tires
     private var tireGain = 0.0, squealGain = 0.0, svfLow = 0.0, svfBand = 0.0, squealPhase = 0.0, vibrato = 0.0
     // Curbs
@@ -168,6 +171,10 @@ final class Synth {
     private var musicGain = 0.0, step = 0, untilStep = 0.0
     private var noise: UInt32 = 0x9E37_79B9
 
+    /// The engine's gain at full level, as in the Sound Lab: its 0.22 base times the growl's loudness there (6.7388),
+    /// which evened the growl out against the lab's other engine voices.
+    private static let engineGainScale = 0.22 * 6.7388
+
     init(sampleRate: Double) {
         rate = sampleRate
         // Static tables are built on first use; touch them now, so it isn't the audio thread that builds them.
@@ -175,19 +182,6 @@ final class Synth {
     }
 
     private func smooth(_ tau: Double) -> Double { 1 - exp(-1 / (tau * rate)) }
-
-    /// PolyBLEP: rounds off a jump from -1 to +1 at phase 0 over one sample either side, so a pulse doesn't alias.
-    private static func blep(_ t: Double, _ dt: Double) -> Double {
-        if t < dt {
-            let x = t / dt
-            return 2 * x - x * x - 1
-        }
-        if t > 1 - dt {
-            let x = (t - 1) / dt
-            return x * x + 2 * x + 1
-        }
-        return 0
-    }
 
     private func white() -> Double {
         noise ^= noise << 13
@@ -218,8 +212,12 @@ final class Synth {
         // fades out at the pitch it had and starts again with the race.
         let pitchTarget = c.racing
             ? t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * s.revs(at: kmh) : pitch
-        let engineTarget = on && c.racing ? t.engineLevel * 0.22 * (0.8 + 0.2 * c.throttle) : 0
+        let swing = t.engineThrottleSwing
+        let engineTarget = on && c.racing ? t.engineLevel * Self.engineGainScale * (1 - swing + swing * c.throttle) : 0
         let engineCut = 1 - exp(-2 * .pi * (300 + 8000 * t.engineBrightness) / rate)
+        let glide = smooth(0.03)
+        let bodyF = 2 * sin(.pi * min(t.engineBody, rate / 6) / rate), bodyDamp = 1.0 / 3
+        let rough = t.engineRoughness
         let tireTarget = on && c.racing ? t.tireLevel * 0.5 * pow(c.scrub, 1.4) : 0
         let squealTarget = on && c.racing ? t.tireLevel * t.tireSqueal * 0.08 * c.scrub * c.scrub : 0
         let curbTarget = on && c.racing && c.onCurb ? t.curbLevel * 0.35 : 0
@@ -227,28 +225,32 @@ final class Synth {
         let fast = smooth(0.02), medium = smooth(0.04), slow = smooth(0.05)
         // The throttle steps on and off as the line brakes the car; the engine's level swells to follow it.
         let swell = smooth(0.15)
-        let samplesPerPitchStep = rate / 60
         let svfF = 2 * sin(.pi * t.tireHissPitch / rate), svfQ = 1 / 0.9
         let curbCut = 1 - exp(-2 * .pi * 380 / rate)
         let chopRate = 6 + kmh / 12
         let samplesPerStep = rate * 60 / t.musicTempo / 4
 
         for i in 0..<count {
-            // Engine: an 8-bit console's 25% pulse, with a steady tone so pitch alone carries the speed. Like a chip's,
-            // the pitch is set once a frame rather than glided.
-            untilPitchStep -= 1
-            if untilPitchStep <= 0 {
-                pitch = pitchTarget
-                untilPitchStep += samplesPerPitchStep
-            }
+            // Engine: each cylinder firing kicks a resonance tuned like an exhaust (the body), and the firings come a
+            // little unevenly, so it growls rather than buzzes. The firing rate glides with the speed.
+            pitch = pitch == 0 ? pitchTarget : pitch + (pitchTarget - pitch) * glide
             engineGain += (engineTarget - engineGain) * swell
-            let dt = pitch / rate
-            enginePhase = (enginePhase + dt).truncatingRemainder(dividingBy: 1)
-            // A ±1 pulse with rounded edges (so it doesn't alias), then centered: +1 for a quarter, -1/3 the rest.
-            let fall = (enginePhase + 0.75).truncatingRemainder(dividingBy: 1)
-            let pulse = (enginePhase < 0.25 ? 1.0 : -1.0) + Self.blep(enginePhase, dt) - Self.blep(fall, dt)
-            let driven = tanh(2.2 * (pulse + 0.5) / 1.5)
-            low1 += (driven - low1) * engineCut
+            enginePhase += pitch * firingStretch / rate
+            var kick = 0.0
+            if enginePhase >= 1 {
+                enginePhase -= enginePhase.rounded(.down)
+                // Each cycle runs a little long or short, and fires a little harder or softer.
+                firingStretch = 1 + rough * 0.05 * white()
+                firingStrength = 1 + rough * 0.6 * white()
+                kick = 6 * firingStrength
+                firings &+= 1
+            }
+            // A breath of noise between firings.
+            kick += rough * 0.15 * white()
+            let high = kick - bodyLow - bodyDamp * bodyBand
+            bodyBand += bodyF * high
+            bodyLow += bodyF * bodyBand
+            low1 += (bodyBand + 0.5 * bodyLow - low1) * engineCut
             low2 += (low1 - low2) * engineCut
             var mix = low2 * engineGain
 
