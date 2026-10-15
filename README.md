@@ -125,7 +125,10 @@ xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS 
 
 GitHub Actions runs the same tests on every pull request and push to `main` (`.github/workflows/tests.yml`), and
 builds Release too. Any build warning fails it. It uses Xcode 26.4, the version the project is built with; to move
-Xcode, change `DEVELOPER_DIR` there.
+Xcode, change `DEVELOPER_DIR` there. The tests run on whichever iPhone simulator the runner's simulator service lists,
+an iPhone 17 Pro on the newest iOS if it has one: `scripts/ci-simulator.sh` picks it (waiting for the service, or
+creating one if it never lists any), boots it and logs which. Asking for one by name sometimes failed with "Unable to
+find a device".
 
 Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun simctl launch ... <args>`:
 

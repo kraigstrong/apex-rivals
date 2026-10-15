@@ -22,10 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: xcodebuild -version
+      # An iPhone the runner's simulator service actually lists (asking by name sometimes finds none), booted.
+      - name: Pick a simulator
+        id: simulator
+        # Assigned first, so a failed pick stops the job here rather than testing on no device.
+        run: |
+          udid=$(scripts/ci-simulator.sh)
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
       - name: Test (Debug)
         run: >
           xcodebuild test -project Apex.xcodeproj -scheme Apex
-          -destination 'platform=iOS Simulator,name=iPhone 17 Pro' $STRICT
+          -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' $STRICT
       - name: Build (Release)
         run: >
           xcodebuild build -project Apex.xcodeproj -scheme Apex -configuration Release
