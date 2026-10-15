@@ -86,10 +86,10 @@ The app's shared laps link to the public TestFlight link (`ApexLinks.join` in `A
 Friends group's link changes, or once the game is on the App Store, change it there.
 
 **Renaming to Needle in App Store Connect.** The build carries the name under the icon; App Store Connect carries
-the rest, and Game Center and TestFlight show its name. Once no build is waiting for beta review: under App
-Information, set the name to Needle (App Store names are unique, so if it's taken, try a longer one such as "Needle:
-Thread the Line"), then paste the Test Information below into TestFlight. The bundle ID and SKU can't change and
-don't need to.
+the rest, and Game Center and TestFlight show its name. The Test Information below has been in TestFlight since
+2026-10-15. The app's name under App Information is still Apex Rivals: "Needle" alone is taken by another
+developer's app (App Store Connect refuses it as a duplicate), so it needs a longer name, such as "Needle: Thread the
+Line". The bundle ID and SKU can't change and don't need to.
 
 Only one build of a version can wait for beta review at a time. To replace one that's still waiting (say, with a fix),
 expire it first: that takes it out of the queue (TestFlight has no other way to withdraw it), and the new build can be
@@ -163,4 +163,5 @@ With a second phone on a different Game Center account (a friend's, or a test ac
 | Version | Build | Commit | Notes |
 | --- | --- | --- | --- |
 | 0.1.0 | 1 | 388a24a (`apex-v0.1-beta.1`) | First beta: six circuits, Apex School, Game Center, lap service. Submitted for beta review 2026-10-13, then expired before review in favor of build 2. |
-| 0.1.0 | 2 | 812a4fc (`apex-v0.1-beta.2`) | Build 1 plus the camera kept square to the road through corners (#7). Submitted for beta review 2026-10-13; the Friends group's public link: https://testflight.apple.com/join/dt7sHRvR |
+| 0.1.0 | 2 | 812a4fc (`apex-v0.1-beta.2`) | Build 1 plus the camera kept square to the road through corners (#7). Submitted for beta review 2026-10-13, approved 2026-10-15; the Friends group's public link: https://testflight.apple.com/join/dt7sHRvR |
+| 0.1.0 | 3 | 06c41b8 (`apex-v0.1-beta.3`) | Needle: the logo and the rename (#28, #29), medal achievements (#25), the standing redesign (#27), and everything since build 2: scenery, sound and the engine, medals, the share card, race a friend, the ⚙︎ menu. Its What to Test opens with what's new. Added to Friends and submitted for beta review 2026-10-15; approved at once. |
