@@ -159,8 +159,9 @@ final class Synth {
     private var pitch = 0.0, enginePhase = 0.0, engineGain = 0.0, low1 = 0.0, low2 = 0.0
     private var firingStretch = 1.0, firingStrength = 1.0, bodyLow = 0.0, bodyBand = 0.0
     #if DEBUG
-    /// Cylinder firings so far, for the tests.
+    /// Cylinder firings so far, and how many a second the engine fires at now, for the tests.
     private(set) var firings = 0
+    var firingRate: Double { pitch }
     #endif
     // Tires
     private var tireGain = 0.0, squealGain = 0.0, svfLow = 0.0, svfBand = 0.0, squealPhase = 0.0, vibrato = 0.0
@@ -202,6 +203,7 @@ final class Synth {
             wallCut = 1 - exp(-2 * .pi * (1200 + 3000 * severity) / rate)
             thumpTime = 0
         }
+        let raceStarts = c.racing && !heard.racing
         heard = c
 
         let s = SoundSettings.self, t = RaceTuning.self
@@ -210,11 +212,13 @@ final class Synth {
         // fades out at the pitch it had and starts again with the race.
         let pitchTarget = c.racing
             ? t.enginePitch.lowerBound + (t.enginePitch.upperBound - t.enginePitch.lowerBound) * s.revs(at: kmh) : pitch
+        // A race starts at its own firing rate, not the one the last race faded out on.
+        if raceStarts { pitch = pitchTarget }
         let swing = t.engineThrottleSwing
         let engineTarget = on && c.racing ? t.engineLevel * 0.22 * t.engineLoudness * (1 - swing + swing * c.throttle) : 0
         let engineCut = 1 - exp(-2 * .pi * (300 + 8000 * t.engineBrightness) / rate)
-        let glide = smooth(0.03)
-        let bodyF = 2 * sin(.pi * min(t.engineBody, rate / 6) / rate), bodyDamp = 1.0 / 3
+        let glide = smooth(t.engineGlide)
+        let bodyF = 2 * sin(.pi * min(t.engineBody, rate / 6) / rate), bodyDamp = 1 / t.engineBodyQ
         let rough = t.engineRoughness
         let tireTarget = on && c.racing ? t.tireLevel * 0.5 * pow(c.scrub, 1.4) : 0
         let squealTarget = on && c.racing ? t.tireLevel * t.tireSqueal * 0.08 * c.scrub * c.scrub : 0
@@ -231,7 +235,7 @@ final class Synth {
         for i in 0..<count {
             // Engine: each cylinder firing kicks a resonance tuned like an exhaust (the body), and the firings come a
             // little unevenly, so it growls rather than buzzes. The firing rate glides with the speed.
-            pitch = pitch == 0 ? pitchTarget : pitch + (pitchTarget - pitch) * glide
+            pitch += (pitchTarget - pitch) * glide
             engineGain += (engineTarget - engineGain) * swell
             enginePhase += pitch * firingStretch / rate
             var kick = 0.0

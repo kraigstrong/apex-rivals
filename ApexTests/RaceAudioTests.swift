@@ -42,6 +42,26 @@ struct RaceAudioTests {
         #expect(abs(rate - expected) <= expected * 0.03 + 1, "\(rate) firings a second, expected \(expected)")
     }
 
+    /// After a restart, the next race starts at the grid's firing rate, not gliding down from the last race's top speed.
+    @Test func aNewRaceStartsFromTheGrid() {
+        let synth = Synth(sampleRate: 48_000)
+        var controls = SoundControls()
+        controls.musicOn = false
+        controls.racing = true
+        controls.speed = 330
+        controls.throttle = 1
+        _ = render(synth, controls, seconds: 0.5)
+        controls.racing = false
+        controls.speed = 0
+        _ = render(synth, controls, seconds: 0.5)
+        controls.racing = true
+        var buffer = [Float](repeating: 0, count: 512)
+        buffer.withUnsafeMutableBufferPointer { synth.render(into: $0.baseAddress!, count: 512, controls: controls) }
+        let pitch = RaceTuning.enginePitch
+        let grid = pitch.lowerBound + (pitch.upperBound - pitch.lowerBound) * SoundSettings.revs(at: 0)
+        #expect(abs(synth.firingRate - grid) < 0.5, "\(synth.firingRate) firings a second, expected \(grid)")
+    }
+
     /// Everything at once (flat out, scrubbing, on a curb, a wall hit, every cue, the music) stays in range.
     @Test func everythingAtOnceStaysInRange() {
         let synth = Synth(sampleRate: 48_000)

@@ -145,6 +145,10 @@ enum RaceTuning {
     static let engineRoughness = 0.35
     /// The resonance each firing rings (Hz), like an exhaust's: it gives the growl its vowel.
     static let engineBody = 480.0
+    /// How sharply the body rings: higher is narrower and more like a vowel, lower more like a thud.
+    static let engineBodyQ = 3.0
+    /// How quickly (seconds) the firing rate follows the speed: fast enough to track every corner, slow enough to glide.
+    static let engineGlide = 0.03
     static let tireLevel = 0.5
     static let tireHissPitch = 1800.0
     static let tireSqueal = 0.25
