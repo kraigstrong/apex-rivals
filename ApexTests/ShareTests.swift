@@ -22,7 +22,8 @@ struct ShareTests {
 
     @Test func theMessageHasTheTimeTheCircuitTheMedalAndTheLink() {
         let share = LapShare(track: Self.track, lap: Self.lap, medal: .gold, standing: nil)
-        #expect(share.message.hasPrefix(LapFormat.time(Self.lap.time) + " at Ardennes in Needle, a gold medal lap."))
+        #expect(share.message.hasPrefix(LapFormat.time(Self.lap.time)
+                                        + " at Ardennes in Ghost Thread, a gold medal lap."))
         #expect(share.message.hasSuffix("Beat it: " + ApexLinks.join.absoluteString))
     }
 

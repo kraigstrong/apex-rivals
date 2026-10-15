@@ -1,7 +1,7 @@
 # Agent notes
 
-One iOS app, **Needle** (code name Apex: `Apex/`), with unit tests in `ApexTests/`. `README.md` has the tour of the
-files and the tuning table.
+One iOS app, **Ghost Thread** (code name Apex: `Apex/`), with unit tests in `ApexTests/`. `README.md` has the tour of
+the files and the tuning table.
 
 ## Build and test
 
@@ -17,10 +17,10 @@ CI (`.github/workflows/tests.yml`) runs the tests and a Release build on every P
 
 ## Conventions
 
-- **The game is Needle; the code is Apex.** Anything a player reads says Needle (the name under the icon, titles,
-  share text, TestFlight copy). Identifiers keep `apex`: the project and types, the bundle ID, Game Center leaderboard
-  and achievement IDs, lap-service boards and routes, and UserDefaults keys. Renaming those would orphan saved laps,
-  boards and the App Store Connect record.
+- **The game is Ghost Thread; the code is Apex.** Anything a player reads says Ghost Thread (the name under the icon,
+  titles, share text, TestFlight copy). Identifiers keep `apex`: the project and types, the bundle ID, Game Center
+  leaderboard and achievement IDs, lap-service boards and routes, and UserDefaults keys. Renaming those would orphan
+  saved laps, boards and the App Store Connect record.
 
 - **Xcode picks up new files automatically.** The project uses folder-synced groups, so add files under `Apex/` or
   `ApexTests/` without editing `project.pbxproj`.
