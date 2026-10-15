@@ -158,6 +158,19 @@ struct StandingTests {
         #expect(standing.beatenShare == 1)
     }
 
+    /// The chart colors your bucket: none when you're ahead of everyone, the last one (it holds the slow tail) when
+    /// you're behind the range.
+    @Test func aLapFallsInItsBucket() {
+        let histogram = Standing.Histogram(fromMs: 27_500, widthMs: 250, counts: [1, 0, 2])
+        #expect(histogram.bucket(of: 25_414) == nil)
+        #expect(histogram.bucket(of: 27_499) == nil)
+        #expect(histogram.bucket(of: 27_500) == 0)
+        #expect(histogram.bucket(of: 27_750) == 1)
+        #expect(histogram.bucket(of: 28_100) == 2)
+        #expect(histogram.bucket(of: 31_000) == 2)
+        #expect(Standing.Histogram(fromMs: 0, widthMs: 250, counts: []).bucket(of: 28_000) == nil)
+    }
+
     @Test func samplePlayersAreStableAndSpreadLikeRealLaps() {
         let sample = Standing.sample(for: 28_598)
         #expect(sample == Standing.sample(for: 28_598))

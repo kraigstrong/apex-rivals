@@ -142,6 +142,13 @@ struct Standing: Codable, Equatable {
         var fromMs: Int
         var widthMs: Int
         var counts: [Int]
+
+        /// The bucket a lap falls in. The last bucket also holds everyone slower; a lap faster than the first bucket
+        /// is ahead of every player and in none.
+        func bucket(of ms: Int) -> Int? {
+            guard ms >= fromMs, widthMs > 0, !counts.isEmpty else { return nil }
+            return min((ms - fromMs) / widthMs, counts.count - 1)
+        }
     }
 
     /// Other players whose best beats the lap.
