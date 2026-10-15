@@ -562,6 +562,7 @@ struct RaceMenu: UIViewRepresentable {
         items.append(item("Music", "music.note", state: audio.musicOn ? .on : .off) { audio.musicOn.toggle() })
         #if DEBUG
         items.append(item("Tune controls", "slider.horizontal.3") { hud.onTune() })
+        items.append(item("Share telemetry", "waveform.path.ecg") { hud.onShareTelemetry() })
         #endif
         items.append(item("Clear best lap", "trash", attributes: .destructive) { hud.onForgetBest() })
         return items

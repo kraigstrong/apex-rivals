@@ -16,6 +16,10 @@ geometry, physics, timing, saves); the SpriteKit scene is checked by running the
 CI (`.github/workflows/tests.yml`) runs the tests and a Release build on every PR, with warnings as errors, on the
 iPhone simulator `scripts/ci-simulator.sh` picks.
 
+To study a lap Kraig drove, copy the telemetry off his phone (README, Telemetry) and run `TelemetryStudy` on it:
+`run.json`'s inputs replay his laps exactly through `RaceSession`, and it writes the bots' laps and the ideal line
+alongside to compare them with step for step.
+
 ## Conventions
 
 - **The game is Ghost Thread; the code is Apex.** Anything a player reads says Ghost Thread (the name under the icon,
@@ -48,5 +52,6 @@ iPhone simulator `scripts/ci-simulator.sh` picks.
   Something new that covers the race (a panel, a sheet) adds itself there, or the lap clock runs on under it.
 - **Draw order:** the SpriteView ignores sibling order, so anything that overlaps needs its own depth
   (`TrackArt.Depth`).
-- **Debug-only tools go behind `#if DEBUG`**, like the autopilot and FPS launch arguments and the tuning panel
-  (`Tuner`). Tuned laps stay off the boards: anything that uploads or submits a lap checks `RaceTuning.isStock`.
+- **Debug-only tools go behind `#if DEBUG`**, like the autopilot and FPS launch arguments, the tuning panel
+  (`Tuner`) and telemetry (`Telemetry`). Tuned laps stay off the boards: anything that uploads or submits a lap
+  checks `RaceTuning.isStock`.
