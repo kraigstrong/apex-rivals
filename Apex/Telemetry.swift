@@ -109,7 +109,8 @@ struct TelemetryRun: Codable {
     static let stamp: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        // To the millisecond, so a run started just after a restart doesn't share the last one's folder.
+        formatter.dateFormat = "yyyyMMdd-HHmmss-SSS"
         return formatter
     }()
 }

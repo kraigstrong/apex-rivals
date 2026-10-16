@@ -167,7 +167,8 @@ or use ⚙︎ → **Share telemetry**, which takes the race back to the grid and
 `TelemetryTests` checks a recorded run replays to the same lap times. To study runs copied off a phone,
 `TelemetryStudy` replays each one (printing its laps as logged and as replayed) and writes what to compare them with
 into the folder's `reference/<circuit>/`: the circuit sampled every unit with the ideal line, where each corner runs,
-and the perfect, platinum and gold bots' laps as runs of their own, with the camera turned as the race turns it:
+and the perfect, platinum and gold bots' laps as runs of their own, with the camera turned as the race turns it. It
+skips a run driven on another revision of its circuit or another tuning, which would replay differently:
 
 ```bash
 TEST_RUNNER_APEX_TELEMETRY=<folder> xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:ApexTests/TelemetryStudy

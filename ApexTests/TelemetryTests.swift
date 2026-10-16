@@ -70,6 +70,18 @@ struct TelemetryTests {
         #expect((0..<10).map { run.holding(atStep: $0) } == pattern + [false, false])
     }
 
+    /// Runs started moments apart, as a restart and a quick touch can, keep their own folders.
+    @Test func runsStartedTheSameSecondKeepTheirOwnFolders() {
+        let parent = FileManager.default.temporaryDirectory.appending(path: "telemetry-\(UUID().uuidString)")
+        let start = Date(timeIntervalSinceReferenceDate: 800_000_000.2)
+        let folders = [0, 0.3].map { offset in
+            TelemetryRecorder(track: Self.ardennes, driver: "test", bestBefore: nil, origin: 0,
+                              maximumFramesPerSecond: 120, started: start.addingTimeInterval(offset),
+                              parent: parent).folder
+        }
+        #expect(folders[0] != folders[1])
+    }
+
     /// Each lap's frames go in their own CSV, every row on that lap, and together they cover the run.
     @Test func everyLapHasItsFrames() throws {
         let (run, folder, _) = record()
@@ -95,7 +107,8 @@ struct TelemetryTests {
 /// Studies runs copied off a phone (README, Telemetry): replays each one, printing its laps as logged and as replayed
 /// (`REPLAY` lines), and writes what to compare them with into the folder's `reference/<circuit>/`: the circuit sampled
 /// every unit with the ideal line (`track.csv`), where each of its pieces runs (`segments.csv`), and bots' laps as runs
-/// of their own, with the camera turned as the race turns it. Only runs when asked:
+/// of their own, with the camera turned as the race turns it. A run driven on another revision of its circuit or
+/// another tuning is skipped (`SKIP` lines), since it would replay differently. Only runs when asked:
 ///
 ///     TEST_RUNNER_APEX_TELEMETRY=<folder> xcodebuild test ... -only-testing:ApexTests/TelemetryStudy
 struct TelemetryStudy {
@@ -110,6 +123,16 @@ struct TelemetryStudy {
             guard let data = try? Data(contentsOf: runFolder.appending(path: "run.json")) else { continue }
             let run = try decoder.decode(TelemetryRun.self, from: data)
             let layout = try #require(TrackLayout.named(run.track))
+            // A run replays exactly only on the circuit and car it was driven with.
+            let mismatches = [
+                run.trackSignature != LapStore.fingerprint(layout.signature) ? "circuit" : nil,
+                run.lapSignature != RaceTuning.lapSignature ? "tuning" : nil,
+                run.physicsStep != RaceTuning.physicsStep ? "physics step" : nil,
+            ].compactMap { $0 }
+            guard mismatches.isEmpty else {
+                print("SKIP \(runFolder.lastPathComponent): driven on a different \(mismatches.joined(separator: ", "))")
+                continue
+            }
             circuits.insert(run.track)
             let session = RaceSession(track: Track(layout))
             session.start()
@@ -124,6 +147,7 @@ struct TelemetryStudy {
             }
             let logged = run.events.filter { $0.kind == .lap }.compactMap(\.time)
             print("REPLAY \(runFolder.lastPathComponent) logged \(logged) replayed \(replayed)")
+            #expect(replayed == logged, "\(runFolder.lastPathComponent) didn't replay to its laps")
         }
 
         for id in circuits {

@@ -98,6 +98,13 @@ final class RaceScene: SKScene {
         #if DEBUG
         hud.onTune = { [weak self] in self?.openTuner() }
         hud.onShareTelemetry = { [weak self] in self?.shareTelemetry() }
+        // However the race is left (the house button, the summary, or Apex School's SKIP and graduation card), its
+        // run is written out.
+        let exit = hud.onExit
+        hud.onExit = { [weak self] in
+            self?.endTelemetry()
+            exit()
+        }
         if let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") {
             let line = RacingLine(track: track)
             autopilot = mode == "human"
@@ -192,12 +199,15 @@ final class RaceScene: SKScene {
         var control: ((RaceSession) -> Bool)?
         #if DEBUG
         if autopilot != nil {
-            if session.phase == .ready { session.start() }
+            if session.phase == .ready {
+                session.start()
+                beginTelemetry()
+            }
             control = { [unowned self] in self.autopilot?.decide($0) ?? false }
         }
         // Every physics step's input goes into the telemetry, so the run replays exactly.
-        if session.phase == .racing {
-            let recorder = telemetryRun(), decide = control
+        if let recorder = telemetry {
+            let decide = control
             control = { recorder.step(holding: decide?($0) ?? $0.holding) }
         }
         #endif
@@ -569,13 +579,13 @@ final class RaceScene: SKScene {
         if session.phase == .ready {
             if sessionLaps == 0 { bestBeforeSession = session.timer.best?.time }
             session.start()
+            #if DEBUG
+            beginTelemetry()
+            #endif
             refreshHUD()
         }
         #if DEBUG
-        if session.phase == .racing {
-            let recorder = telemetryRun()
-            touches.forEach { recorder.touch(down: true, at: $0.timestamp) }
-        }
+        touches.forEach { telemetry?.touch(down: true, at: $0.timestamp) }
         #endif
     }
 
@@ -585,9 +595,6 @@ final class RaceScene: SKScene {
         if sessionLaps > 0, !practice {
             endSession()
         } else {
-            #if DEBUG
-            endTelemetry()
-            #endif
             hud.onExit()
         }
     }
@@ -764,16 +771,15 @@ final class RaceScene: SKScene {
 
     // MARK: Telemetry
 
-    /// The run being recorded, begun with the race.
-    private func telemetryRun() -> TelemetryRecorder {
-        if let telemetry { return telemetry }
+    /// Starts recording a run as the race starts. Only then: a race left without going back to the grid (Apex School's
+    /// SKIP) still runs for a frame or two, and mustn't start another.
+    private func beginTelemetry() {
+        endTelemetry()
         let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") ?? ""
-        let recorder = TelemetryRecorder(
+        telemetry = TelemetryRecorder(
             track: track, driver: autopilot == nil ? "player" : "autopilot " + mode,
             bestBefore: session.timer.best?.time, origin: CACurrentMediaTime(),
             maximumFramesPerSecond: view?.window?.windowScene?.screen.maximumFramesPerSecond ?? 0)
-        telemetry = recorder
-        return recorder
     }
 
     /// The run is over: its telemetry is written out.
