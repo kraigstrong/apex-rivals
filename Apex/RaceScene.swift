@@ -63,6 +63,8 @@ final class RaceScene: SKScene {
     /// When to time the bots and find a rival for the new car: once the sliders have been still for a moment.
     private var retuneSettles: TimeInterval?
     private lazy var stopwatch = BotStopwatch(track: track)
+    /// This run's telemetry (`Telemetry`), from the start until the race goes back to the grid.
+    private var telemetry: TelemetryRecorder?
     #endif
 
     init(track: Track, hud: RaceHUD) {
@@ -95,6 +97,14 @@ final class RaceScene: SKScene {
         }
         #if DEBUG
         hud.onTune = { [weak self] in self?.openTuner() }
+        hud.onShareTelemetry = { [weak self] in self?.shareTelemetry() }
+        // However the race is left (the house button, the summary, or Apex School's SKIP and graduation card), its
+        // run is written out.
+        let exit = hud.onExit
+        hud.onExit = { [weak self] in
+            self?.endTelemetry()
+            exit()
+        }
         if let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") {
             let line = RacingLine(track: track)
             autopilot = mode == "human"
@@ -189,8 +199,16 @@ final class RaceScene: SKScene {
         var control: ((RaceSession) -> Bool)?
         #if DEBUG
         if autopilot != nil {
-            if session.phase == .ready { session.start() }
+            if session.phase == .ready {
+                session.start()
+                beginTelemetry()
+            }
             control = { [unowned self] in self.autopilot?.decide($0) ?? false }
+        }
+        // Every physics step's input goes into the telemetry, so the run replays exactly.
+        if let recorder = telemetry {
+            let decide = control
+            control = { recorder.step(holding: decide?($0) ?? $0.holding) }
         }
         #endif
         let events = session.advance(by: dt, control: control)
@@ -209,6 +227,12 @@ final class RaceScene: SKScene {
         }
         render(dt: dt)
         placeCamera(dt: dt, snap: false)
+        #if DEBUG
+        if let telemetry, session.phase == .racing {
+            events.forEach { telemetry.record($0, lap: session.timer.lapNumber, clock: session.clock) }
+            telemetry.frame(session, time: currentTime, dt: dt, camera: cameraAngle, viewWidth: viewWidth)
+        }
+        #endif
         sinceHUD += dt
         if sinceHUD >= 1.0 / 20 || !events.isEmpty {
             sinceHUD = 0
@@ -555,8 +579,14 @@ final class RaceScene: SKScene {
         if session.phase == .ready {
             if sessionLaps == 0 { bestBeforeSession = session.timer.best?.time }
             session.start()
+            #if DEBUG
+            beginTelemetry()
+            #endif
             refreshHUD()
         }
+        #if DEBUG
+        touches.forEach { telemetry?.touch(down: true, at: $0.timestamp) }
+        #endif
     }
 
     /// Heading back to the track list: a session with a finished lap gets its summary first (which offers the tracks),
@@ -622,14 +652,23 @@ final class RaceScene: SKScene {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         holdTouches.subtract(touches)
+        #if DEBUG
+        touches.forEach { telemetry?.touch(down: false, at: $0.timestamp) }
+        #endif
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         holdTouches.subtract(touches)
+        #if DEBUG
+        touches.forEach { telemetry?.touch(down: false, at: $0.timestamp) }
+        #endif
     }
 
     /// Back to the grid. The best lap and its ghost stay.
     func restart() {
+        #if DEBUG
+        endTelemetry()
+        #endif
         session.reset()
         holdTouches.removeAll()
         judge = CornerJudge()
@@ -728,6 +767,32 @@ final class RaceScene: SKScene {
             self?.hud.botLaps = laps
             self?.hud.stockBotLaps = stock
         }
+    }
+
+    // MARK: Telemetry
+
+    /// Starts recording a run as the race starts. Only then: a race left without going back to the grid (Apex School's
+    /// SKIP) still runs for a frame or two, and mustn't start another.
+    private func beginTelemetry() {
+        endTelemetry()
+        let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") ?? ""
+        telemetry = TelemetryRecorder(
+            track: track, driver: autopilot == nil ? "player" : "autopilot " + mode,
+            bestBefore: session.timer.best?.time, origin: CACurrentMediaTime(),
+            maximumFramesPerSecond: view?.window?.windowScene?.screen.maximumFramesPerSecond ?? 0)
+    }
+
+    /// The run is over: its telemetry is written out.
+    private func endTelemetry() {
+        telemetry?.finish()
+        telemetry = nil
+    }
+
+    /// Shares every run's telemetry, this one up to where it stands. The race goes back to the grid first, so nothing
+    /// runs under the share sheet.
+    private func shareTelemetry() {
+        restart()
+        Telemetry.share()
     }
     #endif
 }

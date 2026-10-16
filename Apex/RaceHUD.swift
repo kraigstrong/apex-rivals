@@ -62,6 +62,7 @@ final class RaceHUD {
     var botLaps: BotLaps?
     var stockBotLaps: BotLaps?
     @ObservationIgnored var onTune: () -> Void = {}
+    @ObservationIgnored var onShareTelemetry: () -> Void = {}
     #endif
     /// A panel is open over the race: it dims the race and hides the timing until it closes.
     var showsPanel: Bool {

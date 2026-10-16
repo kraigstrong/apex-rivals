@@ -144,6 +144,36 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
   `island`, `harbor`, or `apex_school`). An unknown id shows the list. With `-ApexAutopilot`, it makes simulator
   checks scriptable: launch, then `xcrun simctl io <udid> screenshot <file>`.
 
+### Telemetry
+
+Xcode (Debug) builds record every run, from the grid until the race goes back to it, to study a lap afterwards
+(`Apex/Telemetry.swift`). Each run is a folder in the app's Documents/Telemetry (the newest 60 are kept):
+
+- `run.json`: the circuit, tuning, device and build; every physics step's input (`held`, stretches of steps the screen
+  was held), so the run replays step for step through `RaceSession`; every touch with its timestamp; and the splits,
+  laps and wall hits.
+- `lap-NN.csv`, one per lap (`lap-00` is the out lap): a row per drawn frame with its timestamp and `dt`, the lap time
+  and live delta, whether the screen was held, the car (`s`, `n`, `psi`, speed, the speed its line allows, the path's
+  curvature, scrub, heading) and the camera (its angle and view width). The nose's angle on screen is
+  `heading − camera`.
+
+Copy them off a phone connected to the Mac:
+
+```bash
+xcrun devicectl device copy from --device <name or id> --domain-type appDataContainer --domain-identifier com.kraigstrong.apex --source Documents/Telemetry --destination telemetry
+```
+
+or use ⚙︎ → **Share telemetry**, which takes the race back to the grid and shares every run as a zip (AirDrop it).
+`TelemetryTests` checks a recorded run replays to the same lap times. To study runs copied off a phone,
+`TelemetryStudy` replays each one (printing its laps as logged and as replayed) and writes what to compare them with
+into the folder's `reference/<circuit>/`: the circuit sampled every unit with the ideal line, where each corner runs,
+and the perfect, platinum and gold bots' laps as runs of their own, with the camera turned as the race turns it. It
+skips a run driven on another revision of its circuit or another tuning, which would replay differently:
+
+```bash
+TEST_RUNNER_APEX_TELEMETRY=<folder> xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:ApexTests/TelemetryStudy
+```
+
 ## Tuning
 
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
@@ -208,6 +238,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
 - `Apex/Friends.swift`: Race a friend: Game Center's friends list, the friend each player picked on each board
   (`FriendPick`), and the picker.
 - `Apex/RaceScene.swift`: the SpriteKit scene: touches, camera, car, ghost, skid marks, sparks, culling.
+- `Apex/Telemetry.swift`: Xcode builds' record of every run, its inputs, frames and camera, to study laps.
 - `Apex/TrackArt.swift`: procedural art: track pieces, curbs, start line, the car, and the grass shader.
 - `Apex/Scenery.swift`: trees, grandstands and tire walls, placed from each circuit's shape and kept clear of the
   track (`SceneryTests` checks every circuit).
