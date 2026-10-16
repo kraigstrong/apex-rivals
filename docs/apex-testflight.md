@@ -116,6 +116,9 @@ Ready to paste into App Store Connect.
 
 Feedback email: your choice. A privacy policy isn't needed for TestFlight.
 
+Each build also gets its own What to Test, which opens with what's new since the last build. App Store Connect refuses
+some symbols there, ⚙︎ among them, so it says "the gear menu".
+
 ## Smoke check on the TestFlight build
 
 On a physical iPhone, signed in to Game Center, with a fresh install:
@@ -167,3 +170,4 @@ With a second phone on a different Game Center account (a friend's, or a test ac
 | 0.1.0 | 1 | 388a24a (`apex-v0.1-beta.1`) | First beta: six circuits, Apex School, Game Center, lap service. Submitted for beta review 2026-10-13, then expired before review in favor of build 2. |
 | 0.1.0 | 2 | 812a4fc (`apex-v0.1-beta.2`) | Build 1 plus the camera kept square to the road through corners (#7). Submitted for beta review 2026-10-13, approved 2026-10-15; the Friends group's public link: https://testflight.apple.com/join/dt7sHRvR |
 | 0.1.0 | 3 | 06c41b8 (`apex-v0.1-beta.3`) | Needle: the logo and the rename (#28, #29), medal achievements (#25), the standing redesign (#27), and everything since build 2: scenery, sound and the engine, medals, the share card, race a friend, the ⚙︎ menu. Its What to Test opens with what's new. Added to Friends and submitted for beta review 2026-10-15; approved at once. |
+| 0.1.0 | 4 | 634eda6 (`apex-v0.1-beta.4`) | Ghost Thread: the name and the GHOST THREAD logo (#31), and the track list asking for friends access, with Race a friend saying why no friends show (#33). Added to Friends and submitted for beta review 2026-10-15; approved at once. |
