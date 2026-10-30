@@ -17,8 +17,10 @@ enum RaceTuning {
     // MARK: Steering
 
     /// Holding swings the car's nose toward the top of the screen (the car's left) at this rate, and letting go swings it
-    /// toward the bottom, in radians a second.
-    static var steerRate: Double = 2.4
+    /// toward the bottom, in radians a second. At 2.4 (physics 1) the nose settled at 34° and letting go on the
+    /// centerline at top speed met the wall in 0.37 s, too twitchy for new players; at 1.6 it settles at 23° and takes
+    /// about half a second.
+    static var steerRate: Double = 1.6
     /// Pulls the nose back toward the track's direction (per second). Holding settles at `steerRate / steerReturn` radians.
     static var steerReturn: Double = 4.0
 
@@ -174,21 +176,21 @@ enum RaceTuning {
     /// the ideal line at 50 ms. `LapTimeTests` holds them to the bots, so a change that moves lap times moves these
     /// too. They don't change how fast a lap can be, so they aren't in `lapSignature`.
     static let medalTimes: [String: [Double]] = [
-        "ardennes": [35.8, 29.8, 28.5, 26.6],
-        "swirl": [35.5, 30.2, 28.9, 26.7],
-        "snake": [34.6, 30.0, 28.5, 26.3],
-        "mirage": [36.2, 30.0, 28.7, 27.0],
-        "island": [36.7, 29.7, 28.8, 27.1],
-        "harbor": [34.7, 30.0, 27.7, 25.7],
+        "ardennes": [30.1, 28.5, 27.0, 26.2],
+        "swirl": [30.2, 28.7, 27.2, 26.1],
+        "snake": [29.9, 28.7, 26.7, 25.8],
+        "mirage": [30.6, 28.9, 27.2, 26.6],
+        "island": [29.7, 28.6, 27.6, 26.9],
+        "harbor": [29.4, 28.4, 26.2, 25.3],
     ]
 
     // MARK: Versions
 
     /// The physics' version. Leaderboards are kept per version (`RaceBoard`), so a change that moves lap times (anything
     /// in `lapSignature`) must bump it once released. `FreezeTests` fails until the new signature is recorded.
-    static let physicsVersion = 1
+    static let physicsVersion = 2
     /// `lapSignature`'s fingerprint for `physicsVersion`. `FreezeTests` checks the stock car matches it.
-    static let physicsFingerprint = "93a7f30b1b41fad9"
+    static let physicsFingerprint = "4d73b39228fdfde0"
 
     /// Whether the car is as released (no tuning-panel changes). Only stock laps reach leaderboards and the lap
     /// service, so a tuned car can't put times on a board it doesn't belong to.

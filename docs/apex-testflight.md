@@ -92,6 +92,12 @@ search can't settle one: "Needle", the name before, looked free but App Store Co
 (2026-10-15). Setting a name under App Information is the test, and a name that goes through is held for this app. The
 bundle ID and SKU can't change and don't need to.
 
+**A new physics version** (`RaceTuning.physicsVersion`) starts new boards, so before its first build ships, add its
+boards to BrightBench's `apexBoards` and deploy, then create its six Game Center leaderboards as in step 7, named
+`apex.<circuit>.r1.p<version>`. Keep the older boards: builds still on them keep sending laps there. Physics 2
+(softer steering, `steerRate` 1.6) starts with build 5: its boards came with kraigstrong/BrightBench#106, and its
+leaderboards are `apex.ardennes.r1.p2` and the rest.
+
 Only one build of a version can wait for beta review at a time. To replace one that's still waiting (say, with a fix),
 expire it first: that takes it out of the queue (TestFlight has no other way to withdraw it), and the new build can be
 submitted. Later builds of an approved version usually clear review quickly.

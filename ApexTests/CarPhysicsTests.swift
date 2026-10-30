@@ -49,16 +49,21 @@ struct CarPhysicsTests {
         #expect(lowest > RaceTuning.topSpeed * 0.95)
     }
 
-    /// Swinging across the track and back costs real speed, though the track itself is straight.
-    @Test func weavingCostsSpeed() {
-        var car = Car(track: track, distanceBeforeLine: -100, speed: RaceTuning.topSpeed)
-        var total = 0.0
-        let steps = 240 * 3
-        for step in 0..<steps {
-            CarPhysics.step(&car, holding: step % 140 < 70, dt: dt, on: track)
-            total += car.speed
+    /// Swinging across the track and back costs real speed in a corner, where the road's own bend already has the path
+    /// near its limit. (A straight leaves room under the limit, so there a weave that stays off the walls costs little.)
+    @Test func weavingThroughACornerCostsSpeed() throws {
+        let corner = try #require(stride(from: 0, to: track.length, by: 10).first { track.curvature(at: $0) != 0 })
+        // Three seconds from 400 short of the first corner: through it and onto the next straight.
+        func distance(halfWeave: Int) -> Double {
+            var car = Car(track: track, distanceBeforeLine: 400 - corner, speed: RaceTuning.topSpeed)
+            let start = car.progress(on: track)
+            for step in 0..<(240 * 3) {
+                CarPhysics.step(&car, holding: step % (2 * halfWeave) < halfWeave, dt: dt, on: track)
+            }
+            return car.progress(on: track) - start
         }
-        #expect(total / Double(steps) < RaceTuning.topSpeed * 0.9)
+        let taps = distance(halfWeave: 12), weaving = distance(halfWeave: 70)
+        #expect(weaving < taps * 0.98, "quick taps went \(taps), weaving \(weaving)")
     }
 
     @Test func grindingAWallNeverStopsTheCar() {

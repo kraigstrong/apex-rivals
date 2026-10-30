@@ -7,7 +7,7 @@ import Testing
 struct FreezeTests {
     @Test func physicsMatchesItsVersion() {
         // A failure means the car changed. Once boards are live, bump `RaceTuning.physicsVersion` and add its signature.
-        let signatures = [1: "93a7f30b1b41fad9"]
+        let signatures = [1: "93a7f30b1b41fad9", 2: "4d73b39228fdfde0"]
         #expect(signatures[RaceTuning.physicsVersion] == LapStore.fingerprint(RaceTuning.lapSignature))
         #expect(signatures[RaceTuning.physicsVersion] == RaceTuning.physicsFingerprint)
         #expect(RaceTuning.isStock)
