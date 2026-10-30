@@ -27,13 +27,13 @@ struct MedalTests {
         let next = try #require(Medal.next(after: nil, on: ardennes))
         #expect(next.medal == .bronze)
         #expect(next.target == Medal.bronze.target(on: ardennes))
-        #expect(Medal.next(after: 29, on: ardennes)?.medal == .gold)
+        #expect(Medal.next(after: 28, on: ardennes)?.medal == .gold)
         #expect(Medal.next(after: 10, on: ardennes) == nil)
     }
 
     @Test func onlyABetterMedalIsNew() {
-        #expect(Medal.newlyWon(by: 35, after: nil, on: ardennes) == .bronze)
-        #expect(Medal.newlyWon(by: 29, after: 35, on: ardennes) == .silver)
+        #expect(Medal.newlyWon(by: 30, after: nil, on: ardennes) == .bronze)
+        #expect(Medal.newlyWon(by: 28, after: 30, on: ardennes) == .silver)
         #expect(Medal.newlyWon(by: 29.5, after: 29.7, on: ardennes) == nil)
         #expect(Medal.newlyWon(by: 40, after: nil, on: ardennes) == nil)
     }

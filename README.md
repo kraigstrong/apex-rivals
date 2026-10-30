@@ -22,14 +22,17 @@ game's straights and corners; see `TrackLayout`.
 ## The idea
 
 The control is Bigger Fish's: holding swings the car's nose toward the top of the screen, letting go swings it
-toward the bottom, and it eases back toward the track's direction either way. The camera turns with the track, so
+toward the bottom, and it eases back toward the track's direction either way, settling 23° off it. (Physics 1
+steered harder, settling at 34°: letting go on the centerline at top speed met the wall in a third of a second, and
+testers found it too twitchy. Physics 2, from build 5, takes about half a second.) The camera turns with the track, so
 the road ahead always runs left to right and "up" is always the car's left. In a hairpin the world swings around
 rather than asking you to steer backwards.
 
 **Speed comes from how straight you drive.** The car's heading is smoothed over the last 90 units of travel, and the
 curvature of that smoothed path caps the speed: `√(grip / κ)`. So:
 
-- quick taps to hold a line are nearly free, but slow weaves bend the path and cost speed;
+- quick taps to hold a line are nearly free. On a straight even a slow weave costs little, since a straight path
+  is far under the limit, but in a corner, where the road already bends the path, every swing costs speed;
 - following the inside of a corner is slow, while swinging wide, clipping the apex and running out wide bends the
   path least and carries the most speed;
 - speed drops fast and comes back slowly, so a scruffy exit costs you all the way down the next straight.
@@ -181,11 +184,14 @@ player's one control. Four of them set the medals (`RaceTuning.medalTimes`, thes
 
 | Driver | Medal | Ardennes | Swirl | Snake | Mirage | Island | Harbor |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Perfect, on the ideal line | | 25.9s | 25.8s | 25.4s | 26.4s | 26.8s | 24.9s |
-| Deciding every 50 ms, on the ideal line | Platinum | 26.6s | 26.7s | 26.3s | 27.0s | 27.1s | 25.7s |
-| Deciding every ~90 ms, on the ideal line | Gold | 28.5s | 28.9s | 28.5s | 28.7s | 28.8s | 27.7s |
-| Deciding every ~90 ms, middle of the road | Silver | 29.8s | 30.2s | 30.0s | 30.0s | 29.7s | 30.0s |
-| Sloppy weaver, middle of the road | Bronze | 35.8s | 35.5s | 34.6s | 36.2s | 36.7s | 34.7s |
+| Perfect, on the ideal line | | 25.8s | 25.7s | 25.4s | 26.4s | 26.8s | 24.8s |
+| Deciding every 50 ms, on the ideal line | Platinum | 26.2s | 26.1s | 25.8s | 26.6s | 26.9s | 25.3s |
+| Deciding every ~90 ms, on the ideal line | Gold | 27.0s | 27.2s | 26.7s | 27.2s | 27.6s | 26.2s |
+| Deciding every ~90 ms, middle of the road | Silver | 28.5s | 28.7s | 28.7s | 28.9s | 28.6s | 28.4s |
+| Sloppy weaver, middle of the road | Bronze | 30.1s | 30.2s | 29.9s | 30.6s | 29.7s | 29.4s |
+
+That's physics 2 (`steerRate` 1.6). Physics 1 (2.4) spread the same bots from 25.9 s to 35.8 s on Ardennes, and the
+sloppy weaver hit the walls 22 times in three laps against 2 now.
 
 After a retune, print the table with
 `xcodebuild test ... '-only-testing:ApexTests/LapTimeTests/report(id:)'` (lines start with `LAPTIME`), and if the
@@ -194,7 +200,9 @@ change was meant to move lap times, update the ranges in `LapTimeTests`, the med
 
 - `straightnessLength`: longer forgives more weaving; shorter punishes every correction.
 - `grip`: higher makes corners faster and lines matter less.
-- `steerRate` / `steerReturn`: how quickly the nose swings, and the angle it settles at when you hold.
+- `steerRate` / `steerReturn`: how quickly the nose swings, and the angle it settles at when you hold
+  (`steerRate / steerReturn` radians). Lower steering makes every mistake cheaper but doesn't slow a perfect lap: at
+  1.2 the sloppy weaver laps within a few tenths of the careful driver on most circuits, so only the line matters.
 - `topSpeed`, `acceleration`, `braking`: pace, and how much a slow exit costs.
 - `viewWidthSlow` / `viewWidthFast`, `camera*`: how much track you see and how the camera turns.
 

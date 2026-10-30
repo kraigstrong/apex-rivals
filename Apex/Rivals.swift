@@ -23,7 +23,9 @@ enum RivalBot {
 
     /// A bot lap as close to `target` seconds as the bot can manage. It can't beat the ideal line driven perfectly.
     static func lap(near target: Double, track: Track, line: RacingLine, seed: UInt64 = 7) -> LapRecord {
-        var quick = 0.0, slow = 0.3
+        // Past half a second the bot's laps stop getting slower (walls and the minimum speed hold them near 31 s), so
+        // the search stops there.
+        var quick = 0.0, slow = 0.5
         var closest = drive(reaction: quick, track: track, line: line, seed: seed)
         guard closest.time < target else { return closest }
         for _ in 0..<14 {

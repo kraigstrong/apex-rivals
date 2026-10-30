@@ -3,8 +3,8 @@ import Testing
 @testable import Apex
 
 /// Bots lap every circuit with the player's one control. They pin down the difficulty, the same on each: a perfect line
-/// is around 26 seconds, a skilled human-speed player gets near 29, holding the middle of the road is around 30, and a
-/// sloppy weaver still finishes in under 40.
+/// is around 26 seconds, a skilled human-speed player gets near 27, holding the middle of the road is around 28.5, and a
+/// sloppy weaver is around 30.
 struct LapTimeTests {
     static let ids = TrackLayout.all.map(\.id)
     static let tracks = Dictionary(uniqueKeysWithValues: TrackLayout.all.map { ($0.id, Track($0)) })
@@ -47,20 +47,20 @@ struct LapTimeTests {
         #expect((24.5...27.5).contains(lap.mean), "\(id), perfect line: \(lap.mean)s")
     }
 
-    @Test(arguments: ids) func aSkilledPlayerIsUnderThirty(id: String) {
+    @Test(arguments: ids) func aSkilledPlayerIsUnderTwentyEight(id: String) {
         let lap = run(AutoDriver(line: idealLine(id), decisionInterval: 0.09, hesitation: 0.04), on: id)
-        #expect((27...30).contains(lap.mean), "\(id), skilled: \(lap.mean)s")
+        #expect((25.5...28).contains(lap.mean), "\(id), skilled: \(lap.mean)s")
     }
 
-    @Test(arguments: ids) func holdingTheMiddleIsAroundThirty(id: String) {
+    @Test(arguments: ids) func holdingTheMiddleIsUnderThirty(id: String) {
         let lap = run(AutoDriver(line: middle, decisionInterval: 0.09, hesitation: 0.04), on: id)
-        #expect((28.5...32).contains(lap.mean), "\(id), middle of the road: \(lap.mean)s")
+        #expect((27.5...30).contains(lap.mean), "\(id), middle of the road: \(lap.mean)s")
     }
 
     @Test(arguments: ids) func aSloppyWeaverStillFinishes(id: String) {
         let lap = run(AutoDriver(line: middle, decisionInterval: 0.12, tolerance: 30, hesitation: 0.08), on: id)
         #expect(lap.laps.count == 2)
-        #expect((33...40).contains(lap.mean), "\(id), sloppy: \(lap.mean)s")
+        #expect((28.5...33).contains(lap.mean), "\(id), sloppy: \(lap.mean)s")
     }
 
     @Test(arguments: ids) func betterDrivingIsFaster(id: String) {

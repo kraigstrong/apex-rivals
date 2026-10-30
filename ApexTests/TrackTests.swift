@@ -101,8 +101,8 @@ struct TrackCatalogTests {
         #expect(Set(ids).count == ids.count)
         // BrightBench's `apexBoards` must list exactly these.
         #expect(TrackLayout.all.map { RaceBoard(track: Track($0)).leaderboardID } == [
-            "apex.ardennes.r1.p1", "apex.swirl.r1.p1", "apex.snake.r1.p1",
-            "apex.mirage.r1.p1", "apex.island.r1.p1", "apex.harbor.r1.p1",
+            "apex.ardennes.r1.p2", "apex.swirl.r1.p2", "apex.snake.r1.p2",
+            "apex.mirage.r1.p2", "apex.island.r1.p2", "apex.harbor.r1.p2",
         ])
     }
 
