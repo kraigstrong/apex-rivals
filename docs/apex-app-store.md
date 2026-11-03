@@ -37,10 +37,16 @@ The metadata, purchase text and screenshots live in `appstore/` and go up with t
 
 ## On the web (BrightBench)
 
-- [ ] **Privacy policy** page: what the lap service stores (anonymous lap counts; a salted hash of the Game Center
-      player ID with the player's alias, best time and ghost), and what it doesn't.
-- [ ] **Support** page.
-- [ ] **Landing page** for the marketing URL. Optional.
+Ghost Thread has no domain of its own, so its pages are on brightbench.app, in BrightBench's `apps/marketing`. Its art
+comes from the game (`SiteArtTests`, `Art/site`).
+
+- [ ] **Privacy policy**: `https://brightbench.app/ghost-thread/privacy`. What the lap service stores (anonymous lap
+      counts; a salted hash of the Game Center player ID with the player's alias, best time and ghost), and what it
+      doesn't. Keep it in step with `ApexOnline.swift` and `PrivacyInfo.xcprivacy`.
+- [ ] **Support**: `https://brightbench.app/ghost-thread/support`.
+- [ ] **Landing page** for the marketing URL: `https://brightbench.app/ghost-thread`, each circuit lapped by its
+      ideal line as on the unlock screen. It invites players to the TestFlight beta until the App Store listing is live
+      (`appStoreUrl` in BrightBench's `src/lib/ghost-thread.ts`).
 
 ## Marketing
 

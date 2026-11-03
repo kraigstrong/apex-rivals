@@ -129,8 +129,11 @@ secrets, and the Game Center leaderboards) and the smoke check, including racing
 Open `Apex.xcodeproj`, pick an iPhone, iPad or simulator, and Run. The app icon is drawn by `Art/make-icon.py`
 (`python3 Art/make-icon.py` rewrites it). The achievements' art in `Art/achievements` (each circuit inside a ring in the
 medal's color) is drawn by `AchievementArtTests`, which only runs when asked:
-`TEST_RUNNER_APEX_DRAW_ACHIEVEMENTS=1 xcodebuild test ... -only-testing:ApexTests/AchievementArtTests`. Signing uses
-automatic signing with team `MKACSCQ588`.
+`TEST_RUNNER_APEX_DRAW_ACHIEVEMENTS=1 xcodebuild test ... -only-testing:ApexTests/AchievementArtTests`. Ghost Thread's
+page on brightbench.app (`/ghost-thread`, in BrightBench's `apps/marketing`) is drawn from the game the same way:
+`SiteArtTests` writes the logo and every circuit's outline and ideal line, with the thread's timing, into `Art/site`
+(`TEST_RUNNER_APEX_DRAW_SITE=1 ... -only-testing:ApexTests/SiteArtTests`); copy them there after changing a circuit
+or the logo. Signing uses automatic signing with team `MKACSCQ588`.
 
 ```bash
 xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
