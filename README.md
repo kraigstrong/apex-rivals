@@ -6,7 +6,7 @@ name, kept by the project, the bundle ID (`com.kraigstrong.apex`), the Game Cent
 data, so nothing already stored moves.
 
 **Hold to steer up. Let go to steer down.** Pick a circuit from the track list and set the fastest lap you can. A
-good lap is about 30 seconds on each. The six circuits are original, each with the feel of a famous F1 track:
+good lap is about 30 seconds on each. The six circuits are original, each with its own character:
 
 - **Ardennes** (clockwise): a hairpin, a plunging left-right-left, a long straight to a twisty far end, a fast
   sweep home.
