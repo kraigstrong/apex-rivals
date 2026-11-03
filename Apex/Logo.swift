@@ -23,7 +23,8 @@ struct GhostThreadLogo: View {
     private static let font = Font.system(size: 31, weight: .black, design: .rounded)
     /// The letters lean forward like the rest of the game's titles. SF Rounded has no italic, so the slant is drawn.
     private static let slant = CGAffineTransform(a: 1, b: 0, c: -0.21, d: 1, tx: 0, ty: 0)
-    private static let lineColor = Color(red: 1, green: 0.82, blue: 0.1)
+    /// The thread's yellow, which the unlock's screen wears too.
+    static let lineColor = Color(red: 1, green: 0.82, blue: 0.1)
     /// How far above and below the middle of the letters the line swings.
     private static let swing: CGFloat = 4.5
     private static let carLength: CGFloat = 34

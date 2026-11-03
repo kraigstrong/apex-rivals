@@ -40,6 +40,9 @@ alongside to compare them with step for step.
   signature in `FreezeTests`, add its board to BrightBench's `apexBoards` (deployed before the app ships), and
   create its Game Center leaderboard and four medal achievements (draw their art with `AchievementArtTests`, then add
   them to `AchievementTests`).
+- **Ardennes and Apex School are free; the unlock opens the rest** (`CircuitUnlock`), so a new circuit is part of
+  it with nothing to do. StoreKit test sessions can't run under `xcodebuild test`: check buying, refunds and Restore
+  by hand, from Xcode, against `Apex.storekit` (`docs/apex-app-store.md`).
 - **Saved best laps are keyed by circuit and tuning** (`LapStore.key`), so changing either starts a fresh best lap.
   Add any new constant that changes how fast a lap can be to `RaceTuning.lapSignature`.
 - **Freeze boards before they're live.** Leaderboards are per `RaceBoard` (circuit, revision, physics version).

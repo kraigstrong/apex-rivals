@@ -13,12 +13,15 @@ struct ContentView: View {
                 RaceView(track: TrackCatalog.track(id), onExit: { racing = nil })
                     .id(id)
             } else {
-                TrackMenu(onSelect: { racing = $0 })
+                TrackMenu(purchases: CircuitPurchases.shared, onSelect: { racing = $0 })
             }
         }
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
-        .onAppear { GameCenter.shared.signIn() }
+        .onAppear {
+            GameCenter.shared.signIn()
+            CircuitPurchases.shared.start()
+        }
         // Laps that couldn't go up before (offline, or the service was down) try again at launch and on every return
         // to the app, not only after the next lap.
         .onChange(of: scenePhase, initial: true) { _, phase in

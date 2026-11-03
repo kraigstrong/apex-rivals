@@ -19,6 +19,11 @@ good lap is about 30 seconds on each. The six circuits are original, each with t
 They were sketched as track maps, a polygon of corner points each rounded with its own radius, then exported to the
 game's straights and corners; see `TrackLayout`.
 
+Free to try: Ardennes and Apex School. A one-time purchase ($1.99, shared with Family Sharing) opens the other
+circuits, and every circuit added later (`CircuitUnlock.swift`). A locked circuit's card says UNLOCK EVERY CIRCUIT;
+tapping it opens the unlock's screen, with each circuit it opens and the ideal line threading around it, the price,
+Restore purchase and Not now. Once it's bought, the screen's button races the circuit that was tapped.
+
 ## The idea
 
 The control is Bigger Fish's: holding swings the car's nose toward the top of the screen, letting go swings it
@@ -145,7 +150,11 @@ Launch arguments for Xcode (Debug) builds, in the scheme's Run options or `xcrun
 - `-ApexShowFPS YES` shows frame rate, node and draw counts.
 - `-ApexTrack snake` skips the track list and opens that circuit's race (`ardennes`, `swirl`, `snake`, `mirage`,
   `island`, `harbor`, or `apex_school`). An unknown id shows the list. With `-ApexAutopilot`, it makes simulator
-  checks scriptable: launch, then `xcrun simctl io <udid> screenshot <file>`.
+  checks scriptable: launch, then `xcrun simctl io <udid> screenshot <file>`. It races a locked circuit too.
+- `-ApexUnlocked YES` (or `NO`) plays with or without the unlock, whatever StoreKit says.
+- `-ApexUnlockScreen swirl` opens on the unlock's screen, as if that circuit had been tapped. Only a Run from Xcode
+  has the StoreKit configuration (`Apex.storekit`) that prices the unlock, so `-ApexUnlockPrice '$1.99'` stands in
+  for the price elsewhere.
 
 ### Telemetry
 
@@ -222,6 +231,9 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   (`closingStraights`) are solved so the loop closes exactly, so corners can be tuned freely. `TrackLayout.all` is
   the track list.
 - `Apex/TrackMenu.swift`: the track list, and `TrackCatalog`, which builds each circuit's geometry once.
+- `Apex/CircuitUnlock.swift`, `Apex/UnlockView.swift`: what's free, the one-time StoreKit purchase that opens the
+  rest, and its screen (`CircuitThread` laps each circuit's ideal line at the speed it allows). `Apex.storekit` is the
+  scheme's StoreKit test file.
 - `Apex/Logo.swift`: the GHOST THREAD logo, on the track list and the share card: GHOST see-through, and a racing
   line woven through THREAD, in front of one letter and behind the next, towed by a ghost car in your ghost's paint.
 - `Apex/ApexSchool.swift`: the practice circuit, `ApexGuide` (each corner's turn-in, apex and exit on the ideal line,
