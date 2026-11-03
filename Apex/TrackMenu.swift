@@ -92,6 +92,10 @@ struct TrackMenu: View {
             schoolDone = SchoolProgress.isDone()
             onScreen = true
             askForFriends()
+            #if DEBUG
+            // The track list's App Store moments: up once the unlock's threads have laid out.
+            if StoreCapture.isActive { StoreCapture.ready(after: 2.5) }
+            #endif
         }
         .onDisappear { onScreen = false }
         // Sign-in usually finishes after the list is up.

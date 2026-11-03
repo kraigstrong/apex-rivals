@@ -5,6 +5,7 @@ struct ApexApp: App {
     init() {
         #if DEBUG
         Tuner.shared.restore()
+        StoreCapture.stage()
         #endif
     }
 
