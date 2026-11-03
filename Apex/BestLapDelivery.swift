@@ -1,7 +1,9 @@
 import Foundation
 
-/// Gets each circuit's best lap to Game Center and to the lap service, once each. A best set while signed out (or
-/// before sign-in finished, or with no connection) goes up the next time the player signs in.
+/// Gets each circuit's best lap to Game Center and to the lap service, once each, under the player who set it
+/// (`LapStore.player`). A best that missed them (no connection, or a hiccup) goes up the next time that player signs
+/// in; another player signing in on the device never sends it. A best set while no one was signed in goes to the first
+/// player who signs in (`LapStore.claim`).
 enum BestLapDelivery {
     enum Destination: String, CaseIterable {
         case gameCenter, lapService
@@ -22,10 +24,9 @@ enum BestLapDelivery {
         }
     }
 
-    /// Sends every circuit's saved best that hasn't gone up yet.
-    static func sendSaved(defaults: UserDefaults = .standard) {
-        for layout in TrackLayout.all {
-            guard let best = LapStore.load(for: layout, defaults: defaults) else { continue }
+    /// Sends every circuit's saved best that `player` (the one signed in) set and that hasn't gone up yet.
+    static func sendSaved(for player: String, defaults: UserDefaults = .standard) {
+        for (layout, best) in LapStore.bests(of: player, defaults: defaults) {
             send(best, on: RaceBoard(layout: layout), key: LapStore.key(for: layout), defaults: defaults)
         }
     }

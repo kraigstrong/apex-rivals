@@ -31,51 +31,35 @@ struct TrackMenu: View {
     /// sheet to show, and making the request would use it up unseen.
     @State private var appActive = true
 
+    /// A screen with room for every circuit at once, three to a row at a phone's card size (an iPad), shows them that
+    /// way, the whole list drawn bigger to fill it. A phone's cards scroll sideways instead, as tall as its screen.
+    private static let gridColumns = 3
+    private static let gridCard = CGSize(width: 250, height: 290)
+    /// The grid's list at its own size, the top bar and margins included: the room a screen needs for it.
+    private static let gridSize = CGSize(width: 820, height: 720)
+
     var body: some View {
         ZStack {
             MowedGrass().ignoresSafeArea()
-            VStack(spacing: 14) {
-                // Apex School, the title and COLORS share the top bar, so on a small phone none sits on another.
-                HStack(alignment: .top, spacing: 12) {
-                    SchoolButton(done: schoolDone) { onSelect(TrackCatalog.school.layout.id) }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    GhostThreadLogo()
-                    Button {
-                        showsColors = true
-                    } label: {
-                        Label("COLORS", systemImage: "paintpalette.fill")
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(.black.opacity(0.45), in: Capsule())
+            GeometryReader { geometry in
+                let size = geometry.size
+                if size.width >= Self.gridSize.width && size.height >= Self.gridSize.height {
+                    let scale = min(size.width / Self.gridSize.width, size.height / Self.gridSize.height)
+                    VStack(spacing: 14) {
+                        header
+                        grid
                     }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                .padding(.horizontal, 16)
-                Text("Hold to steer up. Let go to steer down. Straight is fast.")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .opacity(0.85)
-                    .padding(.top, -8)
-                // More circuits than fit across the screen: they scroll sideways, a card at a time.
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
-                            let id = track.layout.id
-                            Button {
-                                if purchases.isLocked(id) { unlocking = id } else { onSelect(id) }
-                            } label: {
-                                TrackCard(track: track, best: bests[id], locked: purchases.isLocked(id))
-                                    .frame(width: 250)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                    .frame(width: size.width / scale, height: size.height / scale)
+                    .scaleEffect(scale)
+                    .frame(width: size.width, height: size.height)
+                } else {
+                    VStack(spacing: 14) {
+                        header
+                        row
                     }
-                    .scrollTargetLayout()
+                    .padding(.vertical, 12)
                 }
-                .scrollTargetBehavior(.viewAligned)
-                .contentMargins(.horizontal, 16, for: .scrollContent)
             }
-            .padding(.vertical, 12)
             .foregroundStyle(.white)
 
             if showsColors {
@@ -99,6 +83,10 @@ struct TrackMenu: View {
             onScreen = true
             askForFriends()
             askForReviewIfDue()
+            #if DEBUG
+            // The track list's App Store moments: up once the unlock's threads have laid out.
+            if StoreCapture.isActive { StoreCapture.ready(after: 2.5) }
+            #endif
         }
         .onDisappear { onScreen = false }
         // A request that came due while the app was away is made once it's back in front.
@@ -108,6 +96,67 @@ struct TrackMenu: View {
         }
         // Sign-in usually finishes after the list is up.
         .onReceive(NotificationCenter.default.publisher(for: GameCenter.authenticationChanged)) { _ in askForFriends() }
+    }
+
+    /// Apex School, the title and COLORS, and how to play.
+    private var header: some View {
+        VStack(spacing: 6) {
+            // Apex School, the title and COLORS share the top bar, so on a small phone none sits on another.
+            HStack(alignment: .top, spacing: 12) {
+                SchoolButton(done: schoolDone) { onSelect(TrackCatalog.school.layout.id) }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                GhostThreadLogo()
+                Button {
+                    showsColors = true
+                } label: {
+                    Label("COLORS", systemImage: "paintpalette.fill")
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.black.opacity(0.45), in: Capsule())
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(.horizontal, 16)
+            Text("Hold to steer up. Let go to steer down. Straight is fast.")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .opacity(0.85)
+        }
+    }
+
+    /// More circuits than fit across a phone: they scroll sideways, a card at a time.
+    private var row: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
+                    card(track).frame(width: 250)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .contentMargins(.horizontal, 16, for: .scrollContent)
+    }
+
+    /// Every circuit at once, three to a row.
+    private var grid: some View {
+        let columns = Array(repeating: GridItem(.fixed(Self.gridCard.width), spacing: 14), count: Self.gridColumns)
+        return LazyVGrid(columns: columns, spacing: 14) {
+            ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
+                card(track).frame(width: Self.gridCard.width, height: Self.gridCard.height)
+            }
+        }
+    }
+
+    /// A circuit's card: a tap races it, or offers the unlock if it's locked.
+    private func card(_ track: Track) -> some View {
+        let id = track.layout.id
+        return Button {
+            if purchases.isLocked(id) { unlocking = id } else { onSelect(id) }
+        } label: {
+            TrackCard(track: track, best: bests[id], locked: purchases.isLocked(id))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Launch with `-ApexUnlockScreen swirl` (Xcode builds) to open on the unlock's screen, as if that circuit had been

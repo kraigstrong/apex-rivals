@@ -92,6 +92,43 @@ struct OnlineTests {
         }
     }
 
+    /// A device signed in to one player, then another (a family iPad): each sign-in sends only that player's bests.
+    @Test func aSavedBestGoesUpOnlyUnderThePlayerWhoSetIt() throws {
+        let defaults = try freshDefaults("OnlineTests.owner")
+        let me = ApexOnline.playerToken("T:_me"), sibling = ApexOnline.playerToken("T:_sibling")
+        let lap = LapRecord(time: 29.5, splits: [10, 20], ghost: [])
+        LapStore.save(lap, for: Track(.ardennes), player: me, defaults: defaults)
+        LapStore.save(lap, for: Track(.swirl), player: sibling, defaults: defaults)
+        #expect(LapStore.bests(of: me, defaults: defaults).map(\.layout.id) == ["ardennes"])
+        #expect(LapStore.bests(of: sibling, defaults: defaults).map(\.layout.id) == ["swirl"])
+
+        // The sibling beats my Ardennes best: the device's best there is theirs now, and mine is gone from it.
+        let faster = LapRecord(time: 29.1, splits: [10, 20], ghost: [])
+        LapStore.save(faster, for: Track(.ardennes), player: sibling, defaults: defaults)
+        #expect(LapStore.bests(of: me, defaults: defaults).isEmpty)
+        #expect(LapStore.bests(of: sibling, defaults: defaults).map(\.layout.id) == ["ardennes", "swirl"])
+        #expect(LapStore.bests(of: sibling, defaults: defaults).first?.best == faster)
+    }
+
+    /// A best set while no one was signed in goes to the first player to sign in, and stays theirs.
+    @Test func aBestSetWhileNoOneWasSignedInGoesToTheFirstPlayerToSignIn() throws {
+        let defaults = try freshDefaults("OnlineTests.claim")
+        let me = ApexOnline.playerToken("T:_me"), sibling = ApexOnline.playerToken("T:_sibling")
+        let lap = LapRecord(time: 29.5, splits: [10, 20], ghost: [])
+        LapStore.save(lap, for: Track(.ardennes), player: nil, defaults: defaults)
+        LapStore.save(lap, for: Track(.swirl), player: sibling, defaults: defaults)
+        #expect(LapStore.bests(of: me, defaults: defaults).isEmpty)
+
+        // I sign in first: Ardennes is mine, the sibling's Swirl stays theirs.
+        LapStore.claim(for: me, defaults: defaults)
+        #expect(LapStore.bests(of: me, defaults: defaults).map(\.layout.id) == ["ardennes"])
+        LapStore.claim(for: sibling, defaults: defaults)
+        #expect(LapStore.bests(of: sibling, defaults: defaults).map(\.layout.id) == ["swirl"])
+        #expect(LapStore.player(for: .ardennes, defaults: defaults) == me)
+        // A circuit with no best has nothing to claim.
+        #expect(LapStore.player(for: .snake, defaults: defaults) == nil)
+    }
+
     func freshDefaults(_ name: String) throws -> UserDefaults {
         let defaults = try #require(UserDefaults(suiteName: name))
         defaults.removePersistentDomain(forName: name)

@@ -71,9 +71,9 @@ What the game shows you:
   The timing panel shows the best lap's medal, and a lap that wins a new one says so in its banner. Only the stock car
   wins medals; Apex School has none.
 - **Achievements**: each medal on each circuit is also a Game Center achievement (`apex.ardennes.gold`); winning
-  gold earns bronze and silver with it. A best lap reports its medals as it's set, and signing in reports any the saved
-  best laps won while signed out or offline. Game Center's own banner stays off, since the lap banner already names the
-  medal.
+  gold earns bronze and silver with it. A best lap reports its medals as it's set, and signing in reports any the
+  player's saved best laps won while signed out or offline (see Online: a best another player set on the device isn't
+  theirs). Game Center's own banner stays off, since the lap banner already names the medal.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
 - **Ratings**: the player's first gold medal, and later their first platinum, on any circuit, ask for an App Store
   rating the next time the track list is up (a second after, with nothing over it and the app in front), never over
@@ -87,7 +87,8 @@ What the game shows you:
   right-hander) with a haptic tick at turn-in and at the apex, a verdict after every
   corner (how wide of the apex, and your slowest speed against the ideal line's), and your own line traced behind the
   car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
-- **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
+- **Track list**: the house button heads back to it (through the session summary, if you finished a lap). On a phone
+  the circuits scroll sideways; on an iPad they all show at once, three to a row, drawn bigger to fill the screen.
 - **Session summary**: the checkered flag ends a session (so does leaving the app); it's dimmed until you finish a
   lap, since there's nothing to sum up before that. The summary shows the session's best lap, its medal (NEW the
   first time) and the next one to chase, and its standing among other players' bests. First place says "Fastest". A
@@ -114,6 +115,11 @@ Rankings live in Game Center; everything Game Center can't hold lives in the Ape
 - every finished lap, counted anonymously into lap-time histograms per board;
 - each player's best lap and ghost, uploaded with Game Center's identity signature, which rivals, friends' laps and
   session standings come from.
+
+Each saved best belongs to the Game Center player who set it (`LapStore.player`), since a device can be signed in to
+one player and then another: only that player's sign-in sends it, to Game Center's leaderboard or the lap service,
+or reports its medals. A best set while no one was signed in goes to the first player who signs in after it
+(`LapStore.claim`), and stays theirs.
 
 Both are per **board** (`RaceBoard`): a circuit at one revision, driven with one physics version. Lap times only
 compare within a board, so **once a board is live, freeze it**: a change that moves lap times needs a new
@@ -194,6 +200,37 @@ skips a run driven on another revision of its circuit or another tuning, which w
 TEST_RUNNER_APEX_TELEMETRY=<folder> xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:ApexTests/TelemetryStudy
 ```
 
+### App Store screenshots
+
+`scripts/store-capture.sh` builds a Debug build and, for each moment, installs it fresh on the iPhone 17 Pro Max
+simulator (the 6.9" size) and launches it with `-ApexStoreCapture <moment>` (`Apex/StoreCapture.swift`). The app
+stages the moment on that fresh install: Apex School done, the sound off, best laps with a medal of each kind on the
+track list, and on the race's circuit a bot's lap as your ghost. A seeded autopilot drives, the rival is the bot the
+game would pick, and the lap service and Game Center stay out of it, so no real player's name or time shows (the
+standings are the sample players, unlabeled). The race holds still at the moment and the script takes the
+simulator's screenshot with the display's mask left out, so there's no Dynamic Island. On an iPad the app saves its
+own drawing of the screen instead, at 2752×2064: a simulator held upright shows a landscape-only game shrunk into a
+band, and simctl can't turn it. Runs repeat exactly. Each
+moment reinstalls the app, so use a simulator whose Ghost Thread data you don't need (`STORE_CAPTURE_DEVICE`, a name
+or UDID).
+
+```bash
+scripts/store-capture.sh                     # every moment, a few minutes
+scripts/store-capture.sh medal standing      # just these
+scripts/store-capture.sh --ipad              # every moment on the iPad Pro 13-inch (M5) simulator
+scripts/store-frames.py build/store-capture/screenshots build/store-capture/captioned
+python3 appstore/push.py media --app ghost-thread --dry-run --screenshots build/store-capture/captioned
+```
+
+The moments, in the listing's order (`StoreCapture.Moment`): `line` (Harbor, the ideal line drawn through an S-bend),
+`ghosts` (Swirl, into the hairpin with your blue ghost and the gold rival), `medal` (Ardennes, the lap that wins
+a medal, its banner up), `standing` (Ardennes, the session summary and where the lap stands), `circuits` (the track
+list, every circuit open, with medals) and `unlock` (the unlock's screen). Where a corner moment holds is
+`StoreCapture.Moment.at`, a share of the first timed lap; launch with `-ApexStoreCaptureAt 0.4` beside
+`-ApexStoreCapture ghosts` to try another. `scripts/store-frames.py` captions them, Bigger Fish's way: 2–5 words in
+SF Rounded Black, leaning like the game's titles, over the shot set a little smaller on a darkened blur of itself, so
+the HUD across the top still shows. Output is in `build/store-capture/` (ignored by git).
+
 ## Tuning
 
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
@@ -253,7 +290,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   rule, and walls.
 - `Apex/RaceSession.swift`: the car, laps and a fixed 240 Hz clock with no drawing; the scene and tests both drive it.
 - `Apex/LapTimer.swift`: laps and sectors (interpolated within a step), ghost recording, and `LapStore` for saved
-  best laps.
+  best laps and who set them.
 - `Apex/RacingLine.swift`: the minimum-curvature line (LAPACK), for the ideal-line overlay and the fastest bot.
 - `Apex/AutoDriver.swift`: a bot that drives with hold/let-go to follow a line.
 - `Apex/Rivals.swift`: rivals, bot rivals tuned to a target lap time, and `RivalScout`, which picks the next one.
