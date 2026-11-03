@@ -87,16 +87,22 @@ capture() {
     local name
     name="$(printf '%02d' "$number")-$moment.png"
     rm -f "$OUT/$SHOTS"/??-"$moment".png
+    # Called as `capture ... || failed=1`, which turns off `set -e` in here: each step that writes the shot is checked.
+    local saved=0
     if [ $IPAD = 1 ]; then
         # The app's own drawing of the screen: an upright iPad simulator shows the game shrunk into a band.
-        cp "$signals/$moment.png" "$OUT/$SHOTS/$name"
+        cp "$signals/$moment.png" "$OUT/$SHOTS/$name" || saved=1
     else
-        xcrun simctl io "$DEVICE" screenshot --type=png --mask=ignored "$OUT/$SHOTS/$name" >/dev/null 2>&1
+        xcrun simctl io "$DEVICE" screenshot --type=png --mask=ignored "$OUT/$SHOTS/$name" >/dev/null 2>&1 || saved=1
     fi
     xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    [ $saved = 0 ] && [ -s "$OUT/$SHOTS/$name" ] || { echo "$moment: couldn't save the screenshot" >&2; return 1; }
     local size
     size="$(sips -g pixelWidth -g pixelHeight "$OUT/$SHOTS/$name" | awk '/pixel/ { printf "%s%s", sep, $2; sep = "x" }')"
-    [ "$size" = "$SIZE" ] || echo "$moment: $size, not the $SIZE_NAME size ($SIZE); is $DEVICE the right simulator?" >&2
+    if [ "$size" != "$SIZE" ]; then
+        echo "$moment: ${size:-unreadable}, not the $SIZE_NAME size ($SIZE); is $DEVICE the right simulator?" >&2
+        return 1
+    fi
     echo "captured $SHOTS/$name ($size)"
 }
 
