@@ -31,6 +31,8 @@ struct TrackMenu: View {
     private static let gridCard = CGSize(width: 250, height: 290)
     /// The grid's list at its own size, the top bar and margins included: the room a screen needs for it.
     private static let gridSize = CGSize(width: 820, height: 720)
+    /// The tallest the sideways row's cards grow: more than any phone gives them (a Pro Max, about 314).
+    private static let rowHeight: CGFloat = 330
 
     var body: some View {
         ZStack {
@@ -49,7 +51,11 @@ struct TrackMenu: View {
                 } else {
                     VStack(spacing: 14) {
                         header
+                        // On a screen taller than a phone's but too short for the grid (an iPhone Duo, open), the cards
+                        // keep a phone's height, in the middle of what's left, rather than stretching.
                         row
+                            .frame(maxHeight: Self.rowHeight)
+                            .frame(maxHeight: .infinity)
                     }
                     .padding(.vertical, 12)
                 }

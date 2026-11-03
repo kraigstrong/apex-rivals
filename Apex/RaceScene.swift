@@ -185,6 +185,9 @@ final class RaceScene: SKScene {
         super.didChangeSize(oldSize)
         grass?.size = size
         if built { placeCamera(dt: 0, snap: true) }
+        // An iPhone Duo opened or closed mid-lap: the player's hands were on the phone, not the car, so the race holds
+        // until the next touch rather than running on into a wall.
+        if built, session.phase == .racing, size != oldSize { hud.heldForResize = true }
     }
 
     // MARK: Frame
@@ -332,7 +335,8 @@ final class RaceScene: SKScene {
         viewWidth += snap ? wanted - viewWidth : (wanted - viewWidth) * (1 - exp(-dt / tuning.cameraZoomLag))
 
         guard size.width > 0, size.height > 0 else { return }
-        let scale = max(viewWidth / size.width, tuning.minimumViewHeight / size.height)
+        // A bigger screen than a phone's (an iPad) comes in a little closer (`ScreenFit`).
+        let scale = max(viewWidth / size.width, tuning.minimumViewHeight / size.height) / ScreenFit.cameraZoom(for: size)
         let center = track.centerline(at: state.s)
         let carPoint = state.position(on: track)
         let lead = size.width * scale * tuning.cameraLead
@@ -596,6 +600,8 @@ final class RaceScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         // The session summary is up: touches are for its button, not the car.
         guard hud.summary == nil else { return }
+        // A touch after the screen changed size goes on with the race, and steers as any touch does.
+        hud.heldForResize = false
         holdTouches.formUnion(touches)
         if session.phase == .ready {
             if sessionLaps == 0 { bestBeforeSession = session.timer.best?.time }

@@ -23,8 +23,9 @@ in the pull request that does it.
       purchase can only be reviewed with a version (add it on the version page before submitting).
 - [ ] **Screenshots**: 6.9" iPhone and 13" iPad (the app runs on iPad, so both are required). `scripts/store-capture.sh`
       (and `--ipad`) captures the six moments and `scripts/store-frames.py` captions them (README, App Store
-      screenshots); upload with `appstore/push.py media`. The iPhone set is ready; the iPad's waits on the game's iPad
-      layout (its HUD and track list don't scale up for the bigger screen yet).
+      screenshots); upload with `appstore/push.py media`. The iPhone set is ready; recapture the iPad's now its race
+      and track list scale up. App Store Connect has an iPhone Duo slot too (2853×2007, the open inner screen); a Duo
+      capture needs the simulator opened first, in Xcode's Device Hub.
 - [ ] **App preview video** for each of those sizes, up to 30 seconds. Optional, but the game sells on motion.
 - [ ] **Metadata**: subtitle, promotional text, description, keywords, copyright, support URL, marketing URL, privacy
       policy URL. Category is Racing.

@@ -1,6 +1,6 @@
 # Ghost Thread
 
-A one-touch time-trial racer for iPhone and iPad (landscape, SwiftUI + SpriteKit, iOS 17+): race your ghost and thread
+A one-touch time-trial racer for iPhone, iPad and iPhone Duo (landscape, SwiftUI + SpriteKit, iOS 17+): race your ghost and thread
 the line through every corner. It was Apex Rivals, then briefly Needle (taken on the App Store); Apex is still its code
 name, kept by the project, the bundle ID (`com.kraigstrong.apex`), the Game Center IDs, the lap service and saved
 data, so nothing already stored moves.
@@ -101,7 +101,11 @@ What the game shows you:
 - **Ideal line**: the ⚙︎ menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 - **Holding still**: the race holds while anything is over it (the ⚙︎ menu or a panel from it, Game Center's
   leaderboard, Control Center or a call) and picks up where it was once it's gone: the lap clock, the car and the
-  ghosts all wait. Only leaving the app ends the session.
+  ghosts all wait. Only leaving the app ends the session. An iPhone Duo opened or closed mid-lap holds it too, under
+  TOUCH TO GO ON, until the next touch: the player's hands were on the phone, not the car.
+- **Bigger screens**: on an iPad the race's HUD, banners, panels and summary are laid out as on the biggest iPhone and
+  drawn bigger to fill the screen, and the camera comes in a little (`ScreenFit`). An iPhone Duo draws as a phone, open
+  or closed: closed, the minimap narrows to fit beside the camera; open, the track list's cards keep a phone's height.
 
 ## Online
 
@@ -147,9 +151,11 @@ xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS 
 ```
 
 GitHub Actions runs the same tests on every pull request and push to `main` (`.github/workflows/tests.yml`), and
-builds Release too. Any build warning fails it. It uses Xcode 26.4, the version the project is built with; to move
-Xcode, change `DEVELOPER_DIR` there. The tests run on whichever iPhone simulator the runner's simulator service lists,
-an iPhone 17 Pro on the newest iOS if it has one: `scripts/ci-simulator.sh` picks it (waiting for the service, or
+builds Release too. Any build warning fails it. It uses Xcode 27.1 on GitHub's `xcode-27` image, the version the
+project is built with: only an app built with the iOS 27.1 SDK fills an iPhone Duo's screens (an older one runs there
+in a small 667×375 window), so archive with it too. To move Xcode, change `DEVELOPER_DIR` there. The tests run on
+whichever iPhone simulator the runner's simulator service lists on the newest iOS, an iPhone 17 Pro if it has one;
+iOS 27.1's only iPhone is the iPhone Duo, so that's where they run: `scripts/ci-simulator.sh` picks it (waiting for the service, or
 creating one if it never lists any), boots it and logs which. Asking for one by name sometimes failed with "Unable to
 find a device".
 
@@ -307,6 +313,8 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   the grid and under the cards), tire scrub, curbs, walls, cues and a synthwave loop (settings from the Apex Sound
   Lab). Sound and music switch off from the ⚙︎ menu.
 - `Apex/RaceHUD.swift`, `Apex/ContentView.swift`: the SwiftUI overlay: timing, splits, speed, map and menu.
+- `Apex/ScreenFit.swift`: bigger screens than a phone's (an iPad): how much bigger the HUD draws, and how much closer
+  the camera comes.
 - `appstore/`: the App Store listing and the in-app purchase's text, pushed to App Store Connect by `push.py` (its
   README); `docs/apex-app-store.md` is the release checklist.
 

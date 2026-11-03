@@ -5,8 +5,9 @@ Rivals, then briefly Needle; the bundle ID and Game Center IDs keep the first na
 
 ## What the build has
 
-- Bundle ID `com.kraigstrong.apex`, team `MKACSCQ588`, automatic signing. Version 1.0 (builds 1–5 were 0.1.0). iPhone and iPad (full
-  screen), landscape.
+- Bundle ID `com.kraigstrong.apex`, team `MKACSCQ588`, automatic signing. Version 1.0 (builds 1–5 were 0.1.0). iPhone, iPad and
+  iPhone Duo (full screen), landscape. Archive with Xcode 27.1 or newer: only the iOS 27.1 SDK fills an iPhone Duo's
+  screens.
 - App icon (`Art/make-icon.py` draws it; no alpha) and the system launch screen.
 - `ITSAppUsesNonExemptEncryption = NO`: the only encryption is the system's HTTPS.
 - Category: Racing games.

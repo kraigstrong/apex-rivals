@@ -37,6 +37,15 @@ struct RaceHoldTests {
         }
     }
 
+    /// An iPhone Duo opened or closed mid-lap holds the race until the next touch, with the HUD still in view.
+    @Test func aResizedScreenHoldsTheRaceInView() {
+        let hud = hud()
+        hud.heldForResize = true
+        #expect(hud.holdsRace && !hud.showsPanel)
+        hud.heldForResize = false
+        #expect(!hud.holdsRace)
+    }
+
     /// The ⚙︎ menu holds the race without being a panel, so the timing and the button the menu hangs from stay put.
     @Test func theMenuHoldsTheRaceInView() {
         let hud = hud()
