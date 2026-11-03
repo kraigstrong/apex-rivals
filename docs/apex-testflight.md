@@ -38,11 +38,14 @@ Everything between here and a public TestFlight link, in order. The code is in p
 3. **Set the service's secrets** on the marketing project in Vercel (Production, and Preview if you test previews):
    `APEX_APP_KEY` = `apex-laps-v1`, and `APEX_PLAYER_SALT` = a long random value (`openssl rand -base64 32`) that must
    never change once anyone has a time stored. Redeploy so the routes pick them up.
-4. **Rate limit** `/api/apex/*` in the Vercel Firewall (60 requests a minute per IP is plenty for a beta). Skipped for
-   the first beta by choice. The project had no firewall config yet, and the API can't create one, so it has to be
-   started from the dashboard's Firewall tab. Without it, the app key is public, so anyone can post unlimited
-   anonymous laps and skew the lap-time standings ("where your lap falls"). Ghosts and bests are safe either way:
-   they need a signed Game Center identity. Add the limit before the public link goes beyond friends.
+4. **Rate limit** `/api/apex/*` in the Vercel Firewall: 60 requests a minute per IP. Live since 2026-11-01 as the rule
+   "Apex lap service rate limit". Without it, the app key is public, so anyone can post unlimited anonymous laps and
+   skew the lap-time standings ("where your lap falls"). Ghosts and bests are safe either way: they need a signed Game
+   Center identity. To set it up again, the Vercel CLI can create the rule and publish it:
+   ```bash
+   vercel --scope kraigs-projects-c9a47768 firewall rules add "Apex lap service rate limit" --project bright-bench-marketing --condition '{"type":"path","op":"pre","value":"/api/apex/"}' --action rate_limit --rate-limit-requests 60 --rate-limit-window 60 --rate-limit-keys ip --yes
+   vercel --scope kraigs-projects-c9a47768 firewall publish --project bright-bench-marketing --yes
+   ```
 5. **Check the routes answer:**
 
    ```bash
