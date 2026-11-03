@@ -50,9 +50,10 @@ struct UnlockView: View {
         .foregroundStyle(.white)
         .scaleEffect(shown ? 1 : 0.94).opacity(shown ? 1 : 0)
         .onAppear { withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { shown = true } }
-        // Bought on another device, approved by a parent, or restored while this was open.
+        // Bought on another device, approved by a parent (often while WAITING FOR APPROVAL is up), or restored while this
+        // was open. A purchase or restore under way says so itself when it's done.
         .onChange(of: purchases.isUnlocked) { _, unlocked in
-            if unlocked && stage == .offer { stage = Self.unlockedMessage }
+            if unlocked && stage != .working { stage = Self.unlockedMessage }
         }
         .task { await purchases.loadProduct() }
     }
