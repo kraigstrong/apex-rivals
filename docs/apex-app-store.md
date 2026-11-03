@@ -10,8 +10,10 @@ in the pull request that does it.
 - [ ] **Version 1.0.** `MARKETING_VERSION` is 0.1.0.
 - [ ] **Share link to the App Store.** `ApexLinks.join` is the public TestFlight link; the share text should send
       people to the App Store page once it's live.
-- [ ] **Ask for a rating** at a good moment, such as a new medal (`SKStoreReviewController`), the way Bigger Fish does.
-      Optional.
+- [ ] **Ask for a rating** after the player's first gold medal, and again after their first platinum, on any circuit
+      (an `ApexReview` modeled on Bigger Fish's `ArcadeReview`). The lap that wins one marks a request due; it's made on
+      the next return to the track list, a second after it's up with nothing over it, never over a race, its summary
+      or the unlock's screen. App Store builds only (TestFlight can't show the sheet), at most twice, 90 days apart.
 - [ ] **Dark and tinted app icons** for iOS 18's home screen styles. Optional.
 
 ## App Store Connect
