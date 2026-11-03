@@ -225,13 +225,23 @@ def token() -> str:
 
 
 class Client:
+    # A token lasts 19 minutes; a fresh one is signed after 15, so a long upload and its processing stay signed in.
+    TOKEN_LIFE = 15 * 60
+
     def __init__(self) -> None:
-        self.auth = f"Bearer {token()}"
+        self.signed = 0.0
+        self.auth = ""
+
+    def authorization(self) -> str:
+        if time.time() - self.signed > self.TOKEN_LIFE:
+            self.auth, self.signed = f"Bearer {token()}", time.time()
+        return self.auth
 
     def call(self, method: str, path: str, body: dict | None = None) -> dict:
         request = urllib.request.Request(f"{API}{path}", method=method,
                                          data=json.dumps(body).encode() if body is not None else None,
-                                         headers={"Authorization": self.auth, "Content-Type": "application/json"})
+                                         headers={"Authorization": self.authorization(),
+                                                  "Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
                 text = response.read().decode()
