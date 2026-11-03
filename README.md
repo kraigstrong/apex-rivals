@@ -95,7 +95,8 @@ What the game shows you:
   drawn to scale with your line on it in your car's color, the GHOST THREAD logo, the time, its medal and, if it
   beats anyone, its standing) and a line of text: "27.843 at Ardennes in Ghost Thread, a gold medal lap. Beat it:" and
   the link
-  to the game (`ApexLinks.join`, the public TestFlight link for now).
+  to the game (`ApexLinks.join`: its page on brightbench.app, which offers the beta until the game is on the App
+  Store, then the App Store).
 - **Ideal line**: the ⚙︎ menu draws the minimum-curvature line on the track. The menu also clears your best lap.
 - **Holding still**: the race holds while anything is over it (the ⚙︎ menu or a panel from it, Game Center's
   leaderboard, Control Center or a call) and picks up where it was once it's gone: the lap clock, the car and the

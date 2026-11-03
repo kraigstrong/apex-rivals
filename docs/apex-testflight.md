@@ -5,7 +5,7 @@ Rivals, then briefly Needle; the bundle ID and Game Center IDs keep the first na
 
 ## What the build has
 
-- Bundle ID `com.kraigstrong.apex`, team `MKACSCQ588`, automatic signing. Version 0.1.0. iPhone and iPad (full
+- Bundle ID `com.kraigstrong.apex`, team `MKACSCQ588`, automatic signing. Version 1.0 (builds 1–5 were 0.1.0). iPhone and iPad (full
   screen), landscape.
 - App icon (`Art/make-icon.py` draws it; no alpha) and the system launch screen.
 - `ITSAppUsesNonExemptEncryption = NO`: the only encryption is the system's HTTPS.
@@ -86,8 +86,10 @@ Everything between here and a public TestFlight link, in order. The code is in p
     approved, turn on the group's public link and share it.
 11. **Record it** in the build log at the end of this file.
 
-The app's shared laps link to the public TestFlight link (`ApexLinks.join` in `Apex/ShareCard.swift`). If the
-Friends group's link changes, or once the game is on the App Store, change it there.
+The app's shared laps link to Ghost Thread's page, `https://brightbench.app/ghost-thread` (`ApexLinks.join` in
+`Apex/ShareCard.swift`), which invites players to the public TestFlight link. If the Friends group's link changes,
+change it in BrightBench's `apps/marketing/src/lib/ghost-thread.ts`; at launch, setting `appStoreUrl` there swaps the
+page's beta button for the App Store's badge, with no app update.
 
 **The name.** The build carries the name under the icon; App Store Connect carries the rest, and Game Center and
 TestFlight show its name. Both are Ghost Thread. App Store names are unique, including unreleased apps', so a store
@@ -154,8 +156,9 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
 - The flag is dimmed until you finish a lap. Then it ends a session: the summary shows your best lap and, with no one
   else on the board yet, "You're the first!" The trophy opens the circuit's leaderboard with your time on it.
 - SHARE on the summary opens the share sheet: a picture of the circuit with your line in your car's color, the GHOST
-  THREAD logo, the time, medal and standing, and text ("… in Ghost Thread …") ending with the public TestFlight link.
-  Send it to yourself in Messages: the link opens TestFlight.
+  THREAD logo, the time, medal and standing, and text ("… in Ghost Thread …") ending with
+  `https://brightbench.app/ghost-thread`. Send it to yourself in Messages: the link opens the game's page, whose
+  button opens TestFlight.
 - Open ⚙︎ mid-lap: the lap clock, the car and the engine stop until the menu closes, then carry on from the same
   time. The trophy's leaderboard holds the race the same way until it's closed, as does pulling down Control Center.
 - Best laps survive force-quitting and reopening. Background the app mid-lap: the session ends and its summary is

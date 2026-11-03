@@ -42,8 +42,8 @@ struct ShareTests {
         #expect(LapShare(track: Self.track, lap: Self.lap, medal: nil, standing: alone).boast == nil)
     }
 
-    @Test func theLinkIsThePublicBeta() {
-        #expect(ApexLinks.join.host == "testflight.apple.com")
+    @Test func theLinkIsTheGamesPage() {
+        #expect(ApexLinks.join.absoluteString == "https://brightbench.app/ghost-thread")
     }
 
     @MainActor @Test func theCardRendersAtTwiceItsSize() throws {

@@ -2,9 +2,11 @@ import LinkPresentation
 import SwiftUI
 import UIKit
 
-/// Where a shared lap sends people: the public TestFlight beta for now. Swap it for the App Store link at launch.
+/// Where a shared lap sends people: Ghost Thread's page on brightbench.app, which offers the public TestFlight beta
+/// until the game is on the App Store, then the App Store (`appStoreUrl` in BrightBench's `src/lib/ghost-thread.ts`).
+/// A link that works before, during and after launch, so laps shared from any build keep working.
 enum ApexLinks {
-    static let join = URL(string: "https://testflight.apple.com/join/dt7sHRvR")!
+    static let join = URL(string: "https://brightbench.app/ghost-thread")!
 }
 
 /// A session's best lap to share: a picture of it and a line of text with the link, through the share sheet.
