@@ -9,7 +9,7 @@ import UIKit
 /// out. The lap service and Game Center stay out of it, so no real player's name or time can appear. Runs repeat
 /// exactly: the bots and the autopilot are seeded.
 enum StoreCapture {
-    /// The screenshots, in the listing's order.
+    /// The screenshots, in the listing's order, and the app preview's moments.
     enum Moment: String, CaseIterable {
         /// The ideal line drawn on the track, the car on it: what the game is about.
         case line
@@ -23,6 +23,8 @@ enum StoreCapture {
         case circuits
         /// The unlock's screen, each circuit threading its line.
         case unlock
+        /// The app preview's alone (no screenshot): a lap on Snake crossing the line, a new best, its banner up.
+        case best
 
         /// The circuit its race is on; nil for the track list's moments.
         var track: String? {
@@ -30,6 +32,7 @@ enum StoreCapture {
             case .ghosts: "swirl"
             case .line: "harbor"
             case .medal, .standing: "ardennes"
+            case .best: "snake"
             case .circuits, .unlock: nil
             }
         }
@@ -55,6 +58,15 @@ enum StoreCapture {
 
     static let moment: Moment? = UserDefaults.standard.string(forKey: "ApexStoreCapture").flatMap(Moment.init)
     static var isActive: Bool { moment != nil }
+    /// With `-ApexStoreCaptureVideo YES` too, a clip for the app preview (`scripts/store-capture.sh --video`): the
+    /// moment plays on through, with its sound, rather than holding still, and `<moment>.mark` says when it came.
+    static let isVideo = moment != nil && UserDefaults.standard.bool(forKey: "ApexStoreCaptureVideo")
+    /// With `-ApexStoreCaptureScale 3.8111` too, for the App Store's header and search results images
+    /// (`scripts/store-creative.py`): the moment drawn that many times its size in points, with no HUD over it (on a
+    /// 13-inch iPad, 3.8111 makes it 5244 pixels wide).
+    static let drawingScale: CGFloat? = moment != nil && UserDefaults.standard.object(forKey: "ApexStoreCaptureScale") != nil
+        ? CGFloat(UserDefaults.standard.double(forKey: "ApexStoreCaptureScale")) : nil
+    static var hidesHUD: Bool { drawingScale != nil }
 
     /// Where the race holds still this launch: the moment's, or `-ApexStoreCaptureAt`'s.
     static var at: Double? {
@@ -74,14 +86,15 @@ enum StoreCapture {
         ("harbor", nil),
     ]
 
-    /// Stages the moment, before anything is on screen: Apex School done, the sound off, best laps on every circuit,
+    /// Stages the moment, before anything is on screen: Apex School done, the sound off (on for a video, which records
+    /// it), best laps on every circuit,
     /// and on the race's circuit a bot's lap with its ghost to race. They're set with no one signed in: a capture has
     /// no Game Center.
     static func stage() {
         guard let moment else { return }
         SchoolProgress.markDone()
-        RaceAudio.shared.soundOn = false
-        RaceAudio.shared.musicOn = false
+        RaceAudio.shared.soundOn = isVideo
+        RaceAudio.shared.musicOn = isVideo
         for (id, medal) in listBests {
             guard let medal, let layout = TrackLayout.named(id), let times = RaceTuning.medalTimes[id] else { continue }
             let time = times[medal.rawValue] - 0.13
@@ -101,9 +114,10 @@ enum StoreCapture {
     static func ready(after delay: Double = 0.6) {
         guard let moment else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            if isVideo { return mark() }
             MainActor.assumeIsolated {
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    guard let png = drawScreen() else { return fail("couldn't draw the screen") }
+                if let scale = drawingScale ?? (UIDevice.current.userInterfaceIdiom == .pad ? 2 : nil) {
+                    guard let png = drawScreen(scale: scale) else { return fail("couldn't draw the screen") }
                     write(data: png, to: "\(moment.rawValue).png")
                 }
                 write("\(moment.rawValue).ready", "")
@@ -111,16 +125,34 @@ enum StoreCapture {
         }
     }
 
-    /// The window as it's laid out, everything in it drawn at twice its size in points: an iPad's screen pixels.
-    @MainActor private static func drawScreen() -> Data? {
+    /// The window as it's laid out, everything in it drawn at `scale` times its size in points (2: an iPad's screen
+    /// pixels).
+    @MainActor private static func drawScreen(scale: CGFloat) -> Data? {
         guard let window = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first
         else { return nil }
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 2
+        format.scale = scale
         format.opaque = true
         return UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }.pngData()
+    }
+
+    /// A video's moment has come: the wall-clock time it came, as `<moment>.mark`, for the script to cut the clip around.
+    static func mark() {
+        guard let moment else { return }
+        write("\(moment.rawValue).mark", String(Date().timeIntervalSince1970))
+    }
+
+    /// A video records the race's sound as it plays, into `<moment>.caf`, with the wall-clock time of its first sample
+    /// as `<moment>.sound`: the simulator's recording has none.
+    static func recordSound() {
+        guard isVideo, let moment else { return }
+        let folder = URL.documentsDirectory.appending(path: "StoreCapture")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        RaceAudio.shared.record(to: folder.appending(path: "\(moment.rawValue).caf")) { start in
+            write("\(moment.rawValue).sound", String(start))
+        }
     }
 
     /// The moment couldn't be staged: tells the script why.

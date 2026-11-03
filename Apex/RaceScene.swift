@@ -69,6 +69,10 @@ final class RaceScene: SKScene {
     private var heldForCapture = false
     /// An App Store capture's first timed lap is done.
     private var captureLapDone = false
+    /// A video's moment has come and been marked; the race plays on.
+    private var markedForCapture = false
+    /// When the capture's first timed lap was done, on the race's clock.
+    private var captureLapClock: Double?
     #endif
 
     init(track: Track, hud: RaceHUD) {
@@ -377,7 +381,10 @@ final class RaceScene: SKScene {
             }
         case .timing(.lap(let lap)):
             #if DEBUG
-            if StoreCapture.isActive, lap.number == 1 { captureLapDone = true }
+            if StoreCapture.isActive, lap.number == 1 {
+                captureLapDone = true
+                captureLapClock = session.clock
+            }
             #endif
             hud.lastLap = lap.time
             if let record = session.timer.lastRecord, !isAutopilot, !practice {
@@ -741,7 +748,7 @@ final class RaceScene: SKScene {
     /// one, if the rival isn't out yet) `StoreCapture.at` of the way round; for the medal, the lap that wins it, its
     /// banner up; for the standing, that lap's session summary.
     private func holdForStoreCapture() {
-        guard let moment = StoreCapture.moment, !heldForCapture else { return }
+        guard let moment = StoreCapture.moment, !heldForCapture, !markedForCapture else { return }
         switch moment {
         case .ghosts, .line:
             guard let at = StoreCapture.at, session.phase == .racing, session.timer.lapNumber >= 1 else { return }
@@ -751,14 +758,27 @@ final class RaceScene: SKScene {
         case .medal:
             guard captureLapDone else { return }
             if hud.banner?.medal == nil { return StoreCapture.fail("the first lap won no medal") }
+        case .best:
+            guard captureLapDone else { return }
         case .standing:
             guard captureLapDone else { return }
+            // A video shows the lap's banner a moment before the summary comes up, as a player's tap would.
+            if StoreCapture.isVideo, let done = captureLapClock, session.clock < done + 1.5 { return }
             endSession()
         case .circuits, .unlock:
             return
         }
+        // A video's moment plays on through, but for the summary, which holds as it would for a player reading it.
+        if StoreCapture.isVideo {
+            StoreCapture.mark()
+            if moment != .standing {
+                markedForCapture = true
+                return
+            }
+        }
         heldForCapture = true
         refreshHUD()
+        if StoreCapture.isVideo { return }
         // The medal's lap wakes the Dynamic Island for a moment (drawn into the screen, so a screenshot would show it):
         // its moment waits for it to settle, the banner staying up meanwhile.
         StoreCapture.ready(after: moment == .medal ? 3 : moment == .standing ? 1.2 : 0.6)

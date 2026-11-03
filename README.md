@@ -240,6 +240,45 @@ list, every circuit open, with medals) and `unlock` (the unlock's screen). Where
 SF Rounded Black, leaning like the game's titles, over the shot set a little smaller on a darkened blur of itself, so
 the HUD across the top still shows. Output is in `build/store-capture/` (ignored by git).
 
+The app preview (the 6.9" iPhone's, which the iPhone Duo takes too, and the 13-inch iPad's) is cut from clips:
+
+```bash
+scripts/store-capture.sh --video                       # the clips, on the iPhone 17 Pro Max simulator
+scripts/store-capture.sh --video --ipad                # and on the iPad
+scripts/store-preview.py build/store-capture/clips build/store-capture/preview-iphone.mp4
+scripts/store-preview.py --ipad build/store-capture/clips-ipad build/store-capture/preview-ipad.mp4
+python3 appstore/push.py media --app ghost-thread --dry-run \
+  --preview build/store-capture/preview-iphone.mp4 --ipad-preview build/store-capture/preview-ipad.mp4 --poster 00:00:07:20
+```
+
+With `-ApexStoreCaptureVideo YES` a moment plays on through rather than holding still, with its sound (the app records
+what it plays, `RaceAudio.record`, since the simulator records none), and marks when its moment came; the script has
+the simulator record the screen from before the launch. `store-preview.py` cuts a window around each moment (its
+`CLIPS`): Harbor's ideal line, your ghost and the rival on Swirl, a new best lap on Snake (`best`, a moment only the
+preview uses), the track list, then the ending: racing into the line at Ardennes for a gold medal, the session's
+standing, and the challenge over it a line at a time ("Can you top the leaderboard?", "Can you beat the ghost?",
+"Challenge your friends"). It's about 29 seconds, with the game's sound, in Apple's format (1920×886 or 1600×1200,
+30 fps H.264, stereo AAC). An iPhone's recording is turned back to landscape, and the expanded Dynamic Island the
+system draws while the game's sound plays is cropped off its left edge, in the strip the HUD keeps clear.
+
+The header and search results images (iOS 27's creative assets, 5244×2950) are race frames drawn bigger than the
+screen, with no HUD: `-ApexStoreCaptureScale 6` beside `-ApexStoreCapture <moment>` on the 13-inch iPad draws
+`<moment>.png` at 8256×6192 (in the app's Documents/StoreCapture). `scripts/store-creative.py` crops a 16:9 window,
+closer than the whole frame so the car (which the race's camera keeps in the left third) comes in toward the middle,
+and adds the logo (`Art/site/logo-large.png`, drawn by `SiteArtTests`) or a tagline:
+
+```bash
+scripts/store-creative.py line.png build/store-creative/header.png --focus 0,0.5 --zoom 1.45 --logo --logo-y 0.21 \
+  --phone build/store-creative/header-phone.png
+scripts/store-creative.py ghosts.png build/store-creative/search.png --focus 0,0.5 --zoom 1.35 --tagline "RACE YOUR GHOST"
+python3 appstore/push.py media --app ghost-thread --dry-run --header build/store-creative/header.png \
+  --search build/store-creative/search.png
+```
+
+The header is the brand (the logo over the ideal line threading Harbor's S-bend), and an iPhone shows only its middle
+half and top 60% or so (`--phone` saves that, to check); the search results show the game (your ghost and the rival
+into Swirl's hairpin).
+
 ## Tuning
 
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
