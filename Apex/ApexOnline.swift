@@ -6,7 +6,14 @@ import GameKit
 /// board; each personal best's ghost is shared under the player's Game Center alias; and rivals come back from other
 /// players' ghosts. When it can't be reached, laps wait on the device and rivals are bots.
 enum ApexOnline {
-    static let isEnabled = true
+    static var isEnabled: Bool {
+        #if DEBUG
+        // App Store captures stay offline, so no real player's name or time can appear in them.
+        return !StoreCapture.isActive
+        #else
+        return true
+        #endif
+    }
     static let base = URL(string: "https://brightbench.app/api/apex")!
     /// A public noise filter, not authentication: the server validates everything it stores.
     static let appKey = "apex-laps-v1"

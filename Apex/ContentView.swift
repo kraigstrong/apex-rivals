@@ -19,8 +19,12 @@ struct ContentView: View {
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .onAppear {
-            GameCenter.shared.signIn()
             CircuitPurchases.shared.start()
+            #if DEBUG
+            // App Store captures have no Game Center: no sign-in sheet or banner over the moment.
+            if StoreCapture.isActive { return }
+            #endif
+            GameCenter.shared.signIn()
         }
         // Laps that couldn't go up before (offline, or the service was down) try again at launch and on every return
         // to the app, not only after the next lap.
@@ -33,6 +37,7 @@ struct ContentView: View {
     /// shows the list.
     private static var launchTrack: String? {
         #if DEBUG
+        if let moment = StoreCapture.moment { return moment.track }
         if let id = UserDefaults.standard.string(forKey: "ApexTrack"),
            id == TrackCatalog.school.layout.id || TrackCatalog.tracks.contains(where: { $0.layout.id == id }) {
             return id
@@ -128,6 +133,14 @@ struct RaceOverlay: View {
         .foregroundStyle(.white)
     }
 
+    /// How long a split or lap banner stays up; an App Store capture keeps it for its screenshot.
+    private var bannerSeconds: Double {
+        #if DEBUG
+        if StoreCapture.isActive { return 60 }
+        #endif
+        return 2.4
+    }
+
     private var showsTuner: Bool {
         #if DEBUG
         return hud.showsTuner
@@ -152,7 +165,7 @@ struct RaceOverlay: View {
                             .id(banner.id)
                             .allowsHitTesting(false)
                             .task(id: banner.id) {
-                                try? await Task.sleep(for: .seconds(2.4))
+                                try? await Task.sleep(for: .seconds(bannerSeconds))
                                 if hud.banner?.id == banner.id { hud.banner = nil }
                             }
                     }
@@ -748,6 +761,15 @@ struct SessionSummaryCard: View {
         }
     }
 
+    /// An App Store capture shows its sample players without saying so: they stand in for a real board.
+    private var isStoreCapture: Bool {
+        #if DEBUG
+        return StoreCapture.isActive
+        #else
+        return false
+        #endif
+    }
+
     /// A big board's histogram, under both columns. A small board's players are dots under the headline instead.
     @ViewBuilder private var standingDetail: some View {
         if case .ready(let standing, let sample) = standing, standing.players > 0, sample || !standing.isSmallBoard {
@@ -756,7 +778,7 @@ struct SessionSummaryCard: View {
                     StandingChart(standing: standing, lapMs: Int((summary.best * 1000).rounded()))
                         .frame(height: 74)
                 }
-                if sample {
+                if sample && !isStoreCapture {
                     Text("Sample players: the lap service isn't live yet")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .opacity(0.6)

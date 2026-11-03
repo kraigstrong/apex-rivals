@@ -60,5 +60,6 @@ alongside to compare them with step for step.
 - **Draw order:** the SpriteView ignores sibling order, so anything that overlaps needs its own depth
   (`TrackArt.Depth`).
 - **Debug-only tools go behind `#if DEBUG`**, like the autopilot and FPS launch arguments, the tuning panel
-  (`Tuner`) and telemetry (`Telemetry`). Tuned laps stay off the boards: anything that uploads or submits a lap
+  (`Tuner`), telemetry (`Telemetry`) and the App Store capture (`StoreCapture`, which keeps the lap service and Game
+  Center out of the screenshots). Tuned laps stay off the boards: anything that uploads or submits a lap
   checks `RaceTuning.isStock`.

@@ -65,6 +65,10 @@ final class RaceScene: SKScene {
     private lazy var stopwatch = BotStopwatch(track: track)
     /// This run's telemetry (`Telemetry`), from the start until the race goes back to the grid.
     private var telemetry: TelemetryRecorder?
+    /// An App Store capture's moment is on screen: the race holds still for its screenshot (`StoreCapture`).
+    private var heldForCapture = false
+    /// An App Store capture's first timed lap is done.
+    private var captureLapDone = false
     #endif
 
     init(track: Track, hud: RaceHUD) {
@@ -105,7 +109,9 @@ final class RaceScene: SKScene {
             self?.endTelemetry()
             exit()
         }
-        if let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") {
+        if StoreCapture.isActive {
+            autopilot = StoreCapture.autopilot(line: RacingLine(track: track))
+        } else if let mode = UserDefaults.standard.string(forKey: "ApexAutopilot") {
             let line = RacingLine(track: track)
             autopilot = mode == "human"
                 ? AutoDriver(line: { line.offset(at: $0) }, decisionInterval: 0.09, hesitation: 0.05,
@@ -165,6 +171,9 @@ final class RaceScene: SKScene {
         }
 
         if practice { startSchool() }
+        #if DEBUG
+        if StoreCapture.moment == .line { toggleRacingLine() }
+        #endif
 
         impact.prepare()
         placeCamera(dt: 0, snap: true)
@@ -193,6 +202,12 @@ final class RaceScene: SKScene {
             RaceAudio.shared.drive(speedKmh: 0, throttle: 0, scrub: 0, onCurb: false, racing: false)
             return
         }
+        #if DEBUG
+        if heldForCapture {
+            lastTime = nil
+            return
+        }
+        #endif
         let dt = lastTime.map { min(max(currentTime - $0, 0), 1.0 / 15) } ?? 0
         lastTime = currentTime
         session.holding = !holdTouches.isEmpty
@@ -213,6 +228,9 @@ final class RaceScene: SKScene {
         #endif
         let events = session.advance(by: dt, control: control)
         events.forEach(handle)
+        #if DEBUG
+        holdForStoreCapture()
+        #endif
         sound()
         if let guide, session.phase == .racing {
             if let verdict = judge.update(car: session.car, guide: guide) {
@@ -354,6 +372,9 @@ final class RaceScene: SKScene {
                 hud.show("S\(split.sector)", LapFormat.time(split.time), tone: .neutral)
             }
         case .timing(.lap(let lap)):
+            #if DEBUG
+            if StoreCapture.isActive, lap.number == 1 { captureLapDone = true }
+            #endif
             hud.lastLap = lap.time
             if let record = session.timer.lastRecord, !isAutopilot, !practice {
                 LapLog.shared.record(LapEntry(lap: record, board: board, walls: session.wallHitsLastLap))
@@ -707,6 +728,35 @@ final class RaceScene: SKScene {
             }
         }
     }
+
+    #if DEBUG
+    /// Holds the race still once an App Store capture's moment comes: for a corner, the first timed lap (or a later
+    /// one, if the rival isn't out yet) `StoreCapture.at` of the way round; for the medal, the lap that wins it, its
+    /// banner up; for the standing, that lap's session summary.
+    private func holdForStoreCapture() {
+        guard let moment = StoreCapture.moment, !heldForCapture else { return }
+        switch moment {
+        case .ghosts, .line:
+            guard let at = StoreCapture.at, session.phase == .racing, session.timer.lapNumber >= 1 else { return }
+            if moment == .ghosts, rival == nil { return }
+            let s = session.car.s.truncatingRemainder(dividingBy: track.length) / track.length
+            guard s >= at, s < at + 0.05 else { return }
+        case .medal:
+            guard captureLapDone else { return }
+            if hud.banner?.medal == nil { return StoreCapture.fail("the first lap won no medal") }
+        case .standing:
+            guard captureLapDone else { return }
+            endSession()
+        case .circuits, .unlock:
+            return
+        }
+        heldForCapture = true
+        refreshHUD()
+        // The medal's lap wakes the Dynamic Island for a moment (drawn into the screen, so a screenshot would show it):
+        // its moment waits for it to settle, the banner staying up meanwhile.
+        StoreCapture.ready(after: moment == .medal ? 3 : moment == .standing ? 1.2 : 0.6)
+    }
+    #endif
 
     private var isAutopilot: Bool {
         #if DEBUG

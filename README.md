@@ -196,6 +196,37 @@ skips a run driven on another revision of its circuit or another tuning, which w
 TEST_RUNNER_APEX_TELEMETRY=<folder> xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:ApexTests/TelemetryStudy
 ```
 
+### App Store screenshots
+
+`scripts/store-capture.sh` builds a Debug build and, for each moment, installs it fresh on the iPhone 17 Pro Max
+simulator (the 6.9" size) and launches it with `-ApexStoreCapture <moment>` (`Apex/StoreCapture.swift`). The app
+stages the moment on that fresh install: Apex School done, the sound off, best laps with a medal of each kind on the
+track list, and on the race's circuit a bot's lap as your ghost. A seeded autopilot drives, the rival is the bot the
+game would pick, and the lap service and Game Center stay out of it, so no real player's name or time shows (the
+standings are the sample players, unlabeled). The race holds still at the moment and the script takes the
+simulator's screenshot with the display's mask left out, so there's no Dynamic Island. On an iPad the app saves its
+own drawing of the screen instead, at 2752×2064: a simulator held upright shows a landscape-only game shrunk into a
+band, and simctl can't turn it. Runs repeat exactly. Each
+moment reinstalls the app, so use a simulator whose Ghost Thread data you don't need (`STORE_CAPTURE_DEVICE`, a name
+or UDID).
+
+```bash
+scripts/store-capture.sh                     # every moment, a few minutes
+scripts/store-capture.sh medal standing      # just these
+scripts/store-capture.sh --ipad              # every moment on the iPad Pro 13-inch (M5) simulator
+scripts/store-frames.py build/store-capture/screenshots build/store-capture/captioned
+python3 appstore/push.py media --app ghost-thread --dry-run --screenshots build/store-capture/captioned
+```
+
+The moments, in the listing's order (`StoreCapture.Moment`): `line` (Harbor, the ideal line drawn through an S-bend),
+`ghosts` (Swirl, into the hairpin with your blue ghost and the gold rival), `medal` (Ardennes, the lap that wins
+a medal, its banner up), `standing` (Ardennes, the session summary and where the lap stands), `circuits` (the track
+list, every circuit open, with medals) and `unlock` (the unlock's screen). Where a corner moment holds is
+`StoreCapture.Moment.at`, a share of the first timed lap; launch with `-ApexStoreCaptureAt 0.4` beside
+`-ApexStoreCapture ghosts` to try another. `scripts/store-frames.py` captions them, Bigger Fish's way: 2–5 words in
+SF Rounded Black, leaning like the game's titles, over the shot set a little smaller on a darkened blur of itself, so
+the HUD across the top still shows. Output is in `build/store-capture/` (ignored by git).
+
 ## Tuning
 
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the
