@@ -45,6 +45,10 @@ alongside to compare them with step for step.
   by hand, from Xcode, against `Apex.storekit` (`docs/apex-app-store.md`).
 - **Saved best laps are keyed by circuit and tuning** (`LapStore.key`), so changing either starts a fresh best lap.
   Add any new constant that changes how fast a lap can be to `RaceTuning.lapSignature`.
+- **A saved best belongs to the player who set it** (`LapStore.player`): a device can be signed in to one Game
+  Center player, then another. Anything that sends saved bests or reports their medals first gives the signed-in
+  player the bests no one was signed in for (`LapStore.claim`), then takes theirs from `LapStore.bests(of:)`, never
+  straight from `LapStore.load`.
 - **Freeze boards before they're live.** Leaderboards are per `RaceBoard` (circuit, revision, physics version).
   Once a board has public times, a change that moves lap times needs a new `RaceTuning.physicsVersion` or circuit
   `revision`, a new Game Center leaderboard, and the new signature recorded in `FreezeTests`. Ask Kraig first.

@@ -71,9 +71,9 @@ What the game shows you:
   The timing panel shows the best lap's medal, and a lap that wins a new one says so in its banner. Only the stock car
   wins medals; Apex School has none.
 - **Achievements**: each medal on each circuit is also a Game Center achievement (`apex.ardennes.gold`); winning
-  gold earns bronze and silver with it. A best lap reports its medals as it's set, and signing in reports any the saved
-  best laps won while signed out or offline. Game Center's own banner stays off, since the lap banner already names the
-  medal.
+  gold earns bronze and silver with it. A best lap reports its medals as it's set, and signing in reports any the
+  player's saved best laps won while signed out or offline (see Online: a best another player set on the device isn't
+  theirs). Game Center's own banner stays off, since the lap banner already names the medal.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
 - **Apex School**: the button top left of the track list (yellow, marked START HERE, until you've graduated or
   skipped it). A short tutorial with a goal: hit 2 apexes, each turned in to from wide (riding the inside wall doesn't
@@ -109,6 +109,11 @@ Rankings live in Game Center; everything Game Center can't hold lives in the Ape
 - every finished lap, counted anonymously into lap-time histograms per board;
 - each player's best lap and ghost, uploaded with Game Center's identity signature, which rivals, friends' laps and
   session standings come from.
+
+Each saved best belongs to the Game Center player who set it (`LapStore.player`), since a device can be signed in to
+one player and then another: only that player's sign-in sends it, to Game Center's leaderboard or the lap service,
+or reports its medals. A best set while no one was signed in goes to the first player who signs in after it
+(`LapStore.claim`), and stays theirs.
 
 Both are per **board** (`RaceBoard`): a circuit at one revision, driven with one physics version. Lap times only
 compare within a board, so **once a board is live, freeze it**: a change that moves lap times needs a new
@@ -245,7 +250,7 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   rule, and walls.
 - `Apex/RaceSession.swift`: the car, laps and a fixed 240 Hz clock with no drawing; the scene and tests both drive it.
 - `Apex/LapTimer.swift`: laps and sectors (interpolated within a step), ghost recording, and `LapStore` for saved
-  best laps.
+  best laps and who set them.
 - `Apex/RacingLine.swift`: the minimum-curvature line (LAPACK), for the ideal-line overlay and the fastest bot.
 - `Apex/AutoDriver.swift`: a bot that drives with hold/let-go to follow a line.
 - `Apex/Rivals.swift`: rivals, bot rivals tuned to a target lap time, and `RivalScout`, which picks the next one.

@@ -15,18 +15,18 @@ extension Medal {
         return Set(allCases.filter { $0 <= medal }.map { $0.achievementID(on: layout) })
     }
 
-    /// The achievements the best laps saved on this device have earned, on every circuit.
-    static func achievementsEarnedBySavedBests(defaults: UserDefaults = .standard) -> Set<String> {
-        TrackLayout.all.reduce(into: []) { ids, layout in
-            ids.formUnion(achievements(earnedBy: LapStore.load(for: layout, defaults: defaults)?.time, on: layout))
+    /// The achievements earned by the best laps `player` set on this device, on every circuit.
+    static func achievementsEarnedBySavedBests(of player: String, defaults: UserDefaults = .standard) -> Set<String> {
+        LapStore.bests(of: player, defaults: defaults).reduce(into: []) { ids, saved in
+            ids.formUnion(achievements(earnedBy: saved.best.time, on: saved.layout))
         }
     }
 }
 
-/// Medals as Game Center achievements. Each sign-in loads what the player has achieved and reports whatever the saved
-/// best laps have earned beyond it, so medals won while signed out or offline, or before achievements existed, catch
-/// up; a best lap that wins a medal reports it at once. Game Center's own banner stays off: the lap banner already
-/// names the medal, and Game Center's would drop over the timing mid-race.
+/// Medals as Game Center achievements. Each sign-in loads what the player has achieved and reports whatever their saved
+/// best laps (`LapStore.bests(of:)`) have earned beyond it, so medals won while signed out or offline, or before
+/// achievements existed, catch up; a best lap that wins a medal reports it at once. Game Center's own banner stays
+/// off: the lap banner already names the medal, and Game Center's would drop over the timing mid-race.
 final class Achievements {
     static let shared = Achievements()
 
@@ -45,7 +45,7 @@ final class Achievements {
             DispatchQueue.main.async {
                 guard let self, error == nil, GKLocalPlayer.local.teamPlayerID == player else { return }
                 self.achieved = Set((loaded ?? []).filter(\.isCompleted).map(\.identifier))
-                self.report(Medal.achievementsEarnedBySavedBests())
+                self.report(Medal.achievementsEarnedBySavedBests(of: ApexOnline.playerToken(player)))
             }
         }
     }
