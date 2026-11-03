@@ -26,6 +26,10 @@ struct TrackMenu: View {
     /// The locked circuit tapped, while the unlock's screen is up.
     @State private var unlocking: String? = Self.launchUnlock
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.scenePhase) private var scenePhase
+    /// The app is in front. A rating request waits for it: in the background, or under Control Center, there's no
+    /// sheet to show, and making the request would use it up unseen.
+    @State private var appActive = true
 
     var body: some View {
         ZStack {
@@ -97,6 +101,11 @@ struct TrackMenu: View {
             askForReviewIfDue()
         }
         .onDisappear { onScreen = false }
+        // A request that came due while the app was away is made once it's back in front.
+        .onChange(of: scenePhase) { _, phase in
+            appActive = phase == .active
+            if appActive { askForReviewIfDue() }
+        }
         // Sign-in usually finishes after the list is up.
         .onReceive(NotificationCenter.default.publisher(for: GameCenter.authenticationChanged)) { _ in askForFriends() }
     }
@@ -111,13 +120,13 @@ struct TrackMenu: View {
     }
 
     /// After a first gold or platinum medal, asks for an App Store rating once the list has been up a moment with nothing
-    /// over it (`ApexReview`).
+    /// over it and the app in front (`ApexReview`).
     private func askForReviewIfDue() {
         guard ApexReview.shared.shouldRequest(channel: ApexOnline.channel) else { return }
         Task {
             try? await Task.sleep(for: .seconds(RaceTuning.reviewRequestDelay))
             // Still on the list, with nothing come up over it meanwhile.
-            guard onScreen, !showsColors, unlocking == nil,
+            guard onScreen, appActive, !showsColors, unlocking == nil,
                   ApexReview.shared.shouldRequest(channel: ApexOnline.channel) else { return }
             ApexReview.shared.didRequest()
             requestReview()

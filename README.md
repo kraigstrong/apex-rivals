@@ -76,7 +76,8 @@ What the game shows you:
   medal.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
 - **Ratings**: the player's first gold medal, and later their first platinum, on any circuit, ask for an App Store
-  rating the next time the track list is up (a second after, with nothing over it), never over a race. App Store
+  rating the next time the track list is up (a second after, with nothing over it and the app in front), never over
+  a race. App Store
   builds only, at most twice, 90 days apart (`ApexReview`; a device that already had gold doesn't count it as new).
 - **Apex School**: the button top left of the track list (yellow, marked START HERE, until you've graduated or
   skipped it). A short tutorial with a goal: hit 2 apexes, each turned in to from wide (riding the inside wall doesn't
