@@ -83,7 +83,8 @@ What the game shows you:
   right-hander) with a haptic tick at turn-in and at the apex, a verdict after every
   corner (how wide of the apex, and your slowest speed against the ideal line's), and your own line traced behind the
   car. No ghosts or rival: the line is the guide. No leaderboard; nothing leaves the device.
-- **Track list**: the house button heads back to it (through the session summary, if you finished a lap).
+- **Track list**: the house button heads back to it (through the session summary, if you finished a lap). On a phone
+  the circuits scroll sideways; on an iPad they all show at once, three to a row, drawn bigger to fill the screen.
 - **Session summary**: the checkered flag ends a session (so does leaving the app); it's dimmed until you finish a
   lap, since there's nothing to sum up before that. The summary shows the session's best lap, its medal (NEW the
   first time) and the next one to chase, and its standing among other players' bests. First place says "Fastest". A
