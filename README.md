@@ -266,6 +266,8 @@ feels right, copy it into `RaceTuning.swift` and update the lap times as above.
   the grid and under the cards), tire scrub, curbs, walls, cues and a synthwave loop (settings from the Apex Sound
   Lab). Sound and music switch off from the ⚙︎ menu.
 - `Apex/RaceHUD.swift`, `Apex/ContentView.swift`: the SwiftUI overlay: timing, splits, speed, map and menu.
+- `appstore/`: the App Store listing and the in-app purchase's text, pushed to App Store Connect by `push.py` (its
+  README); `docs/apex-app-store.md` is the release checklist.
 
 ## License
 
