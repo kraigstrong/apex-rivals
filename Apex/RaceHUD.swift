@@ -79,10 +79,14 @@ final class RaceHUD {
     /// Game Center's leaderboard is over the race. Asked each frame, since Game Center closes it on its own.
     @ObservationIgnored var showsLeaderboard: () -> Bool = { GameCenter.shared.isShowingLeaderboard }
     /// The race holds still while anything is over it: a panel, the ⚙︎ menu, Game Center's leaderboard, or whatever
-    /// took the app out of the front. The lap picks up where it was once it's gone.
+    /// took the app out of the front; or after the screen changed size under it. The lap picks up where it was once it's
+    /// gone.
     var holdsRace: Bool {
-        showsPanel || showsMenu || !isAppActive || showsLeaderboard()
+        showsPanel || showsMenu || !isAppActive || showsLeaderboard() || heldForResize
     }
+    /// The screen changed size under the race (an iPhone Duo opened or closed, the player's hands on the phone, not the
+    /// car): it holds until the next touch.
+    var heldForResize = false
     /// The card shown when a session ends, and where its best lap falls among other players.
     var summary: SessionSummary?
     var standing: StandingState = .loading

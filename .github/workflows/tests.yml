@@ -12,11 +12,13 @@ concurrency:
 
 jobs:
   test:
-    runs-on: macos-26
+    # GitHub's Xcode 27 image: macos-26 stops at Xcode 26.6, and only an app built with the iOS 27.1 SDK fills an iPhone
+    # Duo's screens. Its newest simulator runtime, iOS 27.1, has only the iPhone Duo, so the tests run on one.
+    runs-on: xcode-27
     timeout-minutes: 30
     env:
       # The Xcode the project is built with locally. Bump it here and in the README together.
-      DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       # Simulator builds need no signing, and the runner has no certificates.
       STRICT: CODE_SIGNING_ALLOWED=NO SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES
     steps:

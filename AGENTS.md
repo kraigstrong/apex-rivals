@@ -5,7 +5,8 @@ the files and the tuning table.
 
 ## Build and test
 
-Tests run on a simulator; any iPhone simulator works (`iPhone 17 Pro` is an example).
+Tests run on a simulator; any iPhone simulator works (`iPhone 17 Pro` is an example). Build with Xcode 27.1 or newer
+(CI does, on an iPhone Duo): only the iOS 27.1 SDK fills an iPhone Duo's screens.
 
 ```bash
 xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS Simulator,name=iPhone 17 Pro'

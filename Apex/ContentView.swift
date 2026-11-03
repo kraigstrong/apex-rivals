@@ -65,7 +65,12 @@ struct RaceView: View {
             SpriteView(scene: scene, preferredFramesPerSecond: 120, options: [.ignoresSiblingOrder],
                        debugOptions: Self.debugOptions)
                 .ignoresSafeArea()
-            RaceOverlay(hud: hud)
+            // A panel dims the race edge to edge, and keeps touches off it.
+            if hud.showsPanel {
+                Color.black.opacity(0.35).ignoresSafeArea()
+            }
+            // Laid out as on a phone, and drawn bigger on an iPad.
+            ScreenScaled { RaceOverlay(hud: hud) }
         }
         // Leaving the app ends the session; its summary is waiting on return.
         .onChange(of: scenePhase) { _, phase in
@@ -93,10 +98,6 @@ struct RaceOverlay: View {
 
     var body: some View {
         ZStack {
-            // A panel dims the race edge to edge, and keeps touches off it.
-            if hud.showsPanel {
-                Color.black.opacity(0.35).ignoresSafeArea()
-            }
             ZStack {
                 racingHUD
                     .opacity(hud.summary == nil && !hud.showsPanel ? 1 : 0)
@@ -118,6 +119,10 @@ struct RaceOverlay: View {
                     SessionSummaryCard(summary: summary, standing: hud.standing, onRaceAgain: hud.onRaceAgain,
                                        onTracks: hud.onExit, onShare: hud.onShare)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if hud.heldForResize {
+                    HeldCard()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(false)
                 } else if !hud.racing {
                     // Low and to the right, clear of the car on the left third of the screen.
                     StartCard(name: hud.trackName, best: hud.bestLap, medal: hud.bestMedal, next: hud.nextMedal,
@@ -151,6 +156,19 @@ struct RaceOverlay: View {
 
     /// Timing, splits, map, buttons and speed: everything shown while racing.
     private var racingHUD: some View {
+        GeometryReader { geometry in
+            racingHUD(mapColumn: min(170, max(110, geometry.size.width - Self.timingColumn - Self.controlsRow - 24)))
+        }
+    }
+
+    /// The timing panel's width, padding included.
+    private static let timingColumn: CGFloat = 200
+    /// The buttons' row: five round buttons and the gaps between them.
+    private static let controlsRow: CGFloat = 232
+
+    /// `mapColumn` is the minimap's width: its most, unless the screen is too narrow for all three across the top (a
+    /// closed iPhone Duo's, with its camera beside the timing), when the map gives way.
+    private func racingHUD(mapColumn: CGFloat) -> some View {
         ZStack {
             // One row across the top, above the track wherever it runs: timing, then the buttons with split and lap
             // banners under them, then the minimap. Side by side, so none can sit on another, whatever the screen
@@ -171,9 +189,9 @@ struct RaceOverlay: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                MiniMap(hud: hud)
+                MiniMap(hud: hud, maxWidth: mapColumn - 16)
                     .allowsHitTesting(false)
-                    .frame(width: 170, alignment: .topTrailing)
+                    .frame(width: mapColumn, alignment: .topTrailing)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
@@ -391,6 +409,8 @@ struct SpeedGauge: View {
 /// The whole circuit, north up, with you, your best lap's ghost (blue) and your rival (gold) on it.
 struct MiniMap: View {
     let hud: RaceHUD
+    /// The map's most width: 170, less on a screen too narrow for it beside the timing and the buttons.
+    var maxWidth: CGFloat = 170
 
     var body: some View {
         let car = hud.carMarker
@@ -400,8 +420,8 @@ struct MiniMap: View {
         let colors = (car: livery.paint(for: .car).labelColor, best: livery.paint(for: .best).labelColor,
                       rival: livery.paint(for: .rival).labelColor)
         let outline = hud.mapOutline
-        // Fits the circuit in a 170 × 100 box, so tall circuits don't push the buttons down.
-        let width = min(170, 100 * hud.mapAspect)
+        // Fits the circuit in a `maxWidth` × 100 box, so tall circuits don't push the buttons down.
+        let width = min(maxWidth, 100 * hud.mapAspect)
         Canvas { context, size in
             var path = Path()
             path.addLines(outline.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) })
@@ -471,6 +491,17 @@ struct StartCard: View {
         .padding(20)
         .frame(maxWidth: 420)
         .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+/// The race held after the screen changed size under it (an iPhone Duo opened or closed): the next touch goes on.
+struct HeldCard: View {
+    var body: some View {
+        Text("TOUCH TO GO ON")
+            .font(.system(size: 18, weight: .heavy, design: .rounded))
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background(.black.opacity(0.6), in: Capsule())
     }
 }
 
