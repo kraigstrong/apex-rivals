@@ -21,11 +21,11 @@ in the pull request that does it.
 
 - [ ] **The in-app purchase** (see below): created 2026-11-02. It goes to review with 1.0: an app's first in-app
       purchase can only be reviewed with a version (add it on the version page before submitting).
-- [ ] **Screenshots**: 6.9" iPhone and 13" iPad (the app runs on iPad, so both are required). `scripts/store-capture.sh`
+- [x] **Screenshots**: 6.9" iPhone, 13" iPad and iPhone Duo, six each, on 1.0 since 2026-11-02. `scripts/store-capture.sh`
       (and `--ipad`) captures the six moments and `scripts/store-frames.py` captions them (README, App Store
       screenshots); upload with `appstore/push.py media`. The iPhone set is ready; recapture the iPad's now its race
-      and track list scale up. App Store Connect has an iPhone Duo slot too (2853×2007, the open inner screen); a Duo
-      capture needs the simulator opened first, in Xcode's Device Hub.
+      and track list scale up. App Store Connect has an iPhone Duo slot too (2853×2007, the open inner screen):
+      `scripts/store-capture.sh --duo`, with the simulator opened first in Xcode's Device Hub.
 - [ ] **App preview video** for each of those sizes, up to 30 seconds. Optional, but the game sells on motion.
 - [ ] **Metadata**: subtitle, promotional text, description, keywords, copyright, support URL, marketing URL, privacy
       policy URL. Category is Racing.

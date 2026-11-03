@@ -216,7 +216,9 @@ game would pick, and the lap service and Game Center stay out of it, so no real 
 standings are the sample players, unlabeled). The race holds still at the moment and the script takes the
 simulator's screenshot with the display's mask left out, so there's no Dynamic Island. On an iPad the app saves its
 own drawing of the screen instead, at 2752×2064: a simulator held upright shows a landscape-only game shrunk into a
-band, and simctl can't turn it. Runs repeat exactly. Each
+band, and simctl can't turn it. With `--duo` the script takes the open iPhone Duo's inside screen, 2853×2007, which App
+Store Connect's iPhone Duo slot takes; open the simulator first in Xcode's Device Hub (its pose isn't a simctl
+command). Runs repeat exactly. Each
 moment reinstalls the app, so use a simulator whose Ghost Thread data you don't need (`STORE_CAPTURE_DEVICE`, a name
 or UDID).
 
@@ -224,6 +226,7 @@ or UDID).
 scripts/store-capture.sh                     # every moment, a few minutes
 scripts/store-capture.sh medal standing      # just these
 scripts/store-capture.sh --ipad              # every moment on the iPad Pro 13-inch (M5) simulator
+scripts/store-capture.sh --duo               # every moment on an iPhone Duo simulator, open (its inside screen)
 scripts/store-frames.py build/store-capture/screenshots build/store-capture/captioned
 python3 appstore/push.py media --app ghost-thread --dry-run --screenshots build/store-capture/captioned
 ```
