@@ -7,9 +7,10 @@ in the pull request that does it.
 
 - [x] **Free to try, one unlock.** Ardennes and Apex School are free; a one-time $1.99 purchase opens every other
       circuit, and every circuit added later (`CircuitUnlock.swift`, `UnlockView.swift`).
-- [ ] **Version 1.0.** `MARKETING_VERSION` is 0.1.0.
-- [ ] **Share link to the App Store.** `ApexLinks.join` is the public TestFlight link; the share text should send
-      people to the App Store page once it's live.
+- [x] **Version 1.0.** `MARKETING_VERSION` is 1.0, as App Store Connect's version (Prepare for Submission) is.
+- [x] **Share link.** Shared laps link to `https://brightbench.app/ghost-thread` (`ApexLinks.join`), which offers the
+      beta now and the App Store once BrightBench's `appStoreUrl` is set: no app update at launch.
+- [ ] **At launch:** set `appStoreUrl` in BrightBench's `apps/marketing/src/lib/ghost-thread.ts` to the App Store link.
 - [x] **Ask for a rating** after the player's first gold medal, and again after their first platinum, on any circuit
       (an `ApexReview` modeled on Bigger Fish's `ArcadeReview`). The lap that wins one marks a request due; it's made on
       the next return to the track list, a second after it's up with nothing over it, never over a race, its summary
@@ -37,14 +38,15 @@ The metadata, purchase text and screenshots live in `appstore/` and go up with t
 
 ## On the web (BrightBench)
 
-Ghost Thread has no domain of its own, so its pages are on brightbench.app, in BrightBench's `apps/marketing`. Its art
+Ghost Thread has no domain of its own, so its pages are on brightbench.app, in BrightBench's `apps/marketing`
+(live since 2026-11-02). Its art
 comes from the game (`SiteArtTests`, `Art/site`).
 
-- [ ] **Privacy policy**: `https://brightbench.app/ghost-thread/privacy`. What the lap service stores (anonymous lap
+- [x] **Privacy policy**: `https://brightbench.app/ghost-thread/privacy`. What the lap service stores (anonymous lap
       counts; a salted hash of the Game Center player ID with the player's alias, best time and ghost), and what it
       doesn't. Keep it in step with `ApexOnline.swift` and `PrivacyInfo.xcprivacy`.
-- [ ] **Support**: `https://brightbench.app/ghost-thread/support`.
-- [ ] **Landing page** for the marketing URL: `https://brightbench.app/ghost-thread`, each circuit lapped by its
+- [x] **Support**: `https://brightbench.app/ghost-thread/support`.
+- [x] **Landing page** for the marketing URL: `https://brightbench.app/ghost-thread`, each circuit lapped by its
       ideal line as on the unlock screen. It invites players to the TestFlight beta until the App Store listing is live
       (`appStoreUrl` in BrightBench's `src/lib/ghost-thread.ts`).
 
