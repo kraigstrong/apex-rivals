@@ -7,9 +7,11 @@ struct GhostThreadLogo: View {
     static let size = CGSize(width: 300, height: 56)
     /// Bigger than the track list's, as on the share card, still drawn sharp.
     var scale: CGFloat = 1
+    /// The ghost car's paint: yours, unless one's given (the website's logo wears the stock paint).
+    var ghost: Paint?
 
     var body: some View {
-        let ghost = Livery.shared.paint(for: .best)
+        let ghost = self.ghost ?? Livery.shared.paint(for: .best)
         Canvas { context, _ in
             context.scaleBy(x: scale, y: scale)
             Self.draw(context, size: Self.size, ghost: ghost)
