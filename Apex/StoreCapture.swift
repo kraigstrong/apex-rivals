@@ -75,7 +75,8 @@ enum StoreCapture {
     ]
 
     /// Stages the moment, before anything is on screen: Apex School done, the sound off, best laps on every circuit,
-    /// and on the race's circuit a bot's lap with its ghost to race.
+    /// and on the race's circuit a bot's lap with its ghost to race. They're set with no one signed in: a capture has
+    /// no Game Center.
     static func stage() {
         guard let moment else { return }
         SchoolProgress.markDone()
@@ -84,12 +85,12 @@ enum StoreCapture {
         for (id, medal) in listBests {
             guard let medal, let layout = TrackLayout.named(id), let times = RaceTuning.medalTimes[id] else { continue }
             let time = times[medal.rawValue] - 0.13
-            LapStore.save(LapRecord(time: time, splits: [], ghost: []), for: TrackCatalog.track(layout.id))
+            LapStore.save(LapRecord(time: time, splits: [], ghost: []), for: TrackCatalog.track(layout.id), player: nil)
         }
         if let id = moment.track {
             let track = TrackCatalog.track(id)
             let best = RivalBot.drive(reaction: moment.bestReaction, track: track, line: RacingLine(track: track), seed: 3)
-            LapStore.save(best, for: track)
+            LapStore.save(best, for: track, player: nil)
         }
     }
 

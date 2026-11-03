@@ -392,6 +392,7 @@ final class RaceScene: SKScene {
                     if !practice {
                         BestLapDelivery.send(best, on: board, key: LapStore.key(for: track))
                         Achievements.shared.report(Medal.achievements(earnedBy: best.time, on: track.layout))
+                        ApexReview.shared.won(medal)
                     }
                 }
                 let detail = beatRival ? "BEAT \(rival?.name.uppercased() ?? "RIVAL")"

@@ -11,7 +11,7 @@ in the pull request that does it.
 - [x] **Share link.** Shared laps link to `https://brightbench.app/ghost-thread` (`ApexLinks.join`), which offers the
       beta now and the App Store once BrightBench's `appStoreUrl` is set: no app update at launch.
 - [ ] **At launch:** set `appStoreUrl` in BrightBench's `apps/marketing/src/lib/ghost-thread.ts` to the App Store link.
-- [ ] **Ask for a rating** after the player's first gold medal, and again after their first platinum, on any circuit
+- [x] **Ask for a rating** after the player's first gold medal, and again after their first platinum, on any circuit
       (an `ApexReview` modeled on Bigger Fish's `ArcadeReview`). The lap that wins one marks a request due; it's made on
       the next return to the track list, a second after it's up with nothing over it, never over a race, its summary
       or the unlock's screen. App Store builds only (TestFlight can't show the sheet), at most twice, 90 days apart.
