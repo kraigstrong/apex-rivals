@@ -11,8 +11,9 @@ enum TrackCatalog {
     }
 }
 
-/// The main menu: pick a circuit.
+/// The main menu: pick a circuit. A locked one offers the unlock instead.
 struct TrackMenu: View {
+    let purchases: CircuitPurchases
     let onSelect: (String) -> Void
     /// Each circuit's saved best lap, read whenever the menu appears.
     @State private var bests: [String: Double] = [:]
@@ -21,6 +22,8 @@ struct TrackMenu: View {
     @State private var schoolDone = SchoolProgress.isDone()
     /// The list is up, not a race: Game Center's friends prompt only opens over the list.
     @State private var onScreen = false
+    /// The locked circuit tapped, while the unlock's screen is up.
+    @State private var unlocking: String? = Self.launchUnlock
 
     var body: some View {
         ZStack {
@@ -51,10 +54,11 @@ struct TrackMenu: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
                         ForEach(TrackCatalog.tracks, id: \.layout.id) { track in
+                            let id = track.layout.id
                             Button {
-                                onSelect(track.layout.id)
+                                if purchases.isLocked(id) { unlocking = id } else { onSelect(id) }
                             } label: {
-                                TrackCard(track: track, best: bests[track.layout.id])
+                                TrackCard(track: track, best: bests[id], locked: purchases.isLocked(id))
                                     .frame(width: 250)
                             }
                             .buttonStyle(.plain)
@@ -72,6 +76,14 @@ struct TrackMenu: View {
                 Color.black.opacity(0.45).ignoresSafeArea()
                 LiveryPicker(livery: Livery.shared, onDone: { showsColors = false })
             }
+            if let unlocking {
+                UnlockView(purchases: purchases, circuit: unlocking,
+                           onRace: { id in
+                               self.unlocking = nil
+                               onSelect(id)
+                           },
+                           onClose: { self.unlocking = nil })
+            }
         }
         .onAppear {
             bests = Dictionary(uniqueKeysWithValues: TrackCatalog.tracks.compactMap { track in
@@ -86,9 +98,18 @@ struct TrackMenu: View {
         .onReceive(NotificationCenter.default.publisher(for: GameCenter.authenticationChanged)) { _ in askForFriends() }
     }
 
+    /// Launch with `-ApexUnlockScreen swirl` (Xcode builds) to open on the unlock's screen, as if that circuit had been
+    /// tapped.
+    private static var launchUnlock: String? {
+        #if DEBUG
+        if let id = UserDefaults.standard.string(forKey: "ApexUnlockScreen"), TrackLayout.named(id) != nil { return id }
+        #endif
+        return nil
+    }
+
     /// Asks for the friends list if the player hasn't answered, so their friends can race their laps.
     private func askForFriends() {
-        GameCenter.shared.askForFriends { onScreen }
+        GameCenter.shared.askForFriends { onScreen && unlocking == nil }
     }
 }
 
@@ -132,10 +153,12 @@ struct SchoolButton: View {
     }
 }
 
-/// One circuit on the menu: its shape, name, character, your best lap there and its medal, and the next medal to chase.
+/// One circuit on the menu: its shape, name, character, your best lap there and its medal, and the next medal to chase;
+/// or, without the unlock, a padlock.
 struct TrackCard: View {
     let track: Track
     let best: Double?
+    var locked = false
 
     private var corners: Int {
         track.layout.segments.filter { if case .corner = $0 { return true } else { return false } }.count
@@ -157,27 +180,42 @@ struct TrackCard: View {
                 .lineLimit(3, reservesSpace: true)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            HStack(spacing: 6) {
-                Text("BEST").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
-                if let best {
-                    Text(LapFormat.time(best))
-                        .font(.system(size: 16, weight: .heavy, design: .rounded).monospacedDigit())
-                        .foregroundStyle(Color(red: 0.75, green: 0.5, blue: 1))
-                    if let medal = Medal.earned(by: best, on: track.layout) { MedalIcon(medal: medal) }
-                } else {
-                    Text("No lap yet").font(.system(size: 13, weight: .semibold, design: .rounded)).opacity(0.6)
+            if locked {
+                HStack(spacing: 6) {
+                    Label("UNLOCK EVERY CIRCUIT", systemImage: "lock.fill")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundStyle(GhostThreadLogo.lineColor)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy)).opacity(0.6)
                 }
-                Spacer()
-                if let next = Medal.next(after: best, on: track.layout) {
-                    NextMedalLabel(medal: next.medal, target: next.target)
-                }
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy)).opacity(0.6)
+                .frame(height: 22)
+            } else {
+                bestRow
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
         .contentShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var bestRow: some View {
+        HStack(spacing: 6) {
+            Text("BEST").font(.system(size: 11, weight: .heavy, design: .rounded)).opacity(0.7)
+            if let best {
+                Text(LapFormat.time(best))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded).monospacedDigit())
+                    .foregroundStyle(Color(red: 0.75, green: 0.5, blue: 1))
+                if let medal = Medal.earned(by: best, on: track.layout) { MedalIcon(medal: medal) }
+            } else {
+                Text("No lap yet").font(.system(size: 13, weight: .semibold, design: .rounded)).opacity(0.6)
+            }
+            Spacer()
+            if let next = Medal.next(after: best, on: track.layout) {
+                NextMedalLabel(medal: next.medal, target: next.target)
+            }
+            Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy)).opacity(0.6)
+        }
     }
 }
 

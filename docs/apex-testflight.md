@@ -10,6 +10,9 @@ Rivals, then briefly Needle; the bundle ID and Game Center IDs keep the first na
 - App icon (`Art/make-icon.py` draws it; no alpha) and the system launch screen.
 - `ITSAppUsesNonExemptEncryption = NO`: the only encryption is the system's HTTPS.
 - Category: Racing games.
+- In-app purchase `com.kraigstrong.apex.allcircuits` (non-consumable): Ardennes and Apex School are free, and it opens
+  the other circuits. TestFlight purchases are free (the sandbox). App Store Connect must have it before a build
+  that sells it goes up, or testers can't unlock (`docs/apex-app-store.md`).
 - Game Center (`Apex/Apex.entitlements`): sign-in at launch, each personal best submitted to the circuit's
   leaderboard, each medal reported as an achievement, the trophy button opening the friends board, and Race a friend.
   The track list asks to see the friends list once the player's signed in (`NSGKFriendListUsageDescription` in
@@ -131,7 +134,11 @@ On a physical iPhone, signed in to Game Center, with a fresh install:
 
 - The app is called Ghost Thread under its icon. The Game Center welcome banner shows at launch, then the track list:
   the GHOST THREAD logo (GHOST see-through, a ghost car in your ghost's paint towing its line through THREAD), the
-  yellow Apex School button marked START HERE top left, and the six circuits scrolling sideways.
+  yellow Apex School button marked START HERE top left, and the six circuits scrolling sideways, every one but
+  Ardennes marked UNLOCK EVERY CIRCUIT.
+- Tap Swirl: the unlock's screen, a yellow thread lapping each locked circuit, Swirl's ringed, and the price on the
+  button. Not now closes it. Buy (free in the sandbox): EVERY CIRCUIT IS OPEN, and RACE SWIRL races it. On a second
+  install with the same Apple Account, Restore purchase opens them too.
 - Apex School: the yellow line, TURN IN / APEX / EXIT, the coach's three cues with a tick at turn-in and the apex,
   a verdict after each corner, your trail, and no ghosts. The second real apex (turned in to from wide) brings
   "You're ready", whose button goes to the track list; afterwards the home button is quiet. Riding the inside wall

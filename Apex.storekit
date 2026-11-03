@@ -1,0 +1,38 @@
+{
+  "identifier" : "6A7C2E41",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : true,
+      "internalID" : "6823114207",
+      "localizations" : [
+        {
+          "description" : "Every circuit, and every one added later.",
+          "displayName" : "All Circuits",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.kraigstrong.apex.allcircuits",
+      "referenceName" : "Unlock every circuit",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
