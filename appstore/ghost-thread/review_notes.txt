@@ -1,0 +1,9 @@
+No account or sign-in is needed; Game Center is optional. Hold anywhere to steer up, release to steer down. Ghost Thread runs in landscape on iPhone, iPad, and iPhone Duo, folded or open.
+
+The track list opens first. Apex School (top left, yellow, marked START HERE) is a short tutorial: hit two apexes and it sends you to the track list, or tap SKIP. Tap a circuit's card to race it, then touch to start; a lap takes about 30 seconds. In a race, the gear button opens a menu with the ideal line, car colors, sound, music, Race a friend, and Clear best lap. The checkered flag ends a session and shows its summary, with SHARE.
+
+Free to try: Ardennes and Apex School. The one-time in-app purchase (com.kraigstrong.apex.allcircuits, non-consumable, Family Sharing on) opens the other five circuits (Swirl, Snake, Mirage, Island, Harbor) and any circuit added later. To reach it, tap any locked circuit's card on the track list (marked UNLOCK EVERY CIRCUIT). Restore purchase is on the same screen.
+
+Game Center: signed in, each personal best goes to the circuit's leaderboard (the trophy button in a race), each medal is an achievement, and Race a friend (in the gear menu) lists Game Center friends who have a time on the circuit. The track list asks to see the Game Center friends list once the player is signed in.
+
+The app sends laps to our own lap service at brightbench.app: every finished lap is counted anonymously, with no identifiers, for the standings shown at the end of a session; and a signed-in player's best lap on each circuit, with its ghost (the path the car took), is stored under their Game Center nickname and a salted hash of their Game Center player ID, so other players can race it as their rival. The privacy policy at https://brightbench.app/ghost-thread/privacy describes it. Offline, the game plays fully, with bot rivals, and laps send later.
