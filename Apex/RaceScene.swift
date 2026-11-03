@@ -447,10 +447,10 @@ final class RaceScene: SKScene {
             return dot
         }
         let track = self.track
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let line = RacingLine(track: track)
             let guide = ApexGuide(track: track, line: line).withIdealSpeeds(on: track)
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.async {
                 guard let self else { return }
                 self.guide = guide
                 self.world.addChild(TrackArt.racingLine(line, on: track))
@@ -695,9 +695,9 @@ final class RaceScene: SKScene {
         guard hud.showsRacingLine, !buildingRacingLine else { return }
         buildingRacingLine = true
         let track = self.track
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let line = RacingLine(track: track)
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.async {
                 guard let self else { return }
                 let node = TrackArt.racingLine(line, on: track)
                 node.isHidden = !self.hud.showsRacingLine
