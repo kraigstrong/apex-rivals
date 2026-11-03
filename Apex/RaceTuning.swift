@@ -184,6 +184,15 @@ enum RaceTuning {
         "harbor": [29.4, 28.4, 26.2, 25.3],
     ]
 
+    // MARK: Asking for a rating (`ApexReview`)
+
+    /// At most this many requests ever, this far apart (90 days), as Bigger Fish does. Apple shows its sheet no more
+    /// than three times a year whatever an app asks.
+    static let reviewRequestLimit = 2
+    static let reviewRetryInterval: TimeInterval = 90 * 24 * 60 * 60
+    /// How long the track list is up before it asks, so the sheet doesn't come in mid-transition.
+    static let reviewRequestDelay: TimeInterval = 1.0
+
     // MARK: Versions
 
     /// The physics' version. Leaderboards are kept per version (`RaceBoard`), so a change that moves lap times (anything

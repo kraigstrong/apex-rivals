@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 /// Every circuit's geometry, built once.
@@ -24,6 +25,7 @@ struct TrackMenu: View {
     @State private var onScreen = false
     /// The locked circuit tapped, while the unlock's screen is up.
     @State private var unlocking: String? = Self.launchUnlock
+    @Environment(\.requestReview) private var requestReview
 
     var body: some View {
         ZStack {
@@ -92,6 +94,7 @@ struct TrackMenu: View {
             schoolDone = SchoolProgress.isDone()
             onScreen = true
             askForFriends()
+            askForReviewIfDue()
         }
         .onDisappear { onScreen = false }
         // Sign-in usually finishes after the list is up.
@@ -105,6 +108,20 @@ struct TrackMenu: View {
         if let id = UserDefaults.standard.string(forKey: "ApexUnlockScreen"), TrackLayout.named(id) != nil { return id }
         #endif
         return nil
+    }
+
+    /// After a first gold or platinum medal, asks for an App Store rating once the list has been up a moment with nothing
+    /// over it (`ApexReview`).
+    private func askForReviewIfDue() {
+        guard ApexReview.shared.shouldRequest(channel: ApexOnline.channel) else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(RaceTuning.reviewRequestDelay))
+            // Still on the list, with nothing come up over it meanwhile.
+            guard onScreen, !showsColors, unlocking == nil,
+                  ApexReview.shared.shouldRequest(channel: ApexOnline.channel) else { return }
+            ApexReview.shared.didRequest()
+            requestReview()
+        }
     }
 
     /// Asks for the friends list if the player hasn't answered, so their friends can race their laps.

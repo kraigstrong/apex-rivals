@@ -75,6 +75,9 @@ What the game shows you:
   best laps won while signed out or offline. Game Center's own banner stays off, since the lap banner already names the
   medal.
 - **Leaderboards**: the trophy opens Game Center's leaderboard for the circuit. Each new personal best is submitted.
+- **Ratings**: the player's first gold medal, and later their first platinum, on any circuit, ask for an App Store
+  rating the next time the track list is up (a second after, with nothing over it), never over a race. App Store
+  builds only, at most twice, 90 days apart (`ApexReview`; a device that already had gold doesn't count it as new).
 - **Apex School**: the button top left of the track list (yellow, marked START HERE, until you've graduated or
   skipped it). A short tutorial with a goal: hit 2 apexes, each turned in to from wide (riding the inside wall doesn't
   count), and a "You're ready" card sends you to the track list to pick a circuit (or lets you keep practicing). SKIP bails straight to the track list. It's a practice square of four identical right-angle corners, with
