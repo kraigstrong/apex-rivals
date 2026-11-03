@@ -317,7 +317,8 @@ struct RaceOverlay: View {
     }
 }
 
-/// A split or lap time, colored like F1 timing: purple for a best lap, green for a faster sector, yellow for slower.
+/// A split or lap time, colored as race timing colors them: purple for a best lap, green for a faster sector, yellow for
+/// slower.
 struct SplitBanner: View {
     let banner: RaceHUD.Banner
 

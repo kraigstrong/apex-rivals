@@ -115,7 +115,7 @@ Ready to paste into App Store Connect.
 **Beta App Description**
 
 > Ghost Thread is a one-touch racing game: race your ghost and thread the line through every corner. Hold to steer up,
-> let go to steer down, and set the fastest lap you can on six F1-style circuits. Straight is fast: every weave costs
+> let go to steer down, and set the fastest lap you can on six original circuits. Straight is fast: every weave costs
 > speed, so swing wide, clip the apex and run out wide. Race your best lap's ghost, chase a rival who's a little faster
 > than you, and see where your lap falls among everyone else's.
 

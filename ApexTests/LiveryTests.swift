@@ -46,7 +46,7 @@ struct LiveryTests {
         #expect(livery.version == before + 1)
     }
 
-    /// Colors in the spirit of F1 teams', named for the color alone.
+    /// Colors in the spirit of racing teams', named for the color alone.
     @Test func paintsAreNamedForTheirColorsOnly() {
         let teams = ["ferrari", "mclaren", "mercedes", "red bull", "aston", "alpine", "williams", "haas", "sauber",
                      "racing bulls", "papaya", "audi", "cadillac"]

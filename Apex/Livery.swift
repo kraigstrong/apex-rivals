@@ -4,7 +4,7 @@ import Observation
 import SpriteKit
 import SwiftUI
 
-/// A paint scheme for a car: its body and the stripe down its spine. The colors are in the spirit of F1 teams', and
+/// A paint scheme for a car: its body and the stripe down its spine. The colors are in the spirit of racing teams', and
 /// named for the color alone.
 enum Paint: String, CaseIterable, Codable, Identifiable {
     case racingRed, orange, yellow, racingGreen, teal, skyBlue, blue, navy, pink, silver, white, blackGold
