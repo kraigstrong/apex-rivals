@@ -218,9 +218,9 @@ struct CircuitThread: View {
     var body: some View {
         TimelineView(.animation(paused: reduceMotion || lap == nil)) { timeline in
             Canvas { context, size in
-                // Room for the line wherever it runs inside the walls.
+                // Room for the line wherever it runs inside the walls, and for the car's glow at the edges.
                 let bounds = track.bounds.insetBy(dx: -track.width / 2, dy: -track.width / 2)
-                let scale = min(size.width / bounds.width, size.height / bounds.height)
+                let scale = min((size.width - 14) / bounds.width, (size.height - 14) / bounds.height)
                 let inset = CGPoint(x: (size.width - bounds.width * scale) / 2,
                                     y: (size.height - bounds.height * scale) / 2)
                 func map(_ point: CGPoint) -> CGPoint {

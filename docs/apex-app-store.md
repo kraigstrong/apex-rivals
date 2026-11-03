@@ -18,8 +18,8 @@ in the pull request that does it.
 
 ## App Store Connect
 
-- [ ] **The in-app purchase** (see below), submitted with 1.0: an app's first in-app purchase can only be reviewed with
-      a version.
+- [ ] **The in-app purchase** (see below): created 2026-11-02. It goes to review with 1.0: an app's first in-app
+      purchase can only be reviewed with a version (add it on the version page before submitting).
 - [ ] **Screenshots**: 6.9" iPhone and 13" iPad (the app runs on iPad, so both are required).
 - [ ] **App preview video** for each of those sizes, up to 30 seconds. Optional, but the game sells on motion.
 - [ ] **Metadata**: subtitle, promotional text, description, keywords, copyright, support URL, marketing URL, privacy
@@ -32,8 +32,8 @@ in the pull request that does it.
 - [ ] **App Review notes**: no account needed; where the unlock and Restore are; Game Center and the lap service.
 - [ ] **Price and availability**: free, every territory; release by hand (or phased) once approved.
 
-Bigger Fish keeps its metadata, purchase text and screenshots in the repo and pushes them with the App Store Connect
-API (`appstore/push.py` there); porting it would make all of the above repeatable.
+The metadata, purchase text and screenshots live in `appstore/` and go up with the App Store Connect API
+(`appstore/push.py`, ported from Bigger Fish; see `appstore/README.md`).
 
 ## On the web (BrightBench)
 
@@ -63,9 +63,11 @@ A non-consumable in-app purchase:
 | Description | Every circuit, and every one added later. |
 | Review screenshot | The unlock screen |
 
-Create it before uploading a build that sells it: until App Store Connect has the product, TestFlight builds can't
-load it, so the unlock button has no price and the purchase fails, and testers are locked out of every circuit but
-Ardennes. TestFlight purchases are free (the sandbox), so testers can unlock with a tap once it exists.
+Created on 2026-11-02 with `python3 appstore/push.py purchase --app ghost-thread --screenshot <jpeg>` (Apple ID
+6829970261): its name and description are in `appstore/ghost-thread/iap/allcircuits/`, and it's sold in every
+territory. A build that sells it needs it in App Store Connect: without it, TestFlight builds can't load it, so the
+unlock button has no price and testers are locked out of every circuit but Ardennes. TestFlight purchases are free
+(the sandbox), so testers can unlock with a tap.
 
 The purchase flow can't run under `xcodebuild test` (StoreKit test sessions need Xcode), so check it by hand: Run from
 Xcode, which uses `Apex.storekit`, tap a locked circuit, buy, and check every circuit opens; then Debug ▸ StoreKit ▸

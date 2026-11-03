@@ -1,0 +1,903 @@
+#!/usr/bin/env python3
+"""App Store Connect listing text, kept as files in git and pushed through Apple's API.
+
+    python3 appstore/push.py check                             # the credentials work, and each app's Apple ID
+    python3 appstore/push.py validate                          # every app's text against Apple's limits; no network
+    python3 appstore/push.py pull --app ghost-thread             # App Store Connect's text into the files
+    python3 appstore/push.py version --app ghost-thread 1.1.0 --dry-run   # create the next version to push to
+    python3 appstore/push.py push --app ghost-thread --dry-run   # what would change, field by field
+    python3 appstore/push.py push --app ghost-thread             # push it (only the fields that differ)
+    python3 appstore/push.py push --app ghost-thread --only promotional_text,description
+    python3 appstore/push.py media --app ghost-thread --screenshots DIR [DIR ...] --creative FILE --dry-run
+    python3 appstore/push.py purchase --app ghost-thread --screenshot FILE --dry-run   # set up the in-app purchase
+
+The text lives in appstore/<app>/app/<locale>/<field>.txt, and the in-app purchase's display name and description in
+appstore/<app>/iap/<folder>/<locale>/. A push writes to the version that's still editable (Prepare for Submission and
+the like), so nothing goes public until that version is submitted and released.
+
+Credentials come from the 1Password Environment "App Store Connect", mounted at ~/.appstoreconnect/.env (another path
+with ASCC_ENV_FILE), or from the process environment: ASCC_KEY_ID, ASCC_ISSUER_ID, ASCC_PRIVATE_KEY (the contents of the
+.p8). The app's numeric Apple ID is in APPS, or ASCC_APP_ID_<APP>. Nothing secret is written to disk or printed. Talking to the
+API needs the cryptography package (python3 -m pip install --user cryptography); validate needs nothing.
+
+Ported from Bigger Fish's appstore/push.py, itself adapted from a friend's App Store listing kit.
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+import hashlib
+import json
+import os
+import re
+import struct
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+API = "https://api.appstoreconnect.apple.com"
+
+# Each app: where its Apple ID comes from, its in-app purchases (folder under iap/ -> product ID), and the iPhone
+# sizes its app preview goes to (PREVIEW_GROUPS unless it says otherwise).
+APPS = {
+    # Ghost Thread's Apple ID isn't secret, so it's here; ASCC_APP_ID_GHOST_THREAD overrides it if set.
+    "ghost-thread": {"app_id_env": "ASCC_APP_ID_GHOST_THREAD", "app_id": "6822499299",
+                     "iap": {"allcircuits": "com.kraigstrong.apex.allcircuits"}},
+}
+
+# How `purchase` sets up each in-app purchase, by product ID. The product ID is permanent once created, and Family
+# Sharing can't be turned off once it's on. The price is in US dollars, the base territory; Apple sets the others.
+PURCHASE_SETUP = {
+    "com.kraigstrong.apex.allcircuits": {"reference_name": "Unlock every circuit", "type": "NON_CONSUMABLE",
+                                         "price": "1.99", "family_sharable": True},
+}
+
+# Listing fields: file name -> (where App Store Connect keeps it, its attribute, character limit). Version
+# localizations hold what can change with each version; app info localizations hold the name and subtitle.
+FIELDS = {
+    "name": ("info", "name", 30),
+    "subtitle": ("info", "subtitle", 30),
+    "privacy_policy_url": ("info", "privacyPolicyUrl", 255),
+    "promotional_text": ("version", "promotionalText", 170),
+    "description": ("version", "description", 4000),
+    "keywords": ("version", "keywords", 100),
+    "release_notes": ("version", "whatsNew", 4000),
+    "support_url": ("version", "supportUrl", 255),
+    "marketing_url": ("version", "marketingUrl", 255),
+}
+REQUIRED = ["name", "subtitle", "description", "keywords", "support_url", "privacy_policy_url"]
+# App Review's notes belong to the version, not a locale: appstore/<app>/review_notes.txt.
+REVIEW_NOTES, REVIEW_NOTES_LIMIT = "review_notes", 4000
+# Guides still say a description is 45 characters, but Apple approved Math Reef's 55-character one in October 2026.
+IAP_LIMITS = {"name": 30, "description": 55}
+# An app's first version has no What's New, so release_notes.txt is left out until there's a second.
+EDITABLE_STATES = {"PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED",
+                   "WAITING_FOR_REVIEW", "INVALID_BINARY"}
+# A version in a draft submission (Ready for Review) keeps its text editable but not its images and videos.
+MEDIA_EDITABLE_STATES = EDITABLE_STATES - {"READY_FOR_REVIEW"}
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# The files
+
+def read(path: Path) -> str | None:
+    """A field's text, without the file's final newline."""
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8")
+    return text[:-1] if text.endswith("\n") else text
+
+
+def locales(app: str) -> list[str]:
+    """The locales with listing text, or with a purchase's text before there's a listing."""
+    found = {p.name for p in (HERE / app / "app").glob("*") if p.is_dir()}
+    found |= {p.name for p in (HERE / app / "iap").glob("*/*") if p.is_dir()}
+    return sorted(found)
+
+
+def listing(app: str, locale: str) -> dict[str, str]:
+    base = HERE / app / "app" / locale
+    return {name: text for name in FIELDS if (text := read(base / f"{name}.txt")) is not None}
+
+
+def purchases(app: str, locale: str) -> dict[str, dict[str, str]]:
+    out = {}
+    for folder in APPS[app]["iap"]:
+        base = HERE / app / "iap" / folder / locale
+        fields = {name: text for name in IAP_LIMITS if (text := read(base / f"{name}.txt")) is not None}
+        if fields:
+            out[folder] = fields
+    return out
+
+
+def measure(name: str, value: str) -> int:
+    """A field's length as Apple limits it: keywords in UTF-8 bytes, everything else in characters."""
+    return len(value.encode()) if name == "keywords" else len(value)
+
+
+def problems(app: str, locale: str) -> list[str]:
+    """Everything wrong with one locale's text, by Apple's limits and a few house rules."""
+    found = []
+    text = listing(app, locale)
+    # An empty file is a field kept empty in App Store Connect, which only an optional field can be. A locale with only
+    # a purchase's text has no listing to check yet.
+    for name in REQUIRED if (HERE / app / "app" / locale).exists() else []:
+        if not text.get(name):
+            found.append(f"{name}.txt is {'empty' if name in text else 'missing'}")
+    for name, value in text.items():
+        limit = FIELDS[name][2]
+        if measure(name, value) > limit:
+            unit = "bytes" if name == "keywords" else "characters"
+            found.append(f"{name}: {measure(name, value)} {unit}, over the limit of {limit}")
+        if name.endswith("_url") and value and not value.startswith("https://"):
+            found.append(f"{name}: not an https:// link")
+    keywords = text.get("keywords", "")
+    if ", " in keywords:
+        found.append("keywords: a space after a comma wastes a character")
+    # Words in the name and subtitle are already searched; repeating them in keywords wastes room.
+    named = set(re.findall(r"\w+", (text.get("name", "") + " " + text.get("subtitle", "")).lower()))
+    repeats = [k for k in keywords.split(",") if (words := set(re.findall(r"\w+", k.lower()))) and words <= named]
+    if repeats:
+        found.append(f"keywords: already in the name or subtitle: {', '.join(repeats)}")
+    for folder, fields in purchases(app, locale).items():
+        for name, value in fields.items():
+            if len(value) > IAP_LIMITS[name]:
+                found.append(f"iap/{folder} {name}: {len(value)} characters, over the limit of {IAP_LIMITS[name]}")
+    return found
+
+
+def validate(apps: list[str]) -> int:
+    bad = 0
+    for app in apps:
+        notes = read(HERE / app / f"{REVIEW_NOTES}.txt")
+        if notes is not None:
+            over = len(notes) > REVIEW_NOTES_LIMIT
+            print(f"{app} review notes: {'NOT OK' if over else 'ok'} ({len(notes)}/{REVIEW_NOTES_LIMIT})")
+            bad += over
+        for locale in locales(app):
+            found = problems(app, locale)
+            sizes = ", ".join(f"{name} {measure(name, value)}/{FIELDS[name][2]}" for name, value in listing(app, locale).items())
+            print(f"{app} {locale}: {'ok' if not found else 'NOT OK'} ({sizes})")
+            for problem in found:
+                print(f"  - {problem}")
+            bad += len(found)
+    return 1 if bad else 0
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Credentials and the API
+
+def apple_id(app: str) -> str | None:
+    """The app's numeric Apple ID: from the environment if it's there, otherwise APPS."""
+    return os.environ.get(APPS[app]["app_id_env"]) or APPS[app].get("app_id")
+
+
+def load_credentials() -> None:
+    """Fills the environment from the mounted 1Password Environment, without overriding what's already set. The mount
+    is a pipe 1Password feeds when it's read, so it's read once, here, and never copied anywhere."""
+    path = Path(os.path.expanduser(os.environ.get("ASCC_ENV_FILE", "~/.appstoreconnect/.env")))
+    if not path.exists():
+        return
+    text = path.read_text(encoding="utf-8")
+    for key, value in re.findall(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*("(?:[^"\\]|\\.)*"|\'[^\']*\'|[^\n]*)', text, re.M):
+        if value[:1] in "\"'" and value[-1:] == value[:1]:
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
+
+
+def pem(raw: str) -> bytes:
+    """The private key as PEM, however it was pasted: real line breaks, literal \\n, or all on one line."""
+    text = raw.strip().strip("\"'").replace("\\n", "\n")
+    match = re.match(r"(-----BEGIN [A-Z ]+-----)\s*(.+?)\s*(-----END [A-Z ]+-----)", text, re.S)
+    if not match:
+        raise SystemExit("ASCC_PRIVATE_KEY doesn't look like the .p8's contents (no BEGIN/END PRIVATE KEY lines)")
+    body = re.sub(r"\s+", "", match.group(2))
+    lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+    return "\n".join([match.group(1), *lines, match.group(3), ""]).encode()
+
+
+def token() -> str:
+    """A signed token for the API, good for 19 minutes (Apple allows 20)."""
+    missing = [k for k in ("ASCC_KEY_ID", "ASCC_ISSUER_ID", "ASCC_PRIVATE_KEY") if not os.environ.get(k)]
+    if missing:
+        raise SystemExit(f"missing {', '.join(missing)}: add them to the 1Password Environment \"App Store Connect\"")
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+    except ImportError:
+        raise SystemExit("talking to App Store Connect needs cryptography: python3 -m pip install --user cryptography")
+
+    def b64(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+    now = int(time.time())
+    header = {"alg": "ES256", "kid": os.environ["ASCC_KEY_ID"], "typ": "JWT"}
+    claims = {"iss": os.environ["ASCC_ISSUER_ID"], "iat": now, "exp": now + 19 * 60, "aud": "appstoreconnect-v1"}
+    message = f"{b64(json.dumps(header).encode())}.{b64(json.dumps(claims).encode())}".encode()
+    key = serialization.load_pem_private_key(pem(os.environ["ASCC_PRIVATE_KEY"]), password=None)
+    r, s = decode_dss_signature(key.sign(message, ec.ECDSA(hashes.SHA256())))
+    return f"{message.decode()}.{b64(r.to_bytes(32, 'big') + s.to_bytes(32, 'big'))}"
+
+
+class Client:
+    # A token lasts 19 minutes; a fresh one is signed after 15, so a long upload and its processing stay signed in.
+    TOKEN_LIFE = 15 * 60
+
+    def __init__(self) -> None:
+        self.signed = 0.0
+        self.auth = ""
+
+    def authorization(self) -> str:
+        if time.time() - self.signed > self.TOKEN_LIFE:
+            self.auth, self.signed = f"Bearer {token()}", time.time()
+        return self.auth
+
+    def call(self, method: str, path: str, body: dict | None = None) -> dict:
+        request = urllib.request.Request(f"{API}{path}", method=method,
+                                         data=json.dumps(body).encode() if body is not None else None,
+                                         headers={"Authorization": self.authorization(),
+                                                  "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                text = response.read().decode()
+        except urllib.error.HTTPError as error:
+            raise RuntimeError(f"{method} {path}: {error.code} {error.read().decode()[:500]}") from None
+        return json.loads(text) if text else {}
+
+    def get(self, path: str) -> list[dict]:
+        return self.call("GET", path).get("data", [])
+
+    def get_all(self, path: str) -> list[dict]:
+        """Every page of a list."""
+        out = []
+        while path:
+            page = self.call("GET", path)
+            out += page.get("data", [])
+            path = (page.get("links") or {}).get("next", "").removeprefix(API)
+        return out
+
+    def get_one(self, path: str) -> dict | None:
+        """A to-one relationship's resource, or None when there isn't one yet."""
+        try:
+            return self.call("GET", path).get("data")
+        except RuntimeError as error:
+            if ": 404 " in str(error):
+                return None
+            raise
+
+
+def transfer(operations: list[dict], data: bytes) -> None:
+    """Sends a reserved asset's bytes to the upload URLs Apple returned: unauthenticated and time-limited."""
+    for op in operations:
+        headers = {h["name"]: h["value"] for h in op.get("requestHeaders") or []}
+        part = data[op["offset"]:op["offset"] + op["length"]]
+        request = urllib.request.Request(op["url"], method=op["method"], data=part, headers=headers)
+        with urllib.request.urlopen(request, timeout=120) as response:
+            response.read()
+
+
+def upsert(client: Client, kind: str, existing: dict | None, attrs: dict, parent: tuple[str, str, str],
+           locale: str, dry_run: bool, label: str) -> bool:
+    """Changes only the attributes that differ from what App Store Connect has; creates the localization (or, with no
+    locale, the version's review details) if needed."""
+    current = existing.get("attributes", {}) if existing else {}
+    changed = {k: v for k, v in attrs.items() if (current.get(k) or "") != v}
+    for k in attrs:
+        print(f"  {label}.{k}: {'changes' if k in changed else 'same'}"
+              + (f" ({len(current.get(k) or '')} -> {len(attrs[k])} characters)" if k in changed else ""))
+    if not changed or dry_run:
+        return bool(changed)
+    # An empty file empties the field: null clears an attribute, where an empty URL may be refused as invalid.
+    changed = {k: v or None for k, v in changed.items()}
+    if existing:
+        client.call("PATCH", f"/v1/{kind}/{existing['id']}",
+                    {"data": {"type": kind, "id": existing["id"], "attributes": changed}})
+    else:
+        relationship, parent_type, parent_id = parent
+        attributes = {**changed, "locale": locale} if locale else changed
+        client.call("POST", f"/v1/{kind}", {"data": {"type": kind, "attributes": attributes,
+                                                     "relationships": {relationship: {"data": {"type": parent_type,
+                                                                                               "id": parent_id}}}}})
+    return True
+
+
+def push(app: str, only: set[str] | None, dry_run: bool) -> int:
+    if validate([app]):
+        print("Fix the text before pushing.")
+        return 1
+    load_credentials()
+    app_id = apple_id(app)
+    if not app_id:
+        raise SystemExit(f"missing {APPS[app]['app_id_env']} (the app's numeric Apple ID) in the 1Password Environment")
+    client = Client()
+    every = client.get(f"/v1/apps/{app_id}/appStoreVersions?limit=50")
+    versions = [v for v in every if v["attributes"].get("appStoreState") in EDITABLE_STATES]
+    if not versions and only == {"promotional_text"}:
+        # Promotional text can change on the live version, without a new one.
+        versions = [v for v in every if v["attributes"].get("appStoreState") == "READY_FOR_SALE"]
+    if not versions:
+        raise SystemExit("no editable version: create the next version in App Store Connect first")
+    version = versions[0]
+    infos = client.get(f"/v1/apps/{app_id}/appInfos")
+    info = next((i for i in infos if i["attributes"].get("appStoreState") in EDITABLE_STATES
+                 or i["attributes"].get("state") in EDITABLE_STATES), infos[0] if len(infos) == 1 else None)
+    print(f"{app}: version {version['attributes'].get('versionString')} ({version['attributes'].get('appStoreState')})"
+          + (" — dry run, nothing is written" if dry_run else ""))
+    version_locs = {l["attributes"]["locale"]: l
+                    for l in client.get(f"/v1/appStoreVersions/{version['id']}/appStoreVersionLocalizations?limit=200")}
+    info_locs = {l["attributes"]["locale"]: l
+                 for l in client.get(f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=200")} if info else {}
+    changes = 0
+    for locale in locales(app):
+        print(f"[{locale}]")
+        text = {k: v for k, v in listing(app, locale).items() if only is None or k in only}
+        by_place = {"version": {}, "info": {}}
+        for name, value in text.items():
+            place, attribute, _ = FIELDS[name]
+            by_place[place][attribute] = value
+        if by_place["version"]:
+            changes += upsert(client, "appStoreVersionLocalizations", version_locs.get(locale), by_place["version"],
+                              ("appStoreVersion", "appStoreVersions", version["id"]), locale, dry_run, "listing")
+        if by_place["info"]:
+            if info is None:
+                print("  name, subtitle, privacy policy: no editable app info, skipped")
+            else:
+                changes += upsert(client, "appInfoLocalizations", info_locs.get(locale), by_place["info"],
+                                  ("appInfo", "appInfos", info["id"]), locale, dry_run, "app info")
+        if only is None or "iap" in only:
+            for folder, fields in purchases(app, locale).items():
+                product_id = APPS[app]["iap"][folder]
+                found = client.get(f"/v1/apps/{app_id}/inAppPurchasesV2?filter[productId]={product_id}&limit=1")
+                if not found:
+                    print(f"  iap {folder}: {product_id} isn't in App Store Connect yet, skipped")
+                    continue
+                purchase = found[0]["id"]
+                locs = {l["attributes"]["locale"]: l
+                        for l in client.get(f"/v2/inAppPurchases/{purchase}/inAppPurchaseLocalizations?limit=50")}
+                changes += upsert(client, "inAppPurchaseLocalizations", locs.get(locale), fields,
+                                  ("inAppPurchaseV2", "inAppPurchases", purchase), locale, dry_run, f"iap {folder}")
+    notes = read(HERE / app / f"{REVIEW_NOTES}.txt")
+    if notes is not None and (only is None or REVIEW_NOTES in only):
+        print("[App Review]")
+        detail = client.get_one(f"/v1/appStoreVersions/{version['id']}/appStoreReviewDetail")
+        changes += upsert(client, "appStoreReviewDetails", detail, {"notes": notes},
+                          ("appStoreVersion", "appStoreVersions", version["id"]), "", dry_run, "review")
+    print(f"{changes} localization{'' if changes == 1 else 's'} {'would change' if dry_run else 'changed'}.")
+    return 0
+
+
+def new_version(app: str, version_string: str, dry_run: bool) -> int:
+    """Creates the app's next version, which App Store Connect starts with the live version's text and media. Nothing
+    is submitted. Does nothing if a version is already editable."""
+    load_credentials()
+    app_id = apple_id(app)
+    if not app_id:
+        raise SystemExit(f"missing {APPS[app]['app_id_env']} (the app's numeric Apple ID) in the 1Password Environment")
+    client = Client()
+    every = client.get(f"/v1/apps/{app_id}/appStoreVersions?limit=50")
+    editable = next((v for v in every if v["attributes"].get("appStoreState") in EDITABLE_STATES), None)
+    if editable:
+        print(f"{app}: version {editable['attributes'].get('versionString')} "
+              f"({editable['attributes'].get('appStoreState')}) is already editable; nothing created")
+        return 0 if editable["attributes"].get("versionString") == version_string else 1
+    if any(v["attributes"].get("versionString") == version_string for v in every):
+        raise SystemExit(f"{app} already has a version {version_string}")
+    if dry_run:
+        print(f"{app}: would create version {version_string} — dry run, nothing is written")
+        return 0
+    created = client.call("POST", "/v1/appStoreVersions", {"data": {
+        "type": "appStoreVersions", "attributes": {"platform": "IOS", "versionString": version_string},
+        "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})["data"]
+    print(f"{app}: version {version_string} created ({created['attributes'].get('appStoreState')})")
+    return 0
+
+
+def save(path: Path, value: str | None, label: str) -> bool:
+    """Writes one field's file from App Store Connect's text. A field emptied there empties its file, so the next push
+    keeps it empty; an empty field with no file is left without one."""
+    value = value or ""
+    current = read(path)
+    if current == value or (current is None and not value):
+        print(f"  {label}: " + ("same" if current is not None else "empty in App Store Connect, no file"))
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(value + "\n" if value else "", encoding="utf-8")
+    print(f"  {label}: " + ("written" if current is None else "emptied, as in App Store Connect" if not value
+                            else f"updated ({len(current)} -> {len(value)} characters)"))
+    return True
+
+
+def pull(app: str) -> int:
+    """Copies App Store Connect's text into the files, so a push doesn't undo an edit made on the website. It reads the
+    editable version, or the live one when there isn't one (but not the live one's What's New and App Review notes,
+    which were for that version), and the in-app purchases. It writes nothing to App Store Connect."""
+    load_credentials()
+    app_id = apple_id(app)
+    if not app_id:
+        raise SystemExit(f"missing {APPS[app]['app_id_env']} (the app's numeric Apple ID) in the 1Password Environment")
+    client = Client()
+    every = client.get(f"/v1/apps/{app_id}/appStoreVersions?limit=50")
+    version = next((v for v in every if v["attributes"].get("appStoreState") in EDITABLE_STATES), None)
+    live = version is None
+    if live:
+        version = next((v for v in every if v["attributes"].get("appStoreState") == "READY_FOR_SALE"), None)
+    if version is None:
+        raise SystemExit("no editable or live version to pull from")
+    infos = client.get(f"/v1/apps/{app_id}/appInfos")
+    info = next((i for i in infos if i["attributes"].get("appStoreState") in EDITABLE_STATES
+                 or i["attributes"].get("state") in EDITABLE_STATES), None) or next(
+        (i for i in infos if i["attributes"].get("appStoreState") == "READY_FOR_SALE"), None)
+    print(f"{app}: version {version['attributes'].get('versionString')} ({version['attributes'].get('appStoreState')})")
+    text: dict[str, dict[str, str | None]] = {}
+    places = [("version", f"/v1/appStoreVersions/{version['id']}/appStoreVersionLocalizations?limit=200")]
+    if info:
+        places.append(("info", f"/v1/appInfos/{info['id']}/appInfoLocalizations?limit=200"))
+    for place, path in places:
+        for loc in client.get(path):
+            fields = text.setdefault(loc["attributes"]["locale"], {})
+            for name, (where, attribute, _) in FIELDS.items():
+                if where == place and not (live and name == "release_notes"):
+                    fields[name] = loc["attributes"].get(attribute)
+    changes = 0
+    for locale, fields in sorted(text.items()):
+        print(f"[{locale}]")
+        for name, value in fields.items():
+            changes += save(HERE / app / "app" / locale / f"{name}.txt", value, name)
+    for folder, product_id in APPS[app]["iap"].items():
+        found = client.get(f"/v1/apps/{app_id}/inAppPurchasesV2?filter[productId]={product_id}&limit=1")
+        if not found:
+            print(f"iap {folder}: {product_id} isn't in App Store Connect yet, skipped")
+            continue
+        for loc in client.get(f"/v2/inAppPurchases/{found[0]['id']}/inAppPurchaseLocalizations?limit=50"):
+            locale = loc["attributes"]["locale"]
+            print(f"[iap {folder} {locale}]")
+            for name in IAP_LIMITS:
+                changes += save(HERE / app / "iap" / folder / locale / f"{name}.txt", loc["attributes"].get(name), name)
+    if not live:
+        print("[App Review]")
+        detail = client.get_one(f"/v1/appStoreVersions/{version['id']}/appStoreReviewDetail")
+        changes += save(HERE / app / f"{REVIEW_NOTES}.txt", (detail or {}).get("attributes", {}).get("notes"), "notes")
+    print(f"{changes} file{'' if changes == 1 else 's'} written.")
+    return 0
+
+
+def check() -> int:
+    """Whether the credentials work, printing nothing secret: the key loads, and Apple answers with your apps."""
+    load_credentials()
+    for name in ["ASCC_KEY_ID", "ASCC_ISSUER_ID", "ASCC_PRIVATE_KEY"]:
+        print(f"{name}: {'set' if os.environ.get(name) else 'missing'}")
+    for app in APPS:
+        print(f"{app}'s Apple ID: {apple_id(app) or 'missing'}")
+    if not os.environ.get("ASCC_PRIVATE_KEY"):
+        return 1
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+    except ImportError:
+        raise SystemExit("checking the key needs cryptography: python3 -m pip install --user cryptography")
+    try:
+        key = serialization.load_pem_private_key(pem(os.environ["ASCC_PRIVATE_KEY"]), password=None)
+    except ValueError:
+        print("ASCC_PRIVATE_KEY doesn't load as a private key: paste the whole .p8, BEGIN and END lines included")
+        return 1
+    good = isinstance(key, ec.EllipticCurvePrivateKey) and key.curve.name == "secp256r1"
+    print(f"private key: {'loads, an EC P-256 key as Apple issues' if good else 'loads, but it is not an EC P-256 key'}")
+    if not (os.environ.get("ASCC_KEY_ID") and os.environ.get("ASCC_ISSUER_ID")):
+        print("Add ASCC_KEY_ID and ASCC_ISSUER_ID (App Store Connect > Users and Access > Integrations) to talk to Apple.")
+        return 0 if good else 1
+    try:
+        apps = Client().get("/v1/apps?limit=50&fields[apps]=name,bundleId")
+    except RuntimeError as error:
+        print(f"Apple said no: {error}")
+        return 1
+    print("Apple answered. Your apps (the number is each one's ASCC_APP_ID_...):")
+    for app in apps:
+        print(f"  {app['id']}  {app['attributes']['name']}  ({app['attributes']['bundleId']})")
+    return 0 if good else 1
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Screenshots and creative assets, through the App Asset Library
+
+SCREENSHOT, HEADER, SEARCH = "APP_SCREENSHOT", "PRODUCT_PAGE_HEADER_ASSET", "APP_STORE_SEARCH_RESULTS_ASSET"
+PREVIEW = "APP_PREVIEW"
+# The app preview goes to the 6.9" and 6.3" iPhones; Apple fills in smaller sizes from these.
+PREVIEW_GROUPS = ("IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE", "IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE")
+# The 13-inch iPad's preview, 1600x1200, which App Store Connect uses for the smaller iPads too.
+IPAD_PREVIEW_GROUP = "IPAD_13_PROFILE"
+VIDEO_SUFFIXES = {".mp4", ".m4v", ".mov"}
+
+
+def library_kind(path: Path) -> tuple[str, str, str]:
+    """Where a file lives in the asset library: its collection, resource type, and placement relationship."""
+    if path.suffix.lower() in VIDEO_SUFFIXES:
+        return "videos", "appAssetLibraryVideos", "video"
+    return "images", "appAssetLibraryImages", "image"
+
+
+def png_info(path: Path) -> tuple[int, int, bool]:
+    """A PNG's width, height, and whether it has an alpha channel (App Store Connect refuses one)."""
+    with path.open("rb") as file:
+        head = file.read(33)
+    if head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        raise SystemExit(f"{path}: not a PNG")
+    width, height = struct.unpack(">II", head[16:24])
+    return width, height, head[25] in (4, 6)
+
+
+def media(app: str, locale: str, folders: list[Path], creatives: dict[str, Path], preview: Path | None,
+          poster: str | None, dry_run: bool, ipad_preview: Path | None = None) -> int:
+    """Replaces the editable version's screenshots (each folder's PNGs, in name order), its product page header and
+    search results asset (`creatives`, by placement type), and its app preview video, with `poster` as the frame shown
+    before it plays. New files are uploaded and processed first; the old placements are only swapped out once every
+    one is ready, so a failure leaves the listing as it was."""
+    load_credentials()
+    app_id = apple_id(app)
+    if not app_id:
+        raise SystemExit(f"missing {APPS[app]['app_id_env']} in the 1Password Environment")
+    client = Client()
+    ref = client.call("GET", "/v1/appAssetLibraryRefData")["data"]
+    ref = (ref[0] if isinstance(ref, list) else ref)["attributes"]
+    specs = {s["specId"]: s for s in ref["imageSpecs"]}
+
+    def groups_for(kind: str, width: int, height: int) -> list[str]:
+        out = []
+        for placement in ref["placementTypes"]:
+            if placement["placementTypeId"] != kind:
+                continue
+            for mapping in placement["specMappings"]:
+                for spec_id in mapping["specs"]:
+                    d = specs.get(spec_id, {}).get("dimensions", {})
+                    if d.get("minWidth", 0) <= width <= d.get("maxWidth", 0) and d.get("minHeight", 0) <= height <= d.get("maxHeight", 0):
+                        out.append(mapping["placementGroupId"])
+                        break
+        return out
+
+    # What goes where: (placement type, group) -> files in order.
+    plan: dict[tuple[str, str], list[Path]] = {}
+    for folder in folders:
+        for path in sorted(folder.glob("*.png")):
+            width, height, alpha = png_info(path)
+            if alpha:
+                raise SystemExit(f"{path}: has an alpha channel, which App Store Connect refuses")
+            groups = groups_for(SCREENSHOT, width, height)
+            if not groups:
+                raise SystemExit(f"{path}: {width}x{height} isn't an App Store screenshot size")
+            plan.setdefault((SCREENSHOT, groups[0]), []).append(path)
+    for kind, creative in creatives.items():
+        width, height, alpha = png_info(creative)
+        if alpha:
+            raise SystemExit(f"{creative}: has an alpha channel")
+        groups = groups_for(kind, width, height)
+        if not groups:
+            raise SystemExit(f"{creative}: {width}x{height} doesn't fit {kind}")
+        plan[(kind, groups[0])] = [creative]
+    if preview:
+        if preview.suffix.lower() not in VIDEO_SUFFIXES:
+            raise SystemExit(f"{preview}: an app preview is a .mp4, .m4v or .mov")
+        if poster and not re.fullmatch(r"\d\d:\d\d:\d\d:\d\d", poster):
+            raise SystemExit(f"--poster {poster}: a timecode into the video, HH:MM:SS:FF (FF is the frame)")
+        for group in APPS[app].get("preview_groups", PREVIEW_GROUPS):
+            plan[(PREVIEW, group)] = [preview]
+    if ipad_preview:
+        if ipad_preview.suffix.lower() not in VIDEO_SUFFIXES:
+            raise SystemExit(f"{ipad_preview}: an app preview is a .mp4, .m4v or .mov")
+        plan[(PREVIEW, IPAD_PREVIEW_GROUP)] = [ipad_preview]
+    for (kind, group), files in plan.items():
+        if kind == SCREENSHOT and len(files) > 10:
+            raise SystemExit(f"{group}: {len(files)} screenshots, over Apple's 10")
+
+    versions = [v for v in client.get(f"/v1/apps/{app_id}/appStoreVersions?limit=50")
+                if v["attributes"].get("appStoreState") in MEDIA_EDITABLE_STATES]
+    if not versions:
+        raise SystemExit("no version whose media can change: create the next version in App Store Connect, or take "
+                         "it out of its draft submission")
+    version = versions[0]
+    localization = next((l for l in client.get(f"/v1/appStoreVersions/{version['id']}/appStoreVersionLocalizations?limit=200")
+                         if l["attributes"]["locale"] == locale), None)
+    if localization is None:
+        raise SystemExit(f"version {version['attributes'].get('versionString')} has no {locale} localization yet: push the text first")
+    print(f"{app} {locale}: version {version['attributes'].get('versionString')} ({version['attributes'].get('appStoreState')})"
+          + (" — dry run, nothing is written" if dry_run else ""))
+
+    def existing(kind: str, group: str) -> list[dict]:
+        return client.get(f"/v1/appStoreVersionLocalizations/{localization['id']}/placements?filter[placementType]={kind}"
+                          f"&filter[placementGroup]={group}&sort=placementGroupPosition&limit=50")
+
+    current = {key: existing(*key) for key in plan}
+    for (kind, group), files in plan.items():
+        print(f"  {kind} {group}: replace {len(current[(kind, group)])} with {len(files)}: "
+              + ", ".join(p.name for p in files) + (f" (poster at {poster})" if kind == PREVIEW and poster else ""))
+    if dry_run:
+        return 0
+
+    # Upload every distinct file once, and wait until each is processed. Apple wants each asset's reference name
+    # unique, so it ends with a hash of the contents; an asset the library already has under that name is reused.
+    library = client.call("GET", f"/v1/apps/{app_id}/assetLibrary")["data"]["id"]
+    uploaded: dict[Path, str] = {}
+    for (kind, group), files in plan.items():
+        category = "CREATIVE_ASSETS" if kind in (HEADER, SEARCH) else "APP_SCREENSHOTS_AND_PREVIEWS"
+        for path in files:
+            if path in uploaded:
+                continue
+            collection, resource, _ = library_kind(path)
+            data = path.read_bytes()
+            digest = hashlib.sha256(data).hexdigest()[:8]
+            name = f"{app} {path.parent.name} {path.stem}"[:91] + f" {digest}"
+            found = [a for a in client.get(f"/v1/appAssetLibraries/{library}/{collection}?filter[referenceName]="
+                                           f"{urllib.parse.quote(name)}&limit=5")
+                     if a["attributes"].get("state") != "FAILED"]
+            if found:
+                uploaded[path] = found[0]["id"]
+                print(f"  {path.name}: already in the library")
+                if resource == "appAssetLibraryVideos" and poster and found[0]["attributes"].get("previewFrameTimeCode") != poster:
+                    client.call("PATCH", f"/v1/{resource}/{found[0]['id']}", {"data": {
+                        "type": resource, "id": found[0]["id"], "attributes": {"previewFrameTimeCode": poster}}})
+                    print(f"  {path.name}: poster frame moved to {poster}")
+                continue
+            attributes = {"fileName": path.name, "fileSize": len(data), "category": category, "referenceName": name}
+            if resource == "appAssetLibraryVideos" and poster:
+                attributes["previewFrameTimeCode"] = poster
+            asset = client.call("POST", f"/v1/{resource}", {"data": {
+                "type": resource, "attributes": attributes,
+                "relationships": {"assetLibrary": {"data": {"type": "appAssetLibraries", "id": library}}}}})["data"]
+            transfer(asset["attributes"]["uploadOperations"], data)
+            client.call("PATCH", f"/v1/{resource}/{asset['id']}",
+                        {"data": {"type": resource, "id": asset["id"], "attributes": {"uploaded": True}}})
+            uploaded[path] = asset["id"]
+            print(f"  uploaded {path.name}")
+    minutes = 20 if any(library_kind(p)[0] == "videos" for p in uploaded) else 10
+    deadline = time.time() + minutes * 60
+    waiting = dict(uploaded)
+    while waiting:
+        for path, asset_id in list(waiting.items()):
+            attributes = client.call("GET", f"/v1/{library_kind(path)[1]}/{asset_id}")["data"]["attributes"]
+            if attributes["state"] == "PREPARE_FOR_SUBMISSION":
+                del waiting[path]
+            elif attributes["state"] == "FAILED":
+                raise RuntimeError(f"{path.name} failed processing: {attributes.get('stateDetails')}. The listing is unchanged.")
+        if waiting:
+            if time.time() > deadline:
+                raise RuntimeError(f"still processing after {minutes} minutes: {', '.join(p.name for p in waiting)}. "
+                                   "The listing is unchanged; run again to retry.")
+            time.sleep(5)
+    print(f"  {len(uploaded)} files processed")
+
+    # Swap the placements, then put each screenshot group in order.
+    for (kind, group), files in plan.items():
+        for old in current[(kind, group)]:
+            client.call("DELETE", f"/v1/appAssetLibraryPlacements/{old['id']}")
+        placed = []
+        for path in files:
+            _, resource, relationship = library_kind(path)
+            placement = client.call("POST", "/v1/appAssetLibraryPlacements", {"data": {
+                "type": "appAssetLibraryPlacements",
+                "attributes": {"placementType": kind, "placementGroup": group},
+                "relationships": {
+                    relationship: {"data": {"type": resource, "id": uploaded[path]}},
+                    "appStoreVersionLocalization": {"data": {"type": "appStoreVersionLocalizations",
+                                                             "id": localization["id"]}}}}})["data"]
+            placed.append(placement["id"])
+        if kind == SCREENSHOT and len(placed) > 1:
+            client.call("POST", "/v1/appAssetLibraryPlacementOrderingRequests", {"data": {
+                "type": "appAssetLibraryPlacementOrderingRequests",
+                "attributes": {"placementGroup": group},
+                "relationships": {
+                    "orderedPlacements": {"data": [{"type": "appAssetLibraryPlacements", "id": i} for i in placed]},
+                    "appStoreVersionLocalization": {"data": {"type": "appStoreVersionLocalizations",
+                                                             "id": localization["id"]}}}}})
+        print(f"  {kind} {group}: {len(placed)} placed")
+    return 0
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# The in-app purchase
+
+def purchase(app: str, screenshot: Path | None, dry_run: bool) -> int:
+    """Sets up each of the app's in-app purchases so it reaches Ready to Submit: creates it if App Store Connect doesn't
+    have it (with `PURCHASE_SETUP`'s settings), then fills in whatever's missing: its localizations from the files, its
+    price, its availability (the app's own territories), and its review screenshot. Never changes a price or
+    availability that's already set; a new --screenshot replaces the review screenshot."""
+    if validate([app]):
+        print("Fix the text before setting up a purchase.")
+        return 1
+    if screenshot:
+        if screenshot.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
+            raise SystemExit(f"{screenshot}: the review screenshot is a .png or .jpg")
+        if screenshot.suffix.lower() == ".png" and png_info(screenshot)[2]:
+            raise SystemExit(f"{screenshot}: has an alpha channel; save it as a JPEG or flatten it")
+        print(f"review screenshot: {screenshot.name}")
+    load_credentials()
+    app_id = apple_id(app)
+    if not app_id:
+        raise SystemExit(f"missing {APPS[app]['app_id_env']} in the 1Password Environment")
+    client = Client()
+    print(f"{app}" + (" — dry run, nothing is written" if dry_run else ""))
+    for folder, product_id in APPS[app]["iap"].items():
+        setup = PURCHASE_SETUP.get(product_id)
+        found = client.get(f"/v1/apps/{app_id}/inAppPurchasesV2?filter[productId]={product_id}&limit=1")
+        if found:
+            iap = found[0]
+            print(f"  {product_id}: exists ({iap['attributes'].get('state')})")
+        elif setup is None:
+            print(f"  {product_id}: not in App Store Connect, and PURCHASE_SETUP has no settings for it; skipped")
+            continue
+        elif dry_run:
+            print(f"  {product_id}: would be created: {setup['type']}, \"{setup['reference_name']}\", "
+                  f"${setup['price']}, Family Sharing {'on' if setup['family_sharable'] else 'off'}")
+            print(f"  then its localizations, price, availability (the app's territories), and review screenshot")
+            continue
+        else:
+            iap = client.call("POST", "/v2/inAppPurchases", {"data": {
+                "type": "inAppPurchases",
+                "attributes": {"name": setup["reference_name"], "productId": product_id,
+                               "inAppPurchaseType": setup["type"], "familySharable": setup["family_sharable"]},
+                "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})["data"]
+            print(f"  {product_id}: created")
+        iap_id = iap["id"]
+
+        # Localizations, from the files.
+        locs = {l["attributes"]["locale"]: l
+                for l in client.get(f"/v2/inAppPurchases/{iap_id}/inAppPurchaseLocalizations?limit=50")}
+        for locale in locales(app):
+            fields = purchases(app, locale).get(folder)
+            if fields:
+                upsert(client, "inAppPurchaseLocalizations", locs.get(locale), fields,
+                       ("inAppPurchaseV2", "inAppPurchases", iap_id), locale, dry_run, f"  {locale}")
+
+        # The price, set once in the base territory.
+        schedule = client.get_one(f"/v2/inAppPurchases/{iap_id}/iapPriceSchedule")
+        if schedule:
+            print("  price: already set, left alone")
+        elif setup is None:
+            print("  price: not set, and PURCHASE_SETUP has none for it")
+        else:
+            points = client.get_all(f"/v2/inAppPurchases/{iap_id}/pricePoints?filter[territory]=USA&limit=200")
+            point = next((p for p in points if p["attributes"].get("customerPrice") == setup["price"]), None)
+            if point is None:
+                raise RuntimeError(f"no US price point of ${setup['price']}")
+            print(f"  price: ${setup['price']} in the US" + (" would be set" if dry_run else ""))
+            if not dry_run:
+                client.call("POST", "/v1/inAppPurchasePriceSchedules", {
+                    "data": {"type": "inAppPurchasePriceSchedules", "relationships": {
+                        "inAppPurchase": {"data": {"type": "inAppPurchases", "id": iap_id}},
+                        "baseTerritory": {"data": {"type": "territories", "id": "USA"}},
+                        "manualPrices": {"data": [{"type": "inAppPurchasePrices", "id": "${price}"}]}}},
+                    "included": [{"type": "inAppPurchasePrices", "id": "${price}",
+                                  "attributes": {"startDate": None},
+                                  "relationships": {"inAppPurchasePricePoint": {
+                                      "data": {"type": "inAppPurchasePricePoints", "id": point["id"]}}}}]})
+
+        # Availability: wherever the app itself is sold, and new territories as Apple adds them. Before the app's own
+        # availability is chosen, every territory, as App Store Connect does by default; a purchase is only ever sold
+        # where its app is.
+        if client.get_one(f"/v2/inAppPurchases/{iap_id}/inAppPurchaseAvailability"):
+            print("  availability: already set, left alone")
+        else:
+            app_availability = client.get_one(f"/v1/apps/{app_id}/appAvailabilityV2")
+            if app_availability:
+                territories = [t["relationships"]["territory"]["data"]["id"] for t in client.get_all(
+                    f"/v2/appAvailabilities/{app_availability['id']}/territoryAvailabilities?include=territory&limit=200")
+                    if t["attributes"].get("available")]
+                where = f"the app's {len(territories)} territories"
+            else:
+                territories = [t["id"] for t in client.get_all("/v1/territories?limit=200")]
+                where = f"all {len(territories)} territories (the app's own availability isn't chosen yet)"
+            print(f"  availability: {where}" + (" would be set" if dry_run else ""))
+            if not dry_run:
+                client.call("POST", "/v1/inAppPurchaseAvailabilities", {"data": {
+                    "type": "inAppPurchaseAvailabilities", "attributes": {"availableInNewTerritories": True},
+                    "relationships": {
+                        "inAppPurchase": {"data": {"type": "inAppPurchases", "id": iap_id}},
+                        "availableTerritories": {"data": [{"type": "territories", "id": t} for t in territories]}}}})
+
+        # The review screenshot.
+        current = client.get_one(f"/v2/inAppPurchases/{iap_id}/appStoreReviewScreenshot")
+        data = screenshot.read_bytes() if screenshot else None
+        checksum = hashlib.md5(data).hexdigest() if data else None
+        if data is None:
+            print(f"  review screenshot: {'there' if current else 'missing: give --screenshot'}")
+        elif current and current["attributes"].get("sourceFileChecksum") == checksum:
+            print("  review screenshot: already this one")
+        elif dry_run:
+            print(f"  review screenshot: would {'replace the current one' if current else 'upload'}")
+        else:
+            if current:
+                client.call("DELETE", f"/v1/inAppPurchaseAppStoreReviewScreenshots/{current['id']}")
+            shot = client.call("POST", "/v1/inAppPurchaseAppStoreReviewScreenshots", {"data": {
+                "type": "inAppPurchaseAppStoreReviewScreenshots",
+                "attributes": {"fileName": screenshot.name, "fileSize": len(data)},
+                "relationships": {"inAppPurchaseV2": {"data": {"type": "inAppPurchases", "id": iap_id}}}}})["data"]
+            transfer(shot["attributes"]["uploadOperations"], data)
+            client.call("PATCH", f"/v1/inAppPurchaseAppStoreReviewScreenshots/{shot['id']}", {"data": {
+                "type": "inAppPurchaseAppStoreReviewScreenshots", "id": shot["id"],
+                "attributes": {"uploaded": True, "sourceFileChecksum": checksum}}})
+            print("  review screenshot: uploaded")
+        if not dry_run:
+            state = client.call("GET", f"/v2/inAppPurchases/{iap_id}")["data"]["attributes"].get("state")
+            print(f"  {product_id}: {state}")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("check", help="whether the credentials work, and each app's Apple ID; prints nothing secret")
+    checks = sub.add_parser("validate", help="check every app's text against Apple's limits; no network")
+    checks.add_argument("--app", choices=APPS)
+    fetch = sub.add_parser("pull", help="copy an app's text from App Store Connect into the files; writes nothing")
+    fetch.add_argument("--app", choices=APPS, required=True)
+    make = sub.add_parser("version", help="create the app's next version (it starts with the live one's text)")
+    make.add_argument("--app", choices=APPS, required=True)
+    make.add_argument("version_string", help="e.g. 1.1.0, the target's MARKETING_VERSION")
+    make.add_argument("--dry-run", action="store_true", help="show what would be created; write nothing")
+    send = sub.add_parser("push", help="push an app's text to its editable version")
+    send.add_argument("--app", choices=APPS, required=True)
+    send.add_argument("--only", help="comma-separated fields to push (file names, iap, or review_notes)")
+    send.add_argument("--dry-run", action="store_true", help="show what would change; write nothing")
+    images = sub.add_parser("media", help="replace the editable version's screenshots and creative assets")
+    images.add_argument("--app", choices=APPS, required=True)
+    images.add_argument("--locale", default="en-US")
+    images.add_argument("--screenshots", type=Path, nargs="*", default=[],
+                        help="folders of PNGs, one per device size, uploaded in name order")
+    images.add_argument("--creative", type=Path, help="a 5244x2950 PNG for the product page header and search results")
+    images.add_argument("--header", type=Path, help="a 5244x2950 PNG for the product page header only")
+    images.add_argument("--search", type=Path, help="a 5244x2950 PNG for the search results asset only")
+    images.add_argument("--preview", type=Path, help="the app preview video (1920x886), for the app's iPhone sizes")
+    images.add_argument("--ipad-preview", type=Path, help="the iPad's app preview video (1600x1200)")
+    images.add_argument("--poster", help="the previews' poster frame, the still shown before they play (HH:MM:SS:FF)")
+    images.add_argument("--dry-run", action="store_true", help="show what would change; write nothing")
+    buy = sub.add_parser("purchase", help="create the app's in-app purchases and fill in what they're missing")
+    buy.add_argument("--app", choices=APPS, required=True)
+    buy.add_argument("--screenshot", type=Path, help="a PNG or JPEG of the purchase screen, for App Review")
+    buy.add_argument("--dry-run", action="store_true", help="show what would change; write nothing")
+    args = parser.parse_args()
+    if args.command == "check":
+        return check()
+    if args.command == "media":
+        creatives = {kind: path for kind, path in ((HEADER, args.header or args.creative),
+                                                   (SEARCH, args.search or args.creative)) if path}
+        if args.poster and not (args.preview or args.ipad_preview):
+            raise SystemExit("--poster sets the frame of the --preview video it comes with")
+        if not args.screenshots and not creatives and not args.preview and not args.ipad_preview:
+            raise SystemExit("nothing to do: give --screenshots folders, a --creative (or --header, --search) image, "
+                             "or a --preview video")
+        try:
+            return media(args.app, args.locale, args.screenshots, creatives, args.preview, args.poster, args.dry_run,
+                         args.ipad_preview)
+        except RuntimeError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 2
+    if args.command == "purchase":
+        try:
+            return purchase(args.app, args.screenshot, args.dry_run)
+        except RuntimeError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 2
+    if args.command == "validate":
+        return validate([args.app] if args.app else [a for a in APPS if (HERE / a).exists()])
+    if args.command in ("pull", "version"):
+        try:
+            if args.command == "pull":
+                return pull(args.app)
+            return new_version(args.app, args.version_string, args.dry_run)
+        except RuntimeError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 2
+    only = set(args.only.split(",")) if args.only else None
+    if only and (unknown := only - set(FIELDS) - {"iap", REVIEW_NOTES}):
+        raise SystemExit(f"unknown fields: {', '.join(sorted(unknown))}")
+    try:
+        return push(args.app, only, args.dry_run)
+    except RuntimeError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
