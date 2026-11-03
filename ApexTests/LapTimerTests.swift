@@ -113,10 +113,16 @@ struct LapTimerTests {
         defaults.removePersistentDomain(forName: "LapTimerTests.saved")
         #expect(LapStore.load(for: track, defaults: defaults) == nil)
         let record = LapRecord(time: 29.871, splits: [10.2, 19.9], ghost: [GhostSample(s: 1, n: 2, psi: 0.1)])
-        LapStore.save(record, for: track, defaults: defaults)
+        LapStore.save(record, for: track, player: "me", defaults: defaults)
         #expect(LapStore.load(for: track, defaults: defaults) == record)
+        #expect(LapStore.player(for: track.layout, defaults: defaults) == "me")
+        // Set while no one was signed in.
+        LapStore.save(record, for: track, player: nil, defaults: defaults)
+        #expect(LapStore.player(for: track.layout, defaults: defaults) == nil)
+        LapStore.save(record, for: track, player: "me", defaults: defaults)
         LapStore.clear(for: track, defaults: defaults)
         #expect(LapStore.load(for: track, defaults: defaults) == nil)
+        #expect(LapStore.player(for: track.layout, defaults: defaults) == nil)
     }
 
     @Test func formatsTimes() {

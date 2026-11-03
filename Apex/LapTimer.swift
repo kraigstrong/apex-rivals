@@ -171,7 +171,8 @@ struct LapTimer {
     }
 }
 
-/// Best laps, kept on the device per circuit and per version of the car's tuning.
+/// Best laps, kept on the device per circuit and per version of the car's tuning, each with the Game Center player who
+/// set it. A device can be signed in to different players over time, and a best only goes up under its own.
 enum LapStore {
     static func key(for track: Track) -> String { key(for: track.layout) }
 
@@ -188,16 +189,45 @@ enum LapStore {
         return try? PropertyListDecoder().decode(LapRecord.self, from: data)
     }
 
-    static func save(_ record: LapRecord, for track: Track, defaults: UserDefaults = .standard) {
+    /// Saves a best lap and who set it: the signed-in player's `ApexOnline.playerToken`, or nil if no one was.
+    static func save(_ record: LapRecord, for track: Track, player: String?, defaults: UserDefaults = .standard) {
         let encoder = PropertyListEncoder()
         encoder.outputFormat = .binary
         guard let data = try? encoder.encode(record) else { return }
         defaults.set(data, forKey: key(for: track))
+        defaults.set(player, forKey: playerKey(for: track.layout))
     }
 
     static func clear(for track: Track, defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: key(for: track))
+        defaults.removeObject(forKey: playerKey(for: track.layout))
     }
+
+    /// Who set the saved best (`ApexOnline.playerToken`), or nil if no one was signed in (or it was saved before
+    /// players were kept) and no one has claimed it yet.
+    static func player(for layout: TrackLayout, defaults: UserDefaults = .standard) -> String? {
+        defaults.string(forKey: playerKey(for: layout))
+    }
+
+    /// Gives `player`, just signed in, the saved bests no one was signed in for, so they go up under them. A claimed
+    /// best stays theirs: another player signing in on the device later doesn't get it.
+    static func claim(for player: String, defaults: UserDefaults = .standard) {
+        for layout in TrackLayout.all where self.player(for: layout, defaults: defaults) == nil {
+            if defaults.object(forKey: key(for: layout)) != nil { defaults.set(player, forKey: playerKey(for: layout)) }
+        }
+    }
+
+    /// The saved bests `player` set, by circuit: what their sign-in sends, and whose medals it reports.
+    static func bests(of player: String,
+                      defaults: UserDefaults = .standard) -> [(layout: TrackLayout, best: LapRecord)] {
+        TrackLayout.all.compactMap { layout in
+            guard self.player(for: layout, defaults: defaults) == player,
+                  let best = load(for: layout, defaults: defaults) else { return nil }
+            return (layout, best)
+        }
+    }
+
+    private static func playerKey(for layout: TrackLayout) -> String { key(for: layout) + ".player" }
 
     /// FNV-1a, so the key is the same on every launch (Swift's `Hasher` is seeded per process).
     static func fingerprint(_ text: String) -> String {

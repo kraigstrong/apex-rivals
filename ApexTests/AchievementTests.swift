@@ -31,12 +31,26 @@ struct AchievementTests {
         let name = "AchievementTests.saved"
         let defaults = try #require(UserDefaults(suiteName: name))
         defaults.removePersistentDomain(forName: name)
-        #expect(Medal.achievementsEarnedBySavedBests(defaults: defaults).isEmpty)
+        #expect(Medal.achievementsEarnedBySavedBests(of: "me", defaults: defaults).isEmpty)
 
         let silver = try #require(Medal.silver.target(on: .swirl))
-        LapStore.save(LapRecord(time: silver, splits: [], ghost: []), for: Track(.swirl), defaults: defaults)
-        LapStore.save(LapRecord(time: 60, splits: [], ghost: []), for: Track(.snake), defaults: defaults)
-        #expect(Medal.achievementsEarnedBySavedBests(defaults: defaults) == ["apex.swirl.bronze", "apex.swirl.silver"])
+        LapStore.save(LapRecord(time: silver, splits: [], ghost: []), for: Track(.swirl), player: "me",
+                      defaults: defaults)
+        LapStore.save(LapRecord(time: 60, splits: [], ghost: []), for: Track(.snake), player: "me", defaults: defaults)
+        #expect(Medal.achievementsEarnedBySavedBests(of: "me", defaults: defaults)
+            == ["apex.swirl.bronze", "apex.swirl.silver"])
+    }
+
+    /// Medals go to the player who won them, not to whoever signs in on the device next.
+    @Test func anotherPlayersSavedBestEarnsYouNothing() throws {
+        let name = "AchievementTests.owner"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defaults.removePersistentDomain(forName: name)
+        let gold = try #require(Medal.gold.target(on: ardennes))
+        LapStore.save(LapRecord(time: gold, splits: [], ghost: []), for: Track(ardennes), player: "sibling",
+                      defaults: defaults)
+        #expect(Medal.achievementsEarnedBySavedBests(of: "me", defaults: defaults).isEmpty)
+        #expect(Medal.achievementsEarnedBySavedBests(of: "sibling", defaults: defaults).count == 3)
     }
 }
 

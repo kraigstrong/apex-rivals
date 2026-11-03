@@ -367,7 +367,7 @@ final class RaceScene: SKScene {
                 let medal = Medal.newlyWon(by: lap.time, after: hud.bestLap, on: track.layout)
                 hud.bestLap = lap.time
                 if let best = session.timer.best, !isAutopilot {
-                    LapStore.save(best, for: track)
+                    LapStore.save(best, for: track, player: GameCenter.shared.playerToken)
                     if !practice {
                         BestLapDelivery.send(best, on: board, key: LapStore.key(for: track))
                         Achievements.shared.report(Medal.achievements(earnedBy: best.time, on: track.layout))
@@ -747,11 +747,12 @@ final class RaceScene: SKScene {
             hud.botLaps = nil
             stopwatch.cancel()
             retuneSettles = time + 0.4
-            // Back on the stock car: any stock best that missed Game Center or the lap service goes up now, with its
-            // medals.
-            if RaceTuning.isStock {
-                BestLapDelivery.sendSaved()
-                Achievements.shared.report(Medal.achievementsEarnedBySavedBests())
+            // Back on the stock car: any stock best of the signed-in player's that missed Game Center or the lap
+            // service goes up now, with its medals.
+            if RaceTuning.isStock, let player = GameCenter.shared.playerToken {
+                LapStore.claim(for: player)
+                BestLapDelivery.sendSaved(for: player)
+                Achievements.shared.report(Medal.achievementsEarnedBySavedBests(of: player))
             }
         }
         tunedVersion = Tuner.shared.version
