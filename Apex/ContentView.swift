@@ -71,6 +71,7 @@ struct RaceView: View {
             }
             // Laid out as on a phone, and drawn bigger on an iPad.
             ScreenScaled { RaceOverlay(hud: hud) }
+                .opacity(Self.showsHUD ? 1 : 0)
         }
         // Leaving the app ends the session; its summary is waiting on return.
         .onChange(of: scenePhase) { _, phase in
@@ -79,8 +80,22 @@ struct RaceView: View {
             hud.isAppActive = phase == .active
             if phase == .active { RaceAudio.shared.start() } else { RaceAudio.shared.stop() }
         }
-        .onAppear { RaceAudio.shared.start() }
+        .onAppear {
+            RaceAudio.shared.start()
+            #if DEBUG
+            StoreCapture.recordSound()
+            #endif
+        }
         .onDisappear { RaceAudio.shared.stop() }
+    }
+
+    /// The HUD shows over the race, but in an App Store capture for the header and search results images.
+    private static var showsHUD: Bool {
+        #if DEBUG
+        return !StoreCapture.hidesHUD
+        #else
+        return true
+        #endif
     }
 
     /// Launch with `-ApexShowFPS YES` (Xcode builds) to see frame rate, node and draw counts.
@@ -141,7 +156,7 @@ struct RaceOverlay: View {
     /// How long a split or lap banner stays up; an App Store capture keeps it for its screenshot.
     private var bannerSeconds: Double {
         #if DEBUG
-        if StoreCapture.isActive { return 60 }
+        if StoreCapture.isActive && !StoreCapture.isVideo { return 60 }
         #endif
         return 2.4
     }

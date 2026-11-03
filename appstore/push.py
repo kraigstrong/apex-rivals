@@ -45,8 +45,11 @@ API = "https://api.appstoreconnect.apple.com"
 # sizes its app preview goes to (PREVIEW_GROUPS unless it says otherwise).
 APPS = {
     # Ghost Thread's Apple ID isn't secret, so it's here; ASCC_APP_ID_GHOST_THREAD overrides it if set.
+    # Its iPhone preview fills the iPhone Duo's slot too, which takes the same 1920x886 video.
     "ghost-thread": {"app_id_env": "ASCC_APP_ID_GHOST_THREAD", "app_id": "6822499299",
-                     "iap": {"allcircuits": "com.kraigstrong.apex.allcircuits"}},
+                     "iap": {"allcircuits": "com.kraigstrong.apex.allcircuits"},
+                     "preview_groups": ("IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE", "IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE",
+                                        "IPHONE_DUO_PROFILE")},
 }
 
 # How `purchase` sets up each in-app purchase, by product ID. The product ID is permanent once created, and Family

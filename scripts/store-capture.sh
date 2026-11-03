@@ -4,6 +4,7 @@
 #   scripts/store-capture.sh [moment ...]          # default: every moment, in the listing's order
 #   scripts/store-capture.sh --ipad [moment ...]   # the same moments on a 13-inch iPad
 #   scripts/store-capture.sh --duo [moment ...]    # on an iPhone Duo, open (its inside screen)
+#   scripts/store-capture.sh --video [--ipad]      # the app preview's clips, for scripts/store-preview.py
 #
 # Builds a Debug build and, for each moment, installs it fresh and launches it with `-ApexStoreCapture <moment>` (see
 # Apex/StoreCapture.swift). The app stages the moment on that fresh install (best laps and medals, a bot rival, the
@@ -18,6 +19,9 @@
 #                                     smaller iPhones
 #   screenshots-ipad-13/NN-<moment>.png  with --ipad: 2752x2064, the 13-inch iPad size
 #   screenshots-duo/NN-<moment>.png   with --duo: 2853x2007, an iPhone Duo's inside screen, open
+#   clips/<moment>.mov, .caf, .json   with --video (clips-ipad with --ipad): the simulator's recording of each moment
+#                                     played on through, the race's sound the app recorded, and when each began and
+#                                     the moment came (wall-clock seconds), for scripts/store-preview.py to cut
 #
 # STORE_CAPTURE_DEVICE picks the simulator (a name or UDID; default iPhone 17 Pro Max, with --ipad iPad Pro 13-inch
 # (M5), or with --duo iPhone Duo). A Duo simulator has to be open first: its pose is a button in Xcode's Device Hub,
@@ -29,8 +33,16 @@ cd "$(dirname "$0")/.."
 ROOT="$PWD"
 OUT="${STORE_CAPTURE_OUT:-$ROOT/build/store-capture}"
 DERIVED="$ROOT/build/store-capture/DerivedData"
-IPAD=0 DUO=0
-if [ "${1:-}" = --ipad ]; then IPAD=1; shift; elif [ "${1:-}" = --duo ]; then DUO=1; shift; fi
+IPAD=0 DUO=0 VIDEO=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --ipad) IPAD=1 ;;
+        --duo) DUO=1 ;;
+        --video) VIDEO=1 ;;
+        *) break ;;
+    esac
+    shift
+done
 if [ $IPAD = 1 ]; then
     DEVICE="${STORE_CAPTURE_DEVICE:-iPad Pro 13-inch (M5)}"
     SHOTS=screenshots-ipad-13 SIZE=2752x2064 SIZE_NAME='13-inch iPad'
@@ -46,8 +58,13 @@ APP="$DERIVED/Build/Products/Debug-iphonesimulator/Apex.app"
 # The listing's order (StoreCapture.Moment): the ideal line first, the race with its ghosts, a medal, where a lap
 # stands, then the track list and the unlock.
 MOMENTS=(line ghosts medal standing circuits unlock)
+# The app preview's clips (scripts/store-preview.py cuts them), played on: the screenshots' line, ghosts, track list and
+# standing, and a new best lap on Snake (best), the preview's alone.
+VIDEO_MOMENTS=(line ghosts best circuits standing)
+# How long a clip records past its moment.
+VIDEO_TAIL=4
 
-usage() { sed -n '2,6p' "$0"; exit 1; }
+usage() { sed -n '2,7p' "$0"; exit 1; }
 
 build() {
     local destination="name=$DEVICE"
@@ -59,6 +76,8 @@ build() {
 }
 
 pause() { perl -e "select(undef, undef, undef, $1)"; }
+
+now() { perl -MTime::HiRes=time -e 'printf "%.3f", time'; }
 
 # What else a moment launches with: every circuit open, except for the unlock's own screen, which shows the price as
 # the App Store would (only a Run from Xcode has the StoreKit configuration).
@@ -115,6 +134,69 @@ capture() {
     fi
     echo "captured $SHOTS/$name ($size)"
 }
+
+# A preview clip: the simulator records from before the launch, the app plays the moment on through and says when it came
+# (<moment>.mark) and records its own sound (<moment>.caf, from <moment>.sound), and the recording runs VIDEO_TAIL past it.
+capture_video() {
+    local moment="$1"
+    local clips="$OUT/clips"
+    [ $IPAD = 1 ] && clips="$OUT/clips-ipad"
+    mkdir -p "$clips"
+    rm -f "$clips/$moment".{mov,caf,json,log}
+    xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    xcrun simctl uninstall "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    xcrun simctl install "$DEVICE" "$APP"
+    local signals
+    signals="$(xcrun simctl get_app_container "$DEVICE" "$BUNDLE" data)/Documents/StoreCapture"
+    xcrun simctl io "$DEVICE" recordVideo --codec=h264 --mask=ignored --force "$clips/$moment.mov" \
+        >"$clips/$moment.log" 2>&1 &
+    local recorder=$! waited=0
+    until grep -q "Recording started" "$clips/$moment.log"; do
+        [ $waited -gt 200 ] && { echo "$moment: the recording didn't start" >&2; kill $recorder; return 1; }
+        pause 0.05
+        waited=$((waited + 1))
+    done
+    local started
+    started="$(now)"
+    # shellcheck disable=SC2046
+    xcrun simctl launch "$DEVICE" "$BUNDLE" -ApexStoreCapture "$moment" -ApexStoreCaptureVideo YES \
+        $(extra_args "$moment") >/dev/null
+    waited=0
+    until [ -f "$signals/$moment.mark" ] || [ -f "$signals/$moment.failed" ]; do
+        [ $waited -gt 1800 ] && { echo "$moment: no moment after three minutes" >&2; kill -INT $recorder; return 1; }
+        pause 0.1
+        waited=$((waited + 1))
+    done
+    pause $VIDEO_TAIL
+    kill -INT $recorder
+    wait $recorder || true
+    xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    if [ -f "$signals/$moment.failed" ]; then
+        echo "$moment failed: $(cat "$signals/$moment.failed")" >&2
+        return 1
+    fi
+    [ -s "$clips/$moment.mov" ] || { echo "$moment: no recording" >&2; return 1; }
+    local sound=null
+    if [ -f "$signals/$moment.sound" ]; then
+        cp "$signals/$moment.caf" "$clips/$moment.caf"
+        sound="$(cat "$signals/$moment.sound")"
+    fi
+    printf '{"video": %s, "mark": %s, "sound": %s}\n' "$started" "$(cat "$signals/$moment.mark")" "$sound" \
+        >"$clips/$moment.json"
+    echo "recorded $(basename "$clips")/$moment.mov"
+}
+
+if [ $VIDEO = 1 ]; then
+    moments=("$@")
+    [ ${#moments[@]} -eq 0 ] && moments=("${VIDEO_MOMENTS[@]}")
+    for moment in "${moments[@]}"; do
+        [[ " ${VIDEO_MOMENTS[*]} " == *" $moment "* ]] || { echo "unknown clip: $moment (one of: ${VIDEO_MOMENTS[*]})" >&2; usage; }
+    done
+    build
+    failed=0
+    for moment in "${moments[@]}"; do capture_video "$moment" || failed=1; done
+    exit $failed
+fi
 
 moments=("$@")
 [ ${#moments[@]} -eq 0 ] && moments=("${MOMENTS[@]}")

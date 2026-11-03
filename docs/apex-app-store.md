@@ -26,7 +26,10 @@ in the pull request that does it.
       screenshots); upload with `appstore/push.py media`. The iPhone set is ready; recapture the iPad's now its race
       and track list scale up. App Store Connect has an iPhone Duo slot too (2853×2007, the open inner screen):
       `scripts/store-capture.sh --duo`, with the simulator opened first in Xcode's Device Hub.
-- [ ] **App preview video** for each of those sizes, up to 30 seconds. Optional, but the game sells on motion.
+- [ ] **App preview video** for the iPhone (the iPhone Duo's slot takes it too) and the 13-inch iPad, about 29 seconds
+      with the game's sound, ending on the challenge (`scripts/store-preview.py`; README, App Store screenshots).
+- [ ] **Header and search results images** (iOS 27's creative assets, 5244×2950): the logo over the ideal line, and
+      your ghost into Swirl's hairpin (`scripts/store-creative.py`).
 - [ ] **Metadata**: subtitle, promotional text, description, keywords, copyright, support URL, marketing URL, privacy
       policy URL. Category is Racing.
 - [ ] **App Privacy** answers, matching `Apex/PrivacyInfo.xcprivacy`: gameplay content (ghosts) and a user ID (the

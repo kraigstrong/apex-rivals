@@ -69,6 +69,29 @@ final class RaceAudio {
         if !engine.isRunning { try? engine.start() }
     }
 
+    #if DEBUG
+    /// An App Store capture's recording of everything the game plays from now on (`StoreCapture`): the simulator records
+    /// no sound. It writes to `url` as it plays, unheard on the Mac, and `started` gets the wall-clock time of its first
+    /// sample, to line it up with the video.
+    func record(to url: URL, started: @escaping (TimeInterval) -> Void) {
+        guard let source, recording == nil else { return }
+        let format = source.outputFormat(forBus: 0)
+        guard let file = try? AVAudioFile(forWriting: url, settings: format.settings) else { return }
+        recording = file
+        engine.mainMixerNode.outputVolume = 0
+        var first = true
+        source.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
+            if first {
+                first = false
+                started(Date().timeIntervalSince1970 - Double(buffer.frameLength) / format.sampleRate)
+            }
+            try? file.write(from: buffer)
+        }
+    }
+
+    private var recording: AVAudioFile?
+    #endif
+
     /// Stops the sound when leaving a race.
     func stop() {
         controls.withLock { $0.racing = false }

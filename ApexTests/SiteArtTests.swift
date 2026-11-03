@@ -4,7 +4,7 @@ import Testing
 @testable import Apex
 
 /// Draws Ghost Thread's page on brightbench.app from the game itself, into `Art/site`: the logo in the stock paint
-/// (`logo.png`), and every circuit's outline and ideal line, with when the unlock screen's thread reaches each point of
+/// (`logo.png`, and `logo-large.png` twice its size for the App Store's header image), and every circuit's outline and ideal line, with when the unlock screen's thread reaches each point of
 /// it (`circuits.json`), so the page can lap them as the game does. Copy both into BrightBench's
 /// `apps/marketing` (`public/games/ghost-thread/` and `src/lib/`) after a change to a circuit or the logo. Only runs
 /// when asked, since it writes into the repo:
@@ -37,10 +37,13 @@ struct SiteArtTests {
     @Test(.enabled(if: ProcessInfo.processInfo.environment["APEX_DRAW_SITE"] != nil))
     @MainActor func draw() throws {
         try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
-        let renderer = ImageRenderer(content: GhostThreadLogo(scale: 2, ghost: Livery.defaults[.best]))
-        renderer.scale = 2
-        let png = try #require(renderer.uiImage?.pngData())
-        try png.write(to: Self.folder.appending(path: "logo.png"))
+        // The page's logo, and one twice as big for the App Store's header image (scripts/store-creative.py).
+        for (name, scale) in [("logo.png", 2.0), ("logo-large.png", 4.0)] {
+            let renderer = ImageRenderer(content: GhostThreadLogo(scale: 2, ghost: Livery.defaults[.best]))
+            renderer.scale = scale
+            let png = try #require(renderer.uiImage?.pngData())
+            try png.write(to: Self.folder.appending(path: name))
+        }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
