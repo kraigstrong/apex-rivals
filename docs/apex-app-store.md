@@ -31,18 +31,45 @@ in the pull request that does it.
 - [x] **Header and search results images** (iOS 27's creative assets, 5244×2950): the logo over the ideal line, and
       your ghost into Swirl's hairpin (`scripts/store-creative.py`). Both, and the previews (poster at 7.7 s, your
       ghost and the rival into Swirl's hairpin), on 1.0 since 2026-11-02.
-- [ ] **Metadata**: subtitle, promotional text, description, keywords, copyright, support URL, marketing URL, privacy
-      policy URL. Category is Racing.
-- [ ] **App Privacy** answers, matching `Apex/PrivacyInfo.xcprivacy`: gameplay content (ghosts) and a user ID (the
-      Game Center player ID, hashed), linked to the player, not used for tracking; anonymous lap counts.
-- [ ] **Age rating** questionnaire.
+- [ ] **Metadata**: subtitle, promotional text, description, keywords, support URL, marketing URL, privacy policy
+      URL, drafted in `appstore/ghost-thread/app/en-US/`; push with `appstore/push.py push --app ghost-thread` (dry-run
+      first). The description's headings are the screenshots' captions, in their order. Copyright isn't one of
+      `push.py`'s fields: set it by hand on the version page ("2026 Kraig Strong"). Category is Racing.
+- [ ] **App Privacy** answers (below), matching `Apex/PrivacyInfo.xcprivacy`.
+- [ ] **Age rating** questionnaire (below).
 - [ ] **Game Center**: add each circuit's leaderboard and medal achievements to the 1.0 version page, or they don't go
       live with it.
-- [ ] **App Review notes**: no account needed; where the unlock and Restore are; Game Center and the lap service.
+- [ ] **App Review notes**: drafted in `appstore/ghost-thread/review_notes.txt` (no account needed; where the unlock
+      and Restore are; Game Center and the lap service); `push` sends them with the metadata.
 - [ ] **Price and availability**: free, every territory; release by hand (or phased) once approved.
 
 The metadata, purchase text and screenshots live in `appstore/` and go up with the App Store Connect API
 (`appstore/push.py`, ported from Bigger Fish; see `appstore/README.md`).
+
+### App Privacy answers
+
+App Store Connect ▸ App Privacy. Ghost Thread collects data (the lap service; `ApexOnline.swift`), none of it used
+for tracking, in three types:
+
+| Data type | What it is | Linked to the player | Purposes |
+| --- | --- | --- | --- |
+| Gameplay Content | a best lap's ghost (the car's path) and its times | Yes | App Functionality |
+| User ID | the Game Center player ID (stored only as a salted hash) and the player's Game Center nickname | Yes | App Functionality |
+| Product Interaction | every finished lap, counted anonymously: circuit, time, splits, wall hits, app version and build | No | Analytics, App Functionality |
+
+Nothing else: no contact info, location, device ID, purchase history (StoreKit is Apple's), or diagnostics. IP
+addresses only pass through Vercel, which rate-limits by them; the lap service doesn't store them. Game Center itself
+is Apple's, under Apple's policy.
+
+### Age rating answers
+
+Everything is None or No: no violence (cars bounce off walls; no one is hurt), no mature themes, no medical or
+wellness content, no gambling, contests (leaderboards have no prizes), loot boxes, advertising, messaging or web
+access, and no parental controls or age assurance. One judgment call:
+
+- **User-generated content.** The rival's panel shows another player's Game Center nickname, and their ghost (a path,
+  no text or images) races beside you. The nicknames are Game Center's own, which every Game Center leaderboard shows,
+  so the answer here is No; answer Yes if App Review sees it otherwise.
 
 ## On the web (BrightBench)
 
