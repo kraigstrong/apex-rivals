@@ -61,6 +61,12 @@ enum StoreCapture {
     /// With `-ApexStoreCaptureVideo YES` too, a clip for the app preview (`scripts/store-capture.sh --video`): the
     /// moment plays on through, with its sound, rather than holding still, and `<moment>.mark` says when it came.
     static let isVideo = moment != nil && UserDefaults.standard.bool(forKey: "ApexStoreCaptureVideo")
+    /// With `-ApexStoreFootage 3,7` too, gameplay footage for the website (`scripts/store-capture.sh --footage`): the
+    /// moment's race drawn a frame at a time by `StoreFootage`, from 3 seconds before the moment to 7 after it.
+    static let footage: StoreFootage.Window? = moment?.track != nil
+        ? StoreFootage.Window(UserDefaults.standard.string(forKey: "ApexStoreFootage")) : nil
+    /// A clip of the moment, for the app preview or the website: it plays on through rather than holding still.
+    static var playsThrough: Bool { isVideo || footage != nil }
     /// With `-ApexStoreCaptureScale 3.8111` too, for the App Store's header and search results images
     /// (`scripts/store-creative.py`): the moment drawn that many times its size in points, with no HUD over it (on a
     /// 13-inch iPad, 3.8111 makes it 5244 pixels wide).
@@ -138,9 +144,11 @@ enum StoreCapture {
         }.pngData()
     }
 
-    /// A video's moment has come: the wall-clock time it came, as `<moment>.mark`, for the script to cut the clip around.
+    /// A clip's moment has come: for a video, the wall-clock time it came, as `<moment>.mark`, for the script to cut the
+    /// clip around; for footage, the frame it came in.
     static func mark() {
         guard let moment else { return }
+        if footage != nil { return MainActor.assumeIsolated { StoreFootage.momentCame() } }
         write("\(moment.rawValue).mark", String(Date().timeIntervalSince1970))
     }
 

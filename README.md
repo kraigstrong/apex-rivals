@@ -280,6 +280,19 @@ The header is the brand (the logo over the ideal line threading Harbor's S-bend)
 half and top 60% or so (`--phone` saves that, to check); the search results show the game (your ghost and the rival
 into Swirl's hairpin).
 
+Gameplay footage for the website, 60 fps and silent, is drawn by the app a frame at a time rather than recorded, so it
+never stutters however slowly the simulator draws (`Apex/StoreFootage.swift`):
+
+```bash
+scripts/store-capture.sh --footage ghosts 3 7          # 3 s before your ghost and the rival meet Swirl's hairpin, 7 after
+```
+
+With `-ApexStoreFootage 3,7` beside a race's moment, the app stages it as for its screenshot, then plays the race in
+steps of exactly 1/60 s through an `SKRenderer`, which runs the scene's updates and actions on that clock, and saves
+each frame with no HUD at the screen's pixel size. The script encodes them to `build/store-capture/footage/<moment>-3-7.mp4`
+(2868×1320 on the 6.9" iPhone). brightbench.app's Ghost Thread hero is this clip, 1600 wide, its last half-second
+crossfaded into its first so it loops (BrightBench's `public/games/ghost-thread/hero.mp4`).
+
 ## Tuning
 
 Every feel constant is in `Apex/RaceTuning.swift`. Bots in `LapTimeTests` pin down how hard the game is, using the

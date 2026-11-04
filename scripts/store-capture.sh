@@ -5,6 +5,7 @@
 #   scripts/store-capture.sh --ipad [moment ...]   # the same moments on a 13-inch iPad
 #   scripts/store-capture.sh --duo [moment ...]    # on an iPhone Duo, open (its inside screen)
 #   scripts/store-capture.sh --video [--ipad]      # the app preview's clips, for scripts/store-preview.py
+#   scripts/store-capture.sh --footage <moment> <before> <after>   # 60 fps gameplay around a race's moment, for the web
 #
 # Builds a Debug build and, for each moment, installs it fresh and launches it with `-ApexStoreCapture <moment>` (see
 # Apex/StoreCapture.swift). The app stages the moment on that fresh install (best laps and medals, a bot rival, the
@@ -22,6 +23,9 @@
 #   clips/<moment>.mov, .caf, .json   with --video (clips-ipad with --ipad): the simulator's recording of each moment
 #                                     played on through, the race's sound the app recorded, and when each began and
 #                                     the moment came (wall-clock seconds), for scripts/store-preview.py to cut
+#   footage/<moment>-<before>-<after>.mp4  with --footage: the race from <before> seconds ahead of the moment to <after>
+#                                     past it, drawn by the app a frame at a time (Apex/StoreFootage.swift), so it never
+#                                     stutters: 60 fps H.264 at the screen's pixel size, silent, with no HUD
 #
 # STORE_CAPTURE_DEVICE picks the simulator (a name or UDID; default iPhone 17 Pro Max, with --ipad iPad Pro 13-inch
 # (M5), or with --duo iPhone Duo). A Duo simulator has to be open first: its pose is a button in Xcode's Device Hub,
@@ -33,12 +37,13 @@ cd "$(dirname "$0")/.."
 ROOT="$PWD"
 OUT="${STORE_CAPTURE_OUT:-$ROOT/build/store-capture}"
 DERIVED="$ROOT/build/store-capture/DerivedData"
-IPAD=0 DUO=0 VIDEO=0
+IPAD=0 DUO=0 VIDEO=0 FOOTAGE=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --ipad) IPAD=1 ;;
         --duo) DUO=1 ;;
         --video) VIDEO=1 ;;
+        --footage) FOOTAGE=1 ;;
         *) break ;;
     esac
     shift
@@ -64,7 +69,7 @@ VIDEO_MOMENTS=(line ghosts best circuits standing)
 # How long a clip records past its moment.
 VIDEO_TAIL=4
 
-usage() { sed -n '2,7p' "$0"; exit 1; }
+usage() { sed -n '2,8p' "$0"; exit 1; }
 
 build() {
     local destination="name=$DEVICE"
@@ -185,6 +190,46 @@ capture_video() {
         >"$clips/$moment.json"
     echo "recorded $(basename "$clips")/$moment.mov"
 }
+
+# Footage: the app draws the race a frame at a time around its moment and saves the frames (Documents/StoreFootage), then
+# done.txt; they're encoded here at the rate they were drawn for.
+capture_footage() {
+    local moment="$1" before="$2" after="$3"
+    local frames="$OUT/footage/$moment-$before-$after"
+    mkdir -p "$OUT/footage"
+    rm -rf "$frames" "$frames.mp4"
+    xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    xcrun simctl uninstall "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    xcrun simctl install "$DEVICE" "$APP"
+    local data
+    data="$(xcrun simctl get_app_container "$DEVICE" "$BUNDLE" data)/Documents"
+    xcrun simctl launch "$DEVICE" "$BUNDLE" -ApexStoreCapture "$moment" -ApexStoreFootage "$before,$after" \
+        -ApexUnlocked YES >/dev/null
+    local waited=0
+    until [ -f "$data/StoreFootage/done.txt" ] || [ -f "$data/StoreCapture/$moment.failed" ]; do
+        [ $waited -gt 6000 ] && { echo "$moment: no footage after ten minutes" >&2; return 1; }
+        pause 0.1
+        waited=$((waited + 1))
+    done
+    xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    if [ -f "$data/StoreCapture/$moment.failed" ]; then
+        echo "$moment failed: $(cat "$data/StoreCapture/$moment.failed")" >&2
+        return 1
+    fi
+    cp -R "$data/StoreFootage" "$frames"
+    ffmpeg -v error -y -framerate 60 -i "$frames/%05d.jpg" -c:v libx264 -preset slow -crf 14 -pix_fmt yuv420p \
+        -movflags +faststart "$frames.mp4"
+    echo "footage/$moment-$before-$after.mp4: $(cat "$frames/done.txt")"
+}
+
+if [ $FOOTAGE = 1 ]; then
+    [ $# -eq 3 ] || usage
+    [[ " line ghosts medal best " == *" $1 "* ]] || { echo "footage is of a race's moment: line, ghosts, medal or best" >&2; usage; }
+    command -v ffmpeg >/dev/null || { echo "needs ffmpeg: brew install ffmpeg" >&2; exit 1; }
+    build
+    capture_footage "$1" "$2" "$3"
+    exit $?
+fi
 
 if [ $VIDEO = 1 ]; then
     moments=("$@")
