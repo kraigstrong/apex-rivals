@@ -155,7 +155,8 @@ xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS 
 ```
 
 GitHub Actions runs the same tests on every pull request and push to `main` (`.github/workflows/tests.yml`), and
-builds Release too. Any build warning fails it. It uses Xcode 27.1 on GitHub's `xcode-27` image, the version the
+builds Release too, booting the test simulator meanwhile. Any build warning fails it. A change of only `docs/`,
+Markdown or `appstore/` skips it, since none of those go into the app. It uses Xcode 27.1 on GitHub's `xcode-27` image, the version the
 project is built with: only an app built with the iOS 27.1 SDK fills an iPhone Duo's screens (an older one runs there
 in a small 667×375 window), so archive with it too. To move Xcode, change `DEVELOPER_DIR` there. The tests run on
 whichever iPhone simulator the runner's simulator service lists on the newest iOS, an iPhone 17 Pro if it has one;

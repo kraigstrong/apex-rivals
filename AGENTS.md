@@ -15,7 +15,7 @@ xcodebuild test -project Apex.xcodeproj -scheme Apex -destination 'platform=iOS 
 Tests use Swift Testing (`import Testing`, `@Test`, `#expect`), not XCTest. Unit-test the game logic (track
 geometry, physics, timing, saves); the SpriteKit scene is checked by running the app. Keep the build warning-free:
 CI (`.github/workflows/tests.yml`) runs the tests and a Release build on every PR, with warnings as errors, on the
-iPhone simulator `scripts/ci-simulator.sh` picks.
+iPhone simulator `scripts/ci-simulator.sh` picks. A PR of only docs, Markdown or `appstore/` skips it.
 
 To study a lap Kraig drove, copy the telemetry off his phone (README, Telemetry) and run `TelemetryStudy` on it:
 `run.json`'s inputs replay his laps exactly through `RaceSession`, and it writes the bots' laps and the ideal line
