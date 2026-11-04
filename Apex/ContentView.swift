@@ -156,7 +156,7 @@ struct RaceOverlay: View {
     /// How long a split or lap banner stays up; an App Store capture keeps it for its screenshot.
     private var bannerSeconds: Double {
         #if DEBUG
-        if StoreCapture.isActive && !StoreCapture.isVideo { return 60 }
+        if StoreCapture.isActive && !StoreCapture.playsThrough { return 60 }
         #endif
         return 2.4
     }

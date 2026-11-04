@@ -183,6 +183,9 @@ final class RaceScene: SKScene {
         placeCamera(dt: 0, snap: true)
         render(dt: 0)
         refreshHUD()
+        #if DEBUG
+        if let window = StoreCapture.footage { StoreFootage.record(self, window: window) }
+        #endif
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -747,6 +750,15 @@ final class RaceScene: SKScene {
     /// Holds the race still once an App Store capture's moment comes: for a corner, the first timed lap (or a later
     /// one, if the rival isn't out yet) `StoreCapture.at` of the way round; for the medal, the lap that wins it, its
     /// banner up; for the standing, that lap's session summary.
+    /// Where the race is, for a capture whose moment never came.
+    var captureStatus: String {
+        let share = session.car.s.truncatingRemainder(dividingBy: track.length) / track.length
+        return "\(session.phase), lap \(session.timer.lapNumber) at \(String(format: "%.2f", share)) of it, "
+            + "\(String(format: "%.1f", session.clock)) s in, rival \(rival == nil ? "none" : "found"), "
+            + "held \(hud.holdsRace) (resize \(hud.heldForResize), active \(hud.isAppActive)), "
+            + "size \(Int(size.width))x\(Int(size.height)), paused \(isPaused)"
+    }
+
     private func holdForStoreCapture() {
         guard let moment = StoreCapture.moment, !heldForCapture, !markedForCapture else { return }
         switch moment {
@@ -763,13 +775,13 @@ final class RaceScene: SKScene {
         case .standing:
             guard captureLapDone else { return }
             // A video shows the lap's banner a moment before the summary comes up, as a player's tap would.
-            if StoreCapture.isVideo, let done = captureLapClock, session.clock < done + 1.5 { return }
+            if StoreCapture.playsThrough, let done = captureLapClock, session.clock < done + 1.5 { return }
             endSession()
         case .circuits, .unlock:
             return
         }
-        // A video's moment plays on through, but for the summary, which holds as it would for a player reading it.
-        if StoreCapture.isVideo {
+        // A clip's moment plays on through, but for the summary, which holds as it would for a player reading it.
+        if StoreCapture.playsThrough {
             StoreCapture.mark()
             if moment != .standing {
                 markedForCapture = true
@@ -778,7 +790,7 @@ final class RaceScene: SKScene {
         }
         heldForCapture = true
         refreshHUD()
-        if StoreCapture.isVideo { return }
+        if StoreCapture.playsThrough { return }
         // The medal's lap wakes the Dynamic Island for a moment (drawn into the screen, so a screenshot would show it):
         // its moment waits for it to settle, the banner staying up meanwhile.
         StoreCapture.ready(after: moment == .medal ? 3 : moment == .standing ? 1.2 : 0.6)
