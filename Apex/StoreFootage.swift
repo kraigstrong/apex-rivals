@@ -68,7 +68,8 @@ enum StoreFootage {
             return (try? jpeg.write(to: folder.appending(path: String(format: "%05d.jpg", saved)))) != nil
         }
         while left != 0 {
-            guard Double(frame) < limit * rate else {
+            // Only while waiting for the moment: once it's come, the tail runs as long as it was asked for.
+            guard left != nil || Double(frame) < limit * rate else {
                 return StoreCapture.fail("the moment didn't come in \(Int(limit)) seconds of racing: \(scene.captureStatus)")
             }
             clock += 1 / rate
