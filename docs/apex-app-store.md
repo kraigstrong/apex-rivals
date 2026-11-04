@@ -31,19 +31,27 @@ in the pull request that does it.
 - [x] **Header and search results images** (iOS 27's creative assets, 5244×2950): the logo over the ideal line, and
       your ghost into Swirl's hairpin (`scripts/store-creative.py`). Both, and the previews (poster at 7.7 s, your
       ghost and the rival into Swirl's hairpin), on 1.0 since 2026-11-02.
-- [ ] **Metadata**: subtitle, promotional text, description, keywords, support URL, marketing URL, privacy policy
-      URL, drafted in `appstore/ghost-thread/app/en-US/`; push with `appstore/push.py push --app ghost-thread` (dry-run
-      first). The description's headings are the screenshots' captions, in their order. Copyright isn't one of
-      `push.py`'s fields: set it by hand on the version page ("2026 Kraig Strong"). Category is Racing.
-- [ ] **App Privacy** answers (below), matching `Apex/PrivacyInfo.xcprivacy`.
-- [ ] **Age rating** questionnaire (below).
-- [ ] **Game Center**: add each circuit's leaderboard and medal achievements to the 1.0 version page, or they don't go
-      live with it.
-- [ ] **App Review notes**: drafted in `appstore/ghost-thread/review_notes.txt` (no account needed; where the unlock
-      and Restore are; Game Center and the lap service); `push` sends them with the metadata.
-- [ ] **Price and availability**: free, every territory; release by hand (or phased) once approved.
+- [x] **Metadata**: subtitle, promotional text, description, keywords, support URL, marketing URL, privacy policy
+      URL, in `appstore/ghost-thread/app/en-US/`, on 1.0 since 2026-11-04 (`appstore/push.py push`). The
+      description's headings are the screenshots' captions, in their order.
+- [x] **Settings** (`appstore/push.py setup`, from its `APP_SETUP`), on 1.0 since 2026-11-04: category Games ›
+      Racing, copyright "2026 Kraig Strong", no third-party content (every sound is synthesized), released by hand once
+      approved (Kraig's choice, so the day is his).
+- [ ] **App Privacy** answers (below), matching `Apex/PrivacyInfo.xcprivacy`. Only on App Store Connect's website:
+      the API doesn't cover them.
+- [x] **Age rating** (below): every answer None or No, set by `setup`. Apple rates it 4+.
+- [x] **Game Center** on 1.0, by `setup`: each circuit's physics 2 leaderboard (`apex.<circuit>.r1.p2`) and all 24
+      medal achievements released, to go live with the version. Physics 1's boards stay unreleased (only TestFlight
+      builds 1–4 drove on them).
+- [x] **App Review notes**: `appstore/ghost-thread/review_notes.txt` (no account needed; where the unlock and Restore
+      are; Game Center and the lap service), on 1.0 since 2026-11-04.
+- [ ] **App Review contact**: name, phone and email, on the version page. Kraig's own details, so he enters them.
+- [x] **Price and availability** (`setup`): free, in all 175 territories and new ones as Apple adds them.
+- [x] **The build**: 1.0 (1), from `apex-v1.0-build.1`, on 1.0 since 2026-11-04 (`docs/apex-testflight.md`, Build log).
+- [ ] **Submit for review**, with the in-app purchase added to the submission, once the build passes the TestFlight
+      smoke check (`docs/apex-testflight.md`).
 
-The metadata, purchase text and screenshots live in `appstore/` and go up with the App Store Connect API
+The metadata, purchase text, screenshots and settings live in `appstore/` and go up with the App Store Connect API
 (`appstore/push.py`, ported from Bigger Fish; see `appstore/README.md`).
 
 ### App Privacy answers
@@ -87,10 +95,10 @@ comes from the game (`SiteArtTests`, `Art/site`).
 
 ## Marketing
 
-- [ ] **Trailer.**
+- [x] **Trailer**: the app preview is it (Kraig, 2026-11-04: nothing significant has changed since).
 - [x] **Rate limit** on the lap service, before the link goes beyond friends (live since 2026-11-01).
-- [ ] **TestFlight times at launch**: keep the beta's laps on the boards, or start them fresh. Lap batches are tagged
-      `testflight` or `appstore` (`ApexOnline.channel`), so the histograms could drop beta laps.
+- [x] **TestFlight times at launch**: the beta's laps stay on the boards (Kraig, 2026-11-04). Lap batches are tagged
+      `testflight` or `appstore` (`ApexOnline.channel`), so the histograms could still drop them later.
 
 ## The unlock
 

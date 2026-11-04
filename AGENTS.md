@@ -40,7 +40,8 @@ alongside to compare them with step for step.
   `LapTimeTests` holds each to the same bot lap times. To add one: add it to `TrackLayout.all`, record its
   signature in `FreezeTests`, add its board to BrightBench's `apexBoards` (deployed before the app ships), and
   create its Game Center leaderboard and four medal achievements (draw their art with `AchievementArtTests`, then add
-  them to `AchievementTests`).
+  them to `AchievementTests`), then list the leaderboard in `appstore/push.py`'s `APP_SETUP` and run `setup` so they
+  go live with the next version.
 - **Ardennes and Apex School are free; the unlock opens the rest** (`CircuitUnlock`), so a new circuit is part of
   it with nothing to do. StoreKit test sessions can't run under `xcodebuild test`: check buying, refunds and Restore
   by hand, from Xcode, against `Apex.storekit` (`docs/apex-app-store.md`).
@@ -52,7 +53,8 @@ alongside to compare them with step for step.
   straight from `LapStore.load`.
 - **Freeze boards before they're live.** Leaderboards are per `RaceBoard` (circuit, revision, physics version).
   Once a board has public times, a change that moves lap times needs a new `RaceTuning.physicsVersion` or circuit
-  `revision`, a new Game Center leaderboard, and the new signature recorded in `FreezeTests`. Ask Kraig first.
+  `revision`, a new Game Center leaderboard (listed in `APP_SETUP` for `appstore/push.py setup`), and the new
+  signature recorded in `FreezeTests`. Ask Kraig first.
 - **The lap service's wire format is shared** with BrightBench (`apps/marketing/src/lib/apex-laps.ts`). Change both
   together, and keep the service's privacy rules: laps are anonymous counters; only a salted hash of a Game Center
   player ID is stored, with the player's public alias, best time and ghost.
