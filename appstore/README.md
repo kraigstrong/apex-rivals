@@ -21,7 +21,14 @@ python3 appstore/push.py pull --app ghost-thread                   # App Store C
 python3 appstore/push.py push --app ghost-thread --dry-run         # what would change, field by field
 python3 appstore/push.py media --app ghost-thread --screenshots DIR DIR --dry-run
 python3 appstore/push.py purchase --app ghost-thread --screenshot FILE --dry-run   # set up the in-app purchase
+python3 appstore/push.py setup --app ghost-thread --dry-run        # category, age rating, release, price, Game Center
 ```
+
+`setup` fills in the settings a first submission needs, from `push.py`'s `APP_SETUP`: the version's copyright and
+release type (by hand once approved), the app's content rights, category and age rating answers, each changed only
+where it differs; the price (free) and availability (every territory), only if they aren't set; and Game Center on
+the version, with its leaderboards (the current physics' boards) and every achievement released to go live with it.
+A new physics version or circuit means new leaderboards to list there. It ran on 2026-11-04 for 1.0.
 
 `purchase` takes an in-app purchase to Ready to Submit. If App Store Connect doesn't have it yet, it creates it with
 the settings in `push.py`'s `PURCHASE_SETUP` (type, reference name, US price, Family Sharing); **the product ID and

@@ -10,6 +10,7 @@
     python3 appstore/push.py push --app ghost-thread --only promotional_text,description
     python3 appstore/push.py media --app ghost-thread --screenshots DIR [DIR ...] --creative FILE --dry-run
     python3 appstore/push.py purchase --app ghost-thread --screenshot FILE --dry-run   # set up the in-app purchase
+    python3 appstore/push.py setup --app ghost-thread --dry-run  # category, age rating, copyright, release, price
 
 The text lives in appstore/<app>/app/<locale>/<field>.txt, and the in-app purchase's display name and description in
 appstore/<app>/iap/<folder>/<locale>/. A push writes to the version that's still editable (Prepare for Submission and
@@ -57,6 +58,32 @@ APPS = {
 PURCHASE_SETUP = {
     "com.kraigstrong.apex.allcircuits": {"reference_name": "Unlock every circuit", "type": "NON_CONSUMABLE",
                                          "price": "1.99", "family_sharable": True},
+}
+
+# How `setup` fills in each app's settings, the ones App Store Connect needs before a first submission. The age
+# rating is Apple's questionnaire, every answer None or No (docs/apex-app-store.md, Age rating answers, says why).
+AGE_LEVELS = ["alcoholTobaccoOrDrugUseOrReferences", "contests", "gamblingSimulated", "gunsOrOtherWeapons",
+              "horrorOrFearThemes", "matureOrSuggestiveThemes", "medicalOrTreatmentInformation",
+              "profanityOrCrudeHumor", "sexualContentGraphicAndNudity", "sexualContentOrNudity",
+              "violenceCartoonOrFantasy", "violenceRealistic", "violenceRealisticProlongedGraphicOrSadistic"]
+AGE_FLAGS = ["advertising", "ageAssurance", "gambling", "healthOrWellnessTopics", "lootBox", "messagingAndChat",
+             "parentalControls", "socialMedia", "unrestrictedWebAccess", "userGeneratedContent"]
+APP_SETUP = {
+    "ghost-thread": {
+        "category": ("GAMES", "GAMES_RACING"),
+        "copyright": "2026 Kraig Strong",
+        # Released by hand once approved (Kraig, 2026-11-04), so the day is his.
+        "release_type": "MANUAL",
+        # Every sound and the music are synthesized in code (RaceAudio); nothing is licensed from anyone.
+        "content_rights": "DOES_NOT_USE_THIRD_PARTY_CONTENT",
+        "age_rating": {**{name: "NONE" for name in AGE_LEVELS}, **{name: False for name in AGE_FLAGS}},
+        # Free, sold everywhere, and in new territories as Apple adds them.
+        "price": "0.0",
+        # Game Center on the version, with the boards it drives on: each circuit (TrackLayout.all) at its revision,
+        # with RaceTuning.physicsVersion. Physics 1's boards stay unreleased; only TestFlight builds 1-4 used them.
+        # Every medal's achievement goes with them.
+        "leaderboards": [f"apex.{circuit}.r1.p2" for circuit in ("ardennes", "swirl", "snake", "mirage", "island", "harbor")],
+    },
 }
 
 # Listing fields: file name -> (where App Store Connect keeps it, its attribute, character limit). Version
@@ -827,6 +854,130 @@ def purchase(app: str, screenshot: Path | None, dry_run: bool) -> int:
     return 0
 
 
+def setup(app: str, dry_run: bool) -> int:
+    """Fills in the settings App Store Connect needs before a version can be submitted, from `APP_SETUP`: the editable
+    version's copyright and release type, the app's content rights, category and age rating, each changed only where it
+    differs; and the price and availability, set only if they aren't yet (a price or availability that's set is left
+    alone, as `purchase` does)."""
+    wanted = APP_SETUP.get(app)
+    if wanted is None:
+        raise SystemExit(f"APP_SETUP has no settings for {app}")
+    load_credentials()
+    app_id = apple_id(app)
+    if not app_id:
+        raise SystemExit(f"missing {APPS[app]['app_id_env']} in the 1Password Environment")
+    client = Client()
+    versions = [v for v in client.get(f"/v1/apps/{app_id}/appStoreVersions?limit=50")
+                if v["attributes"].get("appStoreState") in EDITABLE_STATES]
+    if not versions:
+        raise SystemExit("no editable version: create the next version in App Store Connect first")
+    version = versions[0]
+    infos = [i for i in client.get(f"/v1/apps/{app_id}/appInfos") if i["attributes"].get("appStoreState") in EDITABLE_STATES]
+    if not infos:
+        raise SystemExit("no editable app info: the category and age rating change with a new version")
+    info = infos[0]
+    print(f"{app}: version {version['attributes'].get('versionString')} ({version['attributes'].get('appStoreState')})"
+          + (" — dry run, nothing is written" if dry_run else ""))
+
+    def settle(kind: str, resource: dict, attrs: dict, label: str) -> None:
+        """PATCHes the attributes that differ, saying which."""
+        changes = {name: value for name, value in attrs.items() if resource["attributes"].get(name) != value}
+        for name, value in attrs.items():
+            print(f"  {label}.{name}: " + (f"{resource['attributes'].get(name)!r} -> {value!r}" if name in changes else "same"))
+        if changes and not dry_run:
+            client.call("PATCH", f"/v1/{kind}/{resource['id']}",
+                        {"data": {"type": kind, "id": resource["id"], "attributes": changes}})
+
+    settle("appStoreVersions", version, {"copyright": wanted["copyright"], "releaseType": wanted["release_type"]}, "version")
+    settle("apps", client.call("GET", f"/v1/apps/{app_id}")["data"],
+           {"contentRightsDeclaration": wanted["content_rights"]}, "app")
+
+    # The category is two relationships of the app info, not attributes.
+    primary, subcategory = wanted["category"]
+    current = tuple((client.get_one(f"/v1/appInfos/{info['id']}/{rel}") or {}).get("id")
+                    for rel in ("primaryCategory", "primarySubcategoryOne"))
+    print(f"  category: " + ("same" if current == (primary, subcategory) else f"{current} -> {(primary, subcategory)}"))
+    if current != (primary, subcategory) and not dry_run:
+        client.call("PATCH", f"/v1/appInfos/{info['id']}", {"data": {"type": "appInfos", "id": info["id"], "relationships": {
+            "primaryCategory": {"data": {"type": "appCategories", "id": primary}},
+            "primarySubcategoryOne": {"data": {"type": "appCategories", "id": subcategory}}}}})
+
+    declaration = client.get_one(f"/v1/appInfos/{info['id']}/ageRatingDeclaration")
+    if declaration is None:
+        raise RuntimeError("the app info has no age rating declaration")
+    settle("ageRatingDeclarations", declaration, wanted["age_rating"], "age rating")
+
+    # The price, set once in the base territory: a schedule with no manual prices hasn't had one chosen.
+    try:
+        priced = bool(client.get(f"/v1/appPriceSchedules/{app_id}/manualPrices?limit=1"))
+    except RuntimeError as error:
+        if ": 404 " not in str(error):
+            raise
+        priced = False
+    if priced:
+        print("  price: already set, left alone")
+    else:
+        points = client.get_all(f"/v1/apps/{app_id}/appPricePoints?filter[territory]=USA&limit=200")
+        point = next((p for p in points if p["attributes"].get("customerPrice") == wanted["price"]), None)
+        if point is None:
+            raise RuntimeError(f"no US price point of ${wanted['price']}")
+        price = "free" if float(wanted["price"]) == 0 else f"${wanted['price']} in the US"
+        print(f"  price: {price}" + (" would be set" if dry_run else ""))
+        if not dry_run:
+            client.call("POST", "/v1/appPriceSchedules", {
+                "data": {"type": "appPriceSchedules", "relationships": {
+                    "app": {"data": {"type": "apps", "id": app_id}},
+                    "baseTerritory": {"data": {"type": "territories", "id": "USA"}},
+                    "manualPrices": {"data": [{"type": "appPrices", "id": "${price}"}]}}},
+                "included": [{"type": "appPrices", "id": "${price}", "attributes": {"startDate": None},
+                              "relationships": {"appPricePoint": {"data": {"type": "appPricePoints", "id": point["id"]}}}}]})
+
+    # Availability: every territory, and new ones as Apple adds them.
+    if client.get_one(f"/v1/apps/{app_id}/appAvailabilityV2"):
+        print("  availability: already set, left alone")
+    else:
+        territories = [t["id"] for t in client.get_all("/v1/territories?limit=200")]
+        print(f"  availability: all {len(territories)} territories" + (" would be set" if dry_run else ""))
+        if not dry_run:
+            client.call("POST", "/v2/appAvailabilities", {
+                "data": {"type": "appAvailabilities", "attributes": {"availableInNewTerritories": True}, "relationships": {
+                    "app": {"data": {"type": "apps", "id": app_id}},
+                    "territoryAvailabilities": {"data": [{"type": "territoryAvailabilities", "id": f"${{{t}}}"}
+                                                         for t in territories]}}},
+                "included": [{"type": "territoryAvailabilities", "id": f"${{{t}}}", "attributes": {"available": True},
+                              "relationships": {"territory": {"data": {"type": "territories", "id": t}}}}
+                             for t in territories]})
+
+    # Game Center: on for the version, and its leaderboards and every achievement released, so they go live with it.
+    # A release isn't live until the version is; DELETE /v1/gameCenterLeaderboardReleases/{id} takes one back.
+    detail = client.get_one(f"/v1/apps/{app_id}/gameCenterDetail")
+    if detail is None:
+        raise RuntimeError("the app has no Game Center detail: set up Game Center in App Store Connect first")
+    on = client.get_one(f"/v1/appStoreVersions/{version['id']}/gameCenterAppVersion")
+    print("  Game Center on the version: " + ("on" if on else "would be turned on" if dry_run else "turned on"))
+    if not on and not dry_run:
+        client.call("POST", "/v1/gameCenterAppVersions", {"data": {"type": "gameCenterAppVersions", "relationships": {
+            "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version["id"]}}}}})
+    for kind, label, wanted_ids in (("Leaderboard", "leaderboards", wanted["leaderboards"]),
+                                    ("Achievement", "achievements", None)):
+        items = {i["attributes"]["vendorIdentifier"]: i["id"] for i in client.get_all(
+            f"/v1/gameCenterDetails/{detail['id']}/gameCenter{kind}s?limit=200")}
+        wanted_ids = wanted_ids or sorted(items)
+        if missing := [v for v in wanted_ids if v not in items]:
+            raise RuntimeError(f"no such {label} in Game Center: {', '.join(missing)}")
+        released = {r["relationships"][f"gameCenter{kind}"]["data"]["id"] for r in client.get_all(
+            f"/v1/gameCenterDetails/{detail['id']}/{kind.lower()}Releases?include=gameCenter{kind}&limit=200")}
+        to_release = [v for v in wanted_ids if items[v] not in released]
+        verb = "would be released" if dry_run else "released"
+        print(f"  {label}: {len(wanted_ids) - len(to_release)} of {len(wanted_ids)} already released"
+              + (f"; {verb}: {', '.join(to_release)}" if to_release else ""))
+        for vendor_id in [] if dry_run else to_release:
+            client.call("POST", f"/v1/gameCenter{kind}Releases", {"data": {"type": f"gameCenter{kind}Releases", "relationships": {
+                "gameCenterDetail": {"data": {"type": "gameCenterDetails", "id": detail["id"]}},
+                f"gameCenter{kind}": {"data": {"type": f"gameCenter{kind}s", "id": items[vendor_id]}}}}})
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -859,6 +1010,9 @@ def main() -> int:
     buy.add_argument("--app", choices=APPS, required=True)
     buy.add_argument("--screenshot", type=Path, help="a PNG or JPEG of the purchase screen, for App Review")
     buy.add_argument("--dry-run", action="store_true", help="show what would change; write nothing")
+    settings = sub.add_parser("setup", help="set the category, age rating, copyright, release, price and availability")
+    settings.add_argument("--app", choices=APPS, required=True)
+    settings.add_argument("--dry-run", action="store_true", help="show what would change; write nothing")
     args = parser.parse_args()
     if args.command == "check":
         return check()
@@ -876,8 +1030,10 @@ def main() -> int:
         except RuntimeError as error:
             print(f"error: {error}", file=sys.stderr)
             return 2
-    if args.command == "purchase":
+    if args.command in ("purchase", "setup"):
         try:
+            if args.command == "setup":
+                return setup(args.app, args.dry_run)
             return purchase(args.app, args.screenshot, args.dry_run)
         except RuntimeError as error:
             print(f"error: {error}", file=sys.stderr)
