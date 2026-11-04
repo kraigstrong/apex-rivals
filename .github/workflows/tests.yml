@@ -1,10 +1,14 @@
 # Runs the tests on every pull request and every push to main, and fails on any build warning.
 name: Tests
 
+# Docs and the App Store listing don't go into the app, so a change of only those skips the run (main isn't protected,
+# so nothing waits on the check).
 on:
   pull_request:
+    paths-ignore: ['docs/**', '**/*.md', 'appstore/**']
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', 'appstore/**']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,18 +28,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: xcodebuild -version
-      # An iPhone the runner's simulator service actually lists (asking by name sometimes finds none), booted.
-      - name: Pick a simulator
+      # The simulator SDK's stat cache, which a fresh runner otherwise spends minutes building before the first compile.
+      - uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex
+          key: sdk-stat-cache-xcode-27.1
+      # An iPhone the runner's simulator service actually lists (asking by name sometimes finds none), booted while the
+      # Release build runs: booting, and the test run's wait for a just-booted device, took minutes of their own.
+      - name: Build (Release), booting a simulator meanwhile
         id: simulator
-        # Assigned first, so a failed pick stops the job here rather than testing on no device.
         run: |
-          udid=$(scripts/ci-simulator.sh)
-          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          scripts/ci-simulator.sh > "$RUNNER_TEMP/simulator" &
+          booting=$!
+          xcodebuild build -project Apex.xcodeproj -scheme Apex -configuration Release \
+            -destination 'generic/platform=iOS Simulator' $STRICT
+          # A failed pick fails the step here, rather than testing on no device.
+          wait $booting
+          echo "udid=$(cat "$RUNNER_TEMP/simulator")" >> "$GITHUB_OUTPUT"
       - name: Test (Debug)
         run: >
           xcodebuild test -project Apex.xcodeproj -scheme Apex
           -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' $STRICT
-      - name: Build (Release)
-        run: >
-          xcodebuild build -project Apex.xcodeproj -scheme Apex -configuration Release
-          -destination 'generic/platform=iOS Simulator' $STRICT
