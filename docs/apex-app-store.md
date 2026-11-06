@@ -29,8 +29,10 @@ in the pull request that does it.
 - [x] **App preview video** for the iPhone (the iPhone Duo's slot takes it too) and the 13-inch iPad, about 29 seconds
       with the game's sound, ending on the challenge (`scripts/store-preview.py`; README, App Store screenshots).
 - [x] **Header and search results images** (iOS 27's creative assets, 5244×2950): the logo over the ideal line, and
-      your ghost into Swirl's hairpin (`scripts/store-creative.py`). Both, and the previews (poster at 7.7 s, your
-      ghost and the rival into Swirl's hairpin), on 1.0 since 2026-11-02.
+      RACE YOUR GHOST over you and your ghost (`scripts/store-creative.py`), on 1.0 since 2026-11-05. The first pair,
+      uploaded 2026-11-02 with the previews (poster at 7.7 s, your ghost and the rival into Swirl's hairpin), was
+      cropped badly on an iPhone: the back and share buttons sat over the logo, and the search result cut the tagline
+      and the ghost. These are made to fit the iPhone's crops (README, App Store screenshots).
 - [x] **Metadata**: subtitle, promotional text, description, keywords, support URL, marketing URL, privacy policy
       URL, in `appstore/ghost-thread/app/en-US/`, on 1.0 since 2026-11-04 (`appstore/push.py push`). The
       description's headings are the screenshots' captions, in their order.

@@ -265,20 +265,26 @@ system draws while the game's sound plays is cropped off its left edge, in the s
 The header and search results images (iOS 27's creative assets, 5244×2950) are race frames drawn bigger than the
 screen, with no HUD: `-ApexStoreCaptureScale 6` beside `-ApexStoreCapture <moment>` on the 13-inch iPad draws
 `<moment>.png` at 8256×6192 (in the app's Documents/StoreCapture). `scripts/store-creative.py` crops a 16:9 window,
-closer than the whole frame so the car (which the race's camera keeps in the left third) comes in toward the middle,
+closer than the whole frame so the cars (which the race's camera keeps in the left third) come in toward the middle,
 and adds the logo (`Art/site/logo-large.png`, drawn by `SiteArtTests`) or a tagline:
 
 ```bash
-scripts/store-creative.py line.png build/store-creative/header.png --focus 0,0.5 --zoom 1.45 --logo --logo-y 0.21 \
-  --phone build/store-creative/header-phone.png
-scripts/store-creative.py ghosts.png build/store-creative/search.png --focus 0,0.5 --zoom 1.35 --tagline "RACE YOUR GHOST"
+scripts/store-creative.py line.png build/store-creative/header.png --placement header --focus 0,0.5125 --zoom 1.8 \
+  --logo --phone build/store-creative/header-phone.png
+scripts/store-creative.py ghosts.png build/store-creative/search.png --placement search --focus 0,0.57 --zoom 1.8 \
+  --tagline "RACE YOUR GHOST" --phone build/store-creative/search-phone.png
 python3 appstore/push.py media --app ghost-thread --dry-run --header build/store-creative/header.png \
   --search build/store-creative/search.png
 ```
 
-The header is the brand (the logo over the ideal line threading Harbor's S-bend), and an iPhone shows only its middle
-half and top 60% or so (`--phone` saves that, to check); the search results show the game (your ghost and the rival
-into Swirl's hairpin).
+The header is the brand (the logo over the ideal line, you and your ghost on it), and the search results show the
+game (you and your ghost on Swirl's straight, under RACE YOUR GHOST). An iPhone shows only part of each, and not the
+same part (measured from App Store Connect's preview, since Apple publishes no crops): the header's middle 54% of the
+width and top 63% of the height, with the top quarter under the status bar's blur and the back and share buttons; a
+search result's middle 41% of the width and the upper middle half of the height. The logo and tagline go in what's
+left clear, small and near the middle, and the script warns when they don't fit; `--phone` saves what an iPhone
+shows, buttons and all, to check before uploading. App Store Connect's Preview (on the version's media) shows the
+real crops once they're up.
 
 Gameplay footage for the website, 60 fps and silent, is drawn by the app a frame at a time rather than recorded, so it
 never stutters however slowly the simulator draws (`Apex/StoreFootage.swift`):
