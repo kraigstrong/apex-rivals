@@ -19,8 +19,9 @@ in the pull request that does it.
 
 ## App Store Connect
 
-- [ ] **The in-app purchase** (see below): created 2026-11-02. It goes to review with 1.0: an app's first in-app
-      purchase can only be reviewed with a version (add it on the version page before submitting).
+- [x] **The in-app purchase** (see below): created 2026-11-02. It goes to review with 1.0: an app's first in-app
+      purchase can only be reviewed with a version (add it on the version page before submitting). Submitted with 1.0
+      on 2026-11-05.
 - [x] **Screenshots**: 6.9" iPhone, 13" iPad and iPhone Duo, six each, on 1.0 since 2026-11-02. `scripts/store-capture.sh`
       (and `--ipad`) captures the six moments and `scripts/store-frames.py` captions them (README, App Store
       screenshots); upload with `appstore/push.py media`. The iPhone set is ready; recapture the iPad's now its race
@@ -29,27 +30,31 @@ in the pull request that does it.
 - [x] **App preview video** for the iPhone (the iPhone Duo's slot takes it too) and the 13-inch iPad, about 29 seconds
       with the game's sound, ending on the challenge (`scripts/store-preview.py`; README, App Store screenshots).
 - [x] **Header and search results images** (iOS 27's creative assets, 5244×2950): the logo over the ideal line, and
-      your ghost into Swirl's hairpin (`scripts/store-creative.py`). Both, and the previews (poster at 7.7 s, your
-      ghost and the rival into Swirl's hairpin), on 1.0 since 2026-11-02.
+      RACE YOUR GHOST over you and your ghost (`scripts/store-creative.py`), on 1.0 since 2026-11-05. The first pair,
+      uploaded 2026-11-02 with the previews (poster at 7.7 s, your ghost and the rival into Swirl's hairpin), was
+      cropped badly on an iPhone: the back and share buttons sat over the logo, and the search result cut the tagline
+      and the ghost. These are made to fit the iPhone's crops (README, App Store screenshots).
 - [x] **Metadata**: subtitle, promotional text, description, keywords, support URL, marketing URL, privacy policy
       URL, in `appstore/ghost-thread/app/en-US/`, on 1.0 since 2026-11-04 (`appstore/push.py push`). The
       description's headings are the screenshots' captions, in their order.
 - [x] **Settings** (`appstore/push.py setup`, from its `APP_SETUP`), on 1.0 since 2026-11-04: category Games ›
       Racing, copyright "2026 Kraig Strong", no third-party content (every sound is synthesized), released by hand once
       approved (Kraig's choice, so the day is his).
-- [ ] **App Privacy** answers (below), matching `Apex/PrivacyInfo.xcprivacy`. Only on App Store Connect's website:
-      the API doesn't cover them.
+- [x] **App Privacy** answers (below), matching `Apex/PrivacyInfo.xcprivacy`, published 2026-11-05. Only on App Store
+      Connect's website: the API doesn't cover them.
 - [x] **Age rating** (below): every answer None or No, set by `setup`. Apple rates it 4+.
 - [x] **Game Center** on 1.0, by `setup`: each circuit's physics 2 leaderboard (`apex.<circuit>.r1.p2`) and all 24
       medal achievements released, to go live with the version. Physics 1's boards stay unreleased (only TestFlight
       builds 1–4 drove on them).
 - [x] **App Review notes**: `appstore/ghost-thread/review_notes.txt` (no account needed; where the unlock and Restore
       are; Game Center and the lap service), on 1.0 since 2026-11-04.
-- [ ] **App Review contact**: name, phone and email, on the version page. Kraig's own details, so he enters them.
+- [x] **App Review contact**: name, phone and email, on the version page. Kraig's own details, so he enters them.
+      Sign-in required is off there: no account is needed (it was on by default).
 - [x] **Price and availability** (`setup`): free, in all 175 territories and new ones as Apple adds them.
 - [x] **The build**: 1.0 (1), from `apex-v1.0-build.1`, on 1.0 since 2026-11-04 (`docs/apex-testflight.md`, Build log).
-- [ ] **Submit for review**, with the in-app purchase added to the submission, once the build passes the TestFlight
-      smoke check (`docs/apex-testflight.md`).
+- [x] **Submit for review**, with the in-app purchase added to the submission, once the build passes the TestFlight
+      smoke check (`docs/apex-testflight.md`). Submitted 2026-11-05 (20:26 Pacific), 1.0 (1) with the unlock; released
+      by hand once approved.
 
 The metadata, purchase text, screenshots and settings live in `appstore/` and go up with the App Store Connect API
 (`appstore/push.py`, ported from Bigger Fish; see `appstore/README.md`).

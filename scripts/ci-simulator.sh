@@ -12,12 +12,15 @@ set -euo pipefail
 # The newest iOS runtime's iPhone, preferring an iPhone 17 Pro: "<udid> <name> (iOS <version>)", or nothing.
 pick() {
   xcrun simctl list devices available -j | python3 -I -c '
-import json, sys
+import json, re, sys
 best = None
 for runtime, devices in json.load(sys.stdin)["devices"].items():
-    if ".SimRuntime.iOS-" not in runtime:
+    # "com.apple.CoreSimulator.SimRuntime.iOS-27-1", or with more after the version, as one runner listed with
+    # "iPhone19" in it: the version is the numbers it starts with.
+    match = re.search(r"\.SimRuntime\.iOS-(\d+(?:-\d+)*)", runtime)
+    if not match:
         continue
-    version = tuple(int(part) for part in runtime.split(".SimRuntime.iOS-")[1].split("-"))
+    version = tuple(int(part) for part in match.group(1).split("-"))
     for device in devices:
         if device.get("isAvailable") and ".SimDeviceType.iPhone" in device.get("deviceTypeIdentifier", ""):
             key = (version, device["name"] == "iPhone 17 Pro", device["name"])
